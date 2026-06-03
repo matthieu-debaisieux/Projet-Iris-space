@@ -11,9 +11,35 @@
     <navbar class="flex  justify-between items-center bg-[var(--color-principal)]">
         <div class="flex items-center gap-5">
             <div class="logo"><a href="../../../index.html"><img src="../img/Logo_IRIS_SPACE.svg" alt="Logo" class="h-auto w-40 p-0 m-0"></a></div>
-            <div class="title text-2xl text-white">Administration</div>
+            <div class="title text-2xl text-white">Admin</div>
         </div>
-        <div class="logo"><a href="../../../index.html"><img src="../img/messages.svg" alt="Logo" class="h-auto w-15 p-0 m-0"></a></div>
+        <div class="logo hidden md:block"><a href="../../../index.html"><img src="../img/messages.svg" alt="Logo" class="h-auto w-15 p-0 m-0"></a></div>
+        <div class="md:hidden pr-4" ><label class="btn border-0 bg-[var(--color-principal)] swap swap-rotate active:scale-100 active:translate-y-0 shadow-none active:shadow-none">
+            <!-- this hidden checkbox controls the state -->
+            <input type="checkbox" />
+
+            <!-- hamburger icon -->
+            <svg
+                class="swap-off fill-current filter invert"
+                xmlns="http://www.w3.org/2000/svg"
+                width="32"
+                height="32"
+                viewBox="0 0 512 512">
+                <path d="M64,384H448V341.33H64Zm0-106.67H448V234.67H64ZM64,128v42.67H448V128Z" />
+            </svg>
+
+            <!-- close icon -->
+            <svg
+                class="swap-on fill-current filter invert"
+                xmlns="http://www.w3.org/2000/svg"
+                width="32"
+                height="32"
+                viewBox="0 0 512 512">
+                <polygon
+                points="400 145.49 366.51 112 256 222.51 145.49 112 112 145.49 222.51 256 112 366.51 145.49 400 256 289.49 366.51 400 400 366.51 289.49 256 400 145.49" />
+            </svg>
+            </label>
+        </div>
     </navbar>
     <script type="module" src="/src/assets/script/script.js"></script>
 </body>
