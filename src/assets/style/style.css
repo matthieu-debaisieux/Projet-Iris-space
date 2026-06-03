@@ -1,0 +1,22 @@
+@import "tailwindcss";
+@plugin "daisyui";
+:root {
+  --color-principal:  #11004A;
+  --color-secondaire: #F8B005;
+  --color-background: #D9D9D9;
+  --color-page: #FFFFFF;
+  --color-titre: #07A6A6; 
+  --color-button:#EC6F6F;
+}
+
+body{
+  margin: 0;
+  padding: 0;
+}
+
+@font-face {
+  font-family: 'alan';
+  src: url('../fonts/AlanSans.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
