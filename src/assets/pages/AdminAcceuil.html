@@ -9,7 +9,7 @@
 </head>
 <body>
     <!-- navbar -->
-    <navbar class="flex  justify-between items-center bg-[var(--color-principal)]">
+    <navbar class="flex  justify-between items-center bg-[var(--color-principal)] sticky top-0 index-50">
         <!-- partie gauche de la navbar -->
         <div class="flex items-center gap-5">
             <div class="logo"><a href="../../../index.html"><img src="../img/Logo_IRIS_SPACE.svg" alt="Logo" class="h-auto w-40 p-0 m-0"></a></div>
@@ -80,7 +80,13 @@
             </nav>
         </div>
     </div>
-    
+    <div class="sidebar fluid hidden md:block w-64 bg-[var(--color-secondaire)] min-height-100lvh sticky top-0 index-50  p-6">
+        <nav class="flex flex-col gap-5">
+            <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">DashBoard</a>
+            <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Elèves</a>
+            <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Professeurs</a>
+            <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Directions</a>
+            <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Messages</a>       
 
     <script type="module" src="/src/assets/script/script.js"></script>
 </body>
