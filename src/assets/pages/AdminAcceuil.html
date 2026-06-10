@@ -8,43 +8,34 @@
     <link rel="stylesheet" href="../style/style.css">
 </head>
 <body class="flex flex-col h-screen overflow-hidden">
+
     <!-- navbar -->
     <navbar class="flex justify-between items-center bg-[var(--color-principal)] sticky top-0 z-50 shrink-0">
-        <!-- partie gauche de la navbar -->
         <div class="flex items-center gap-5">
             <div class="logo"><a href="../../../index.html"><img src="../img/Logo_IRIS_SPACE.svg" alt="Logo" class="h-auto w-40 p-0 m-0"></a></div>
             <div class="title text-2xl text-white">Admin</div>
         </div>
-        <!-- partie droite de la navbar -->
-        <div>
-            <!-- logo messages -->
-            <div class="logo hidden md:block pr-4"><a href="../../../index.html"><img src="../img/messages.svg" alt="Logo" class="h-auto w-15 p-0 m-0"></a></div>
+        <div class="flex items-center">
+            <!-- icône messages avec badge notification -->
+            <div class="relative hidden md:block pr-4">
+                <a href="#" id="msg-icon-link">
+                    <img src="../img/messages.svg" alt="Messages" class="h-auto w-15 p-0 m-0">
+                </a>
+                <span id="msg-badge"
+                      class="hidden absolute -top-1 right-3 min-w-[20px] h-5 bg-red-600 text-white text-xs font-bold rounded-full items-center justify-center px-1 leading-none pointer-events-none">
+                </span>
+            </div>
 
             <!-- menu burger -->
-            <div class="md:hidden pr-4" ><label class="btn border-0 bg-[var(--color-principal)] swap swap-rotate active:scale-100 active:translate-y-0 shadow-none active:shadow-none">
-                <!-- Cette checkbox masquée permet de contrôler l'état de la navbar-->
-                <input type="checkbox" />
-
-                <!-- icon hamburger -->
-                <svg
-                    class="swap-off fill-current filter invert"
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="32"
-                    height="32"
-                    viewBox="0 0 512 512">
-                    <path d="M64,384H448V341.33H64Zm0-106.67H448V234.67H64ZM64,128v42.67H448V128Z" />
-                </svg>
-
-                <!-- icon de fermeture -->
-                <svg
-                    class="swap-on fill-current filter invert"
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="32"
-                    height="32"
-                    viewBox="0 0 512 512">
-                    <polygon
-                    points="400 145.49 366.51 112 256 222.51 145.49 112 112 145.49 222.51 256 112 366.51 145.49 400 256 289.49 366.51 400 400 366.51 289.49 256 400 145.49" />
-                </svg>
+            <div class="md:hidden pr-4">
+                <label class="btn border-0 bg-[var(--color-principal)] swap swap-rotate active:scale-100 active:translate-y-0 shadow-none active:shadow-none">
+                    <input type="checkbox" />
+                    <svg class="swap-off fill-current filter invert" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 512 512">
+                        <path d="M64,384H448V341.33H64Zm0-106.67H448V234.67H64ZM64,128v42.67H448V128Z" />
+                    </svg>
+                    <svg class="swap-on fill-current filter invert" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 512 512">
+                        <polygon points="400 145.49 366.51 112 256 222.51 145.49 112 112 145.49 222.51 256 112 366.51 145.49 400 256 289.49 366.51 400 400 366.51 289.49 256 400 145.49" />
+                    </svg>
                 </label>
             </div>
         </div>
@@ -52,23 +43,12 @@
 
     <!-- menu déroulant (overlay) -->
     <div class="fixed inset-0 z-50 hidden" id="dropdown-overlay">
-        <!-- backdrop sombre -->
         <div class="absolute inset-0 bg-black/40 transition-opacity duration-300" id="dropdown-backdrop"></div>
-
-        <!-- panneau latéral -->
         <div id="dropdown-panel"
              class="absolute top-0 right-0 h-full w-72 bg-[var(--color-secondaire)] rounded-l-3xl shadow-2xl flex flex-col p-6 translate-x-full transition-transform duration-300 ease-in-out">
-
-            <!-- bouton fermeture -->
             <div class="flex justify-end mb-8">
-                <button id="dropdown-close"
-                        class="text-white text-3xl font-bold leading-none hover:scale-125 transition-transform duration-200"
-                        aria-label="Fermer le menu">
-                    →
-                </button>
+                <button id="dropdown-close" class="text-white text-3xl font-bold leading-none hover:scale-125 transition-transform duration-200" aria-label="Fermer le menu">→</button>
             </div>
-
-            <!-- liens de navigation -->
             <nav class="flex flex-col gap-5">
                 <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">DashBoard</a>
                 <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Elèves</a>
@@ -84,6 +64,7 @@
 
     <!-- layout principal -->
     <div class="flex flex-1 overflow-hidden">
+
         <!-- sidebar -->
         <div class="hidden md:flex flex-col w-64 bg-[var(--color-principal)] overflow-y-auto p-6 shrink-0">
             <nav class="flex flex-col gap-5 flex-1">
@@ -98,18 +79,138 @@
             </nav>
         </div>
 
-        <!-- content -->
-        <div class="flex-1 overflow-y-auto p-6">
-        
+        <!-- contenu principal -->
+        <div class="flex-1 overflow-y-auto p-6 bg-[var(--color-page)]">
+
+            <!-- en-tête : titre + barre de recherche -->
+            <div class="flex justify-between items-center mb-8 flex-wrap gap-4">
+                <h1 class="text-2xl font-bold text-[var(--color-titre)]">Page DashBoard</h1>
+            </div>
+
+            <!-- tableaux -->
+            <div class="flex flex-col 2xl:flex-row gap-8">
+
+                <!-- Absences aujourd'hui -->
+                <div class="flex-1 min-w-0">
+                    <h2 class="text-xl font-bold text-[var(--color-titre)] text-center mb-3">Absences aujourd'hui</h2>
+                    <div class="bg-[var(--color-background)]  overflow-hidden">
+                        <table class="w-full border-collapse text-sm">
+                            <thead>
+                                <tr>
+                                    <th class="border border-gray-400 px-3 py-3 text-center font-semibold bg-[var(--color-background)]">Elèves</th>
+                                    <th class="border border-gray-400 px-3 py-3 text-center font-semibold bg-[var(--color-background)]">Classes</th>
+                                    <th class="border border-gray-400 px-3 py-3 text-center font-semibold bg-[var(--color-background)]">Heure</th>
+                                    <th class="border border-gray-400 px-3 py-3 text-center font-semibold bg-[var(--color-background)]">Justifié?</th>
+                                    <th class="border border-gray-400 px-3 py-3 text-center font-semibold bg-[var(--color-background)]">Contact</th>
+                                </tr>
+                            </thead>
+                            <tbody id="absences-tbody">
+                                <!-- vide - aucune donnée -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Cours aujourd'hui -->
+                <div class="flex-1 min-w-0">
+                    <h2 class="text-xl font-bold text-[var(--color-titre)] text-center mb-3">Cours Aujourd'hui</h2>
+                    <div class="bg-[var(--color-background)] overflow-hidden">
+                        <table class="w-full border-collapse text-sm">
+                            <thead>
+                                <tr>
+                                    <th class="border border-gray-400 px-2 py-3 text-center font-semibold bg-[var(--color-background)] w-14">Heure</th>
+                                    <th class="border border-gray-400 px-3 py-3 text-center font-semibold bg-[var(--color-background)]">Salle/Classe</th>
+                                    <th class="border border-gray-400 px-3 py-3 text-center font-semibold bg-[var(--color-background)]">Salle/Classe</th>
+                                    <th class="border border-gray-400 px-3 py-3 text-center font-semibold bg-[var(--color-background)]">Salle/Classe</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cours-tbody">
+                                <!-- vide - aucune donnée -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
         </div>
     </div>
 
+    <!-- footer -->
     <div class="flex justify-start align-middle p-2 bg-[#5D5C60] shrink-0">
-        <div class="text-white text-sm flex items-center"><button class=" text-white text-xl font-medium hover:-translate-y-1 transition-transform duration-200">Mentions légales</button>
+        <div class="text-white text-sm flex items-center">
+            <button class="text-white text-xl font-medium hover:-translate-y-1 transition-transform duration-200">Mentions légales</button>
             <span class="self-stretch w-px bg-white mx-3"></span>
             <button class="text-white text-xl font-medium hover:-translate-y-1 transition-transform duration-200">Politique de confidentialité</button>
             <span class="self-stretch w-px bg-white mx-3"></span>
-            <a href="https://mediaschool.eu/" target="_blank" class=""><img src="../img/ms_logo_cmjn_blanc_1.png" alt="Logo" class="h-12"></a>
+            <a href="https://mediaschool.eu/" target="_blank"><img src="../img/ms_logo_cmjn_blanc_1.png" alt="Logo" class="h-12"></a>
+        </div>
+    </div>
+
+    <!-- ===== PANEL DEBUG / DEV ===== -->
+    <div id="debug-panel"
+         class="fixed bottom-16 right-4 z-[200] hidden w-64 bg-[var(--color-principal)] text-white rounded-2xl shadow-2xl p-4 border border-[var(--color-secondaire)]">
+        <div class="flex justify-between items-center mb-4">
+            <span class="font-bold text-[var(--color-secondaire)] text-sm uppercase tracking-wider">🛠 Dev Tools</span>
+            <button id="debug-close" class="text-gray-400 hover:text-white text-lg font-bold leading-none transition-colors">✕</button>
+        </div>
+
+        <div class="flex flex-col gap-2 text-sm">
+            <p class="text-gray-400 text-xs uppercase tracking-wider mb-1">Compteur messages</p>
+            <div class="flex items-center gap-2">
+                <button id="dev-msg-add"
+                        class="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-lg px-3 py-2 transition font-bold">
+                    +1
+                </button>
+                <button id="dev-msg-remove"
+                        class="flex-1 bg-red-600 hover:bg-red-700 text-white rounded-lg px-3 py-2 transition font-bold">
+                    -1
+                </button>
+                <button id="dev-msg-reset"
+                        class="flex-1 bg-gray-600 hover:bg-gray-700 text-white rounded-lg px-3 py-2 transition text-xs font-medium">
+                    Reset
+                </button>
+            </div>
+            <div class="flex items-center justify-between bg-white/10 rounded-lg px-3 py-2 mt-1">
+                <span class="text-gray-300 text-xs">Compteur actuel :</span>
+                <span id="debug-counter" class="text-[var(--color-secondaire)] font-bold text-lg">0</span>
+            </div>
+
+            <p class="text-gray-400 text-xs uppercase tracking-wider mt-3 mb-1">Données</p>
+            <button id="dev-reset-data"
+                    class="bg-orange-600 hover:bg-orange-700 text-white rounded-lg px-3 py-2 text-left transition font-medium text-xs">
+                Reset données (défaut)
+            </button>
+        </div>
+    </div>
+
+    <!-- bouton toggle panel debug -->
+    <button id="debug-toggle"
+            class="fixed bottom-4 right-4 z-[200] bg-[var(--color-principal)] border-2 border-[var(--color-secondaire)] text-[var(--color-secondaire)] font-bold text-xs px-3 py-2 rounded-full shadow-lg hover:bg-[var(--color-secondaire)] hover:text-[var(--color-principal)] transition-all duration-200"
+            title="Menu développeur">
+        DEV
+    </button>
+
+    <!-- Modale coordonnées contact -->
+    <div id="modal-contact"
+         class="hidden fixed inset-0 z-[300] items-center justify-center">
+        <div id="modal-contact-backdrop" class="absolute inset-0 bg-black/50"></div>
+        <div class="relative bg-white rounded-lg shadow-2xl p-8 w-full max-w-sm mx-4 z-10">
+            <button class="modal-close absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl font-bold leading-none" data-modal="modal-contact">✕</button>
+            <h3 class="text-lg font-bold text-[var(--color-titre)] mb-6">Coordonnées du contact</h3>
+            <div class="flex flex-col gap-4">
+                <div>
+                    <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Élève</p>
+                    <p id="contact-nom" class="font-semibold text-gray-800 text-base"></p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Téléphone</p>
+                    <a id="contact-tel" href="#" class="font-medium text-[var(--color-secondaire)] hover:underline text-base"></a>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Email</p>
+                    <a id="contact-email" href="#" class="font-medium text-[var(--color-secondaire)] hover:underline text-base break-all"></a>
+                </div>
+            </div>
         </div>
     </div>
 
