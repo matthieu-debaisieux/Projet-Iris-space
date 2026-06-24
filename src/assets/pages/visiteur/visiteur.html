@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IRIS-SPACE — Visiteur</title>
+    <link rel="stylesheet" href="../../style/style.css">
+</head>
+<body class="flex flex-col h-screen overflow-hidden">
+
+    <!-- navbar -->
+    <navbar class="flex justify-between items-center bg-[var(--color-principal)] sticky top-0 z-50 shrink-0 pr-4">
+        <div class="flex items-center gap-5">
+            <div class="logo"><a href="../../../../index.html"><img src="../../img/Logo_IRIS_SPACE.svg" alt="Logo IRIS SPACE" class="h-auto w-40 p-0 m-0"></a></div>
+            <div class="title text-2xl text-white tracking-wide">VISITEUR</div>
+        </div>
+
+        <!-- navigation desktop -->
+        <nav class="hidden md:flex items-center gap-8 text-white">
+            <a href="visiteur.html" aria-label="Accueil" class="hover:scale-110 transition-transform duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 3 2 12h3v8h6v-5h2v5h6v-8h3L12 3z" />
+                </svg>
+            </a>
+            <a href="#a-propos" class="text-xl font-medium hover:-translate-y-0.5 transition-transform duration-200">à propos</a>
+            <a href="#contact" class="text-xl font-medium hover:-translate-y-0.5 transition-transform duration-200">Contact</a>
+            <a href="#actualite" class="text-xl font-medium hover:-translate-y-0.5 transition-transform duration-200">Actualité</a>
+            <a href="#contact" aria-label="Messagerie" class="hover:scale-110 transition-transform duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                </svg>
+            </a>
+        </nav>
+
+        <!-- menu burger (mobile) -->
+        <div class="md:hidden">
+            <label class="btn border-0 bg-[var(--color-principal)] swap swap-rotate active:scale-100 active:translate-y-0 shadow-none active:shadow-none">
+                <input type="checkbox" id="nav-toggle" />
+                <svg class="swap-off fill-current filter invert" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 512 512">
+                    <path d="M64,384H448V341.33H64Zm0-106.67H448V234.67H64ZM64,128v42.67H448V128Z" />
+                </svg>
+                <svg class="swap-on fill-current filter invert" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 512 512">
+                    <polygon points="400 145.49 366.51 112 256 222.51 145.49 112 112 145.49 222.51 256 112 366.51 145.49 400 256 289.49 366.51 400 400 366.51 289.49 256 400 145.49" />
+                </svg>
+            </label>
+        </div>
+    </navbar>
+
+    <!-- menu déroulant (overlay mobile) -->
+    <div class="fixed inset-0 z-50 hidden" id="dropdown-overlay">
+        <div class="absolute inset-0 bg-black/40 transition-opacity duration-300" id="dropdown-backdrop"></div>
+        <div id="dropdown-panel"
+             class="absolute top-0 right-0 h-full w-72 bg-[var(--color-secondaire)] rounded-l-3xl shadow-2xl flex flex-col p-6 translate-x-full transition-transform duration-300 ease-in-out">
+            <div class="flex justify-end mb-8">
+                <button id="dropdown-close" class="text-white text-3xl font-bold leading-none hover:scale-125 transition-transform duration-200" aria-label="Fermer le menu">→</button>
+            </div>
+            <nav class="flex flex-col gap-5">
+                <a href="visiteur.html" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Accueil</a>
+                <a href="#a-propos" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">À propos</a>
+                <a href="#contact" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Contact</a>
+                <a href="#actualite" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Actualité</a>
+            </nav>
+        </div>
+    </div>
+
+    <!-- contenu principal -->
+    <main id="a-propos" class="flex-1 overflow-y-auto p-6 md:p-10 bg-[var(--color-page)]">
+        <div class="flex flex-col md:flex-row gap-8 md:gap-12 max-w-400 mx-auto h-full items-stretch">
+
+            <!-- carte À Propos : texte -->
+            <section class="flex-1 bg-[var(--color-background)] rounded-3xl p-8 md:p-10 flex flex-col">
+                <h1 class="text-3xl font-bold text-gray-800 text-center mb-8">À Propos</h1>
+                <div class="flex flex-col gap-5 text-gray-800 text-lg leading-relaxed">
+                    <p>
+                        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod
+                        tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
+                        veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea
+                        commodo consequat.
+                    </p>
+                    <p>
+                        Duis aute irure dolor in reprehenderit in voluptate velit esse cillum
+                        dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non
+                        proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+                    </p>
+                    <p>
+                        Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium
+                        doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore
+                        veritatis et quasi architecto beatae vitae dicta sunt explicabo.
+                    </p>
+                </div>
+            </section>
+
+            <!-- image (placeholder) -->
+            <section class="flex-1 flex">
+                <div class="w-full rounded-3xl border-4 border-blue-400 bg-gray-200 flex flex-col items-center justify-center gap-3 text-gray-500 min-h-[300px] md:min-h-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" />
+                        <path d="M21 15l-5-5L5 21" />
+                    </svg>
+                    <span class="text-lg font-medium">Image</span>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- footer -->
+    <div class="flex justify-between items-center p-2 px-4 bg-[#5D5C60] shrink-0">
+        <div class="text-white text-sm flex items-center">
+            <button class="text-white text-xl font-medium hover:-translate-y-1 transition-transform duration-200">Mentions légales</button>
+            <span class="self-stretch w-px bg-white mx-3"></span>
+            <button class="text-white text-xl font-medium hover:-translate-y-1 transition-transform duration-200">Confidentialité</button>
+            <span class="self-stretch w-px bg-white mx-3"></span>
+            <a href="https://mediaschool.eu/" target="_blank"><img src="../../img/ms_logo_cmjn_blanc_1.png" alt="Logo MediaSchool" class="h-12"></a>
+        </div>
+        <a href="https://mediaschool.eu/" target="_blank"
+           class="hidden sm:inline-block text-white text-base font-medium border border-white rounded-full px-5 py-2 hover:bg-white hover:text-[#5D5C60] transition-colors duration-200">
+            Page de MédiaSchool
+        </a>
+    </div>
+
+    <script type="module" src="/src/assets/script/visiteur.js"></script>
+</body>
+</html>
