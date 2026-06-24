@@ -1,207 +1,207 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Administration</title>
-    <link rel="stylesheet" href="../style/style.css" />
-  </head>
-  <body class="flex flex-col h-screen overflow-hidden">
+    <link rel="stylesheet" href="../style/style.css">
+</head>
+<body class="flex flex-col h-screen overflow-hidden">
 
     <!-- navbar -->
     <navbar class="flex justify-between items-center bg-[var(--color-principal)] sticky top-0 z-50 shrink-0">
-      <div class="flex items-center gap-5">
-        <div class="logo">
-          <a href="../../../index.html">
-            <img src="../img/Logo_IRIS_SPACE.svg" alt="Logo" class="h-auto w-40 p-0 m-0" />
-          </a>
+        <div class="flex items-center gap-5">
+            <div class="logo"><a href="../../../index.html"><img src="../img/Logo_IRIS_SPACE.svg" alt="Logo" class="h-auto w-40 p-0 m-0"></a></div>
+            <div class="title text-2xl text-white">Admin</div>
         </div>
-        <div class="title text-2xl text-white">Admin</div>
-      </div>
-      <div class="flex items-center">
-        <div class="relative hidden md:block pr-4">
-          <a href="#" id="msg-icon-link">
-            <img src="../img/messages.svg" alt="Messages" class="h-auto w-15 p-0 m-0" />
-          </a>
-          <span id="msg-badge" class="hidden absolute -top-1 right-3 min-w-[20px] h-5 bg-red-600 text-white text-xs font-bold rounded-full items-center justify-center px-1 leading-none pointer-events-none"></span>
+        <div class="flex items-center">
+            <!-- icône messages avec badge notification -->
+            <div class="relative hidden md:block pr-4">
+                <a href="Messages.html" id="msg-icon-link">
+                    <img src="../img/messages.svg" alt="Messages" class="h-auto w-15 p-0 m-0">
+                </a>
+                <span id="msg-badge"
+                      class="hidden absolute -top-1 right-3 min-w-[20px] h-5 bg-red-600 text-white text-xs font-bold rounded-full items-center justify-center px-1 leading-none pointer-events-none">
+                </span>
+            </div>
+
+            <!-- menu burger -->
+            <div class="md:hidden pr-4">
+                <label class="btn border-0 bg-[var(--color-principal)] swap swap-rotate active:scale-100 active:translate-y-0 shadow-none active:shadow-none">
+                    <input type="checkbox" />
+                    <svg class="swap-off fill-current filter invert" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 512 512">
+                        <path d="M64,384H448V341.33H64Zm0-106.67H448V234.67H64ZM64,128v42.67H448V128Z" />
+                    </svg>
+                    <svg class="swap-on fill-current filter invert" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 512 512">
+                        <polygon points="400 145.49 366.51 112 256 222.51 145.49 112 112 145.49 222.51 256 112 366.51 145.49 400 256 289.49 366.51 400 400 366.51 289.49 256 400 145.49" />
+                    </svg>
+                </label>
+            </div>
         </div>
-        <div class="md:hidden pr-4">
-          <label class="btn border-0 bg-[var(--color-principal)] swap swap-rotate active:scale-100 active:translate-y-0 shadow-none active:shadow-none">
-            <input type="checkbox" />
-            <svg class="swap-off fill-current filter invert" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 512 512">
-              <path d="M64,384H448V341.33H64Zm0-106.67H448V234.67H64ZM64,128v42.67H448V128Z"/>
-            </svg>
-            <svg class="swap-on fill-current filter invert" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 512 512">
-              <polygon points="400 145.49 366.51 112 256 222.51 145.49 112 112 145.49 222.51 256 112 366.51 145.49 400 256 289.49 366.51 400 400 366.51 289.49 256 400 145.49"/>
-            </svg>
-          </label>
-        </div>
-      </div>
     </navbar>
 
     <!-- menu déroulant (overlay) -->
     <div class="fixed inset-0 z-50 hidden" id="dropdown-overlay">
-      <div class="absolute inset-0 bg-black/40 transition-opacity duration-300" id="dropdown-backdrop"></div>
-      <div id="dropdown-panel" class="absolute top-0 right-0 h-full w-72 bg-[var(--color-secondaire)] rounded-l-3xl shadow-2xl flex flex-col p-6 translate-x-full transition-transform duration-300 ease-in-out">
-        <div class="flex justify-end mb-8">
-          <button id="dropdown-close" class="text-white text-3xl font-bold leading-none hover:scale-125 transition-transform duration-200" aria-label="Fermer le menu">→</button>
+        <div class="absolute inset-0 bg-black/40 transition-opacity duration-300" id="dropdown-backdrop"></div>
+        <div id="dropdown-panel"
+            class="absolute top-0 right-0 h-full w-72 bg-[var(--color-secondaire)] rounded-l-3xl shadow-2xl flex flex-col p-6 translate-x-full transition-transform duration-300 ease-in-out">
+            <div class="flex justify-end mb-8">
+                <button id="dropdown-close" class="text-white text-3xl font-bold leading-none hover:scale-125 transition-transform duration-200" aria-label="Fermer le menu">→</button>
+            </div>
+            <nav class="flex flex-col gap-5">
+                <a href="AdminAcceuil.html" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">DashBoard</a>
+                <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Elèves</a>
+                <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Professeurs</a>
+                <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Directions</a>
+                <a href="Messages.html" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Messages</a>
+                <a href="Administration.html" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Administration</a>
+                <a href="documents.html" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Documents</a>
+                <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Actualité</a>
+            </nav>
         </div>
-        <nav class="flex flex-col gap-5">
-          <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">DashBoard</a>
-          <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Elèves</a>
-          <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Professeurs</a>
-          <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Directions</a>
-          <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Messages</a>
-          <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Administration</a>
-          <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Arborescence</a>
-          <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Actualité</a>
-        </nav>
-      </div>
     </div>
 
     <!-- layout principal -->
     <div class="flex flex-1 overflow-hidden">
 
-      <!-- sidebar -->
-      <div class="hidden md:flex flex-col w-64 bg-[var(--color-principal)] overflow-y-auto p-6 shrink-0">
-        <nav class="flex flex-col gap-5 flex-1">
-          <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">DashBoard</a>
-          <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Elèves</a>
-          <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Professeurs</a>
-          <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Directions</a>
-          <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Messages</a>
-          <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Administration</a>
-          <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Arborescence</a>
-          <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200 mt-auto">Actualité</a>
-        </nav>
-      </div>
-
-      <!-- contenu principal -->
-      <main class="flex-1 overflow-y-auto p-6 bg-[#F5F5F5]">
-        <h1 class="text-3xl font-bold mb-6 text-[#07A6A6]">Page Documents</h1>
-
-        <!-- bouton unique -->
-        <div class="flex gap-5 flex-wrap mb-4">
-          <button
-            id="add-space-button"
-            class="btn btn-md bg-[#EC6F6F] hover:bg-[#EC6F6F]/90 font-bold flex items-center gap-2"
-          >
-            Ajouter un espace
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-          </button>
+        <!-- sidebar -->
+        <div class="hidden md:flex flex-col w-64 bg-[var(--color-principal)] overflow-y-auto p-6 shrink-0">
+            <nav class="flex flex-col gap-5 flex-1">
+                <a href="AdminAcceuil.html" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">DashBoard</a>
+                <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Elèves</a>
+                <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Professeurs</a>
+                <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Directions</a>
+                <a href="Messages.html" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Messages</a>
+                <a href="Administration.html" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Administration</a>
+                <a href="documents.html" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Documents</a>
+                <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200 mt-auto">Actualité</a>
+            </nav>
         </div>
 
-        <!-- Section documents (générée par doc.js) -->
-        <section id="documents-section" class="flex flex-col gap-4 bg-white p-6 rounded-lg shadow-md"></section>
-      </main>
+        <!-- contenu principal -->
+        <main class="flex-1 overflow-y-auto p-6 bg-[#F5F5F5]">
+            <h1 class="text-3xl font-bold mb-6 text-[#07A6A6]">Page Documents</h1>
+
+        <!-- Collapse pour Documents -->
+        <div class="flex flex-col gap-4 bg-white p-6 rounded-lg shadow-md">
+            <div tabindex="0" class="collapse collapse-arrow bg-base-100 border-base-300 border">
+                <div class="collapse-title font-semibold">Administration</div>
+                <div class="collapse-content text-sm">
+                    Doc.test
+                </div>
+            </div>
+            <div tabindex="0" class="collapse collapse-arrow bg-base-100 border-base-300 border">
+                <div class="collapse-title font-semibold">B1 Développement et BDD</div>
+                <div class="collapse-content text-sm">
+                    Doc.test
+                </div>
+            </div>
+            <div tabindex="0" class="collapse collapse-arrow bg-base-100 border-base-300 border">
+                <div class="collapse-title font-semibold">B1 Système et réseaux</div>
+                <div class="collapse-content text-sm">
+                    Doc.test
+                </div>
+            </div>
+            <div tabindex="0" class="collapse collapse-arrow bg-base-100 border-base-300 border">
+                <div class="collapse-title font-semibold">B2 SISR</div>
+                <div class="collapse-content text-sm">
+                    Doc.test
+                </div>
+            </div>
+            <div tabindex="0" class="collapse collapse-arrow bg-base-100 border-base-300 border">
+                <div class="collapse-title font-semibold">B2 SLAM</div>
+                <div class="collapse-content text-sm">
+                    Doc.test
+                </div>
+            </div>
+            <div tabindex="0" class="collapse collapse-arrow bg-base-100 border-base-300 border">
+                <div class="collapse-title font-semibold">B3 Cybersécurité</div>
+                <div class="collapse-content text-sm">
+                    Doc.test
+                </div>
+            </div>
+            <div tabindex="0" class="collapse collapse-arrow bg-base-100 border-base-300 border">
+                <div class="collapse-title font-semibold">CEJM</div>
+                <div class="collapse-content text-sm">
+                    Doc.test
+                </div>
+            </div>
+            <div tabindex="0" class="collapse collapse-arrow bg-base-100 border-base-300 border">
+                <div class="collapse-title font-semibold">Culture général et expression</div>
+                <div class="collapse-content text-sm">
+                    Doc.test
+                </div>
+            </div>
+            <div tabindex="0" class="collapse collapse-arrow bg-base-100 border-base-300 border">
+                <div class="collapse-title font-semibold">Anglais</div>
+                <div class="collapse-content text-sm">
+                    Doc.test
+                </div>
+            </div>
+            <div tabindex="0" class="collapse collapse-arrow bg-base-100 border-base-300 border">
+                <div class="collapse-title font-semibold">Mathématique</div>
+                <div class="collapse-content text-sm">
+                    Doc.test
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- footer -->
     <div class="flex justify-start align-middle p-2 bg-[#5D5C60] shrink-0">
-      <div class="text-white text-sm flex items-center">
-        <button class="text-white text-xl font-medium hover:-translate-y-1 transition-transform duration-200">Mentions légales</button>
-        <span class="self-stretch w-px bg-white mx-3"></span>
-        <button class="text-white text-xl font-medium hover:-translate-y-1 transition-transform duration-200">Politique de confidentialité</button>
-        <span class="self-stretch w-px bg-white mx-3"></span>
-        <a href="https://mediaschool.eu/" target="_blank">
-          <img src="../img/ms_logo_cmjn_blanc_1.png" alt="Logo" class="h-12" />
-        </a>
-      </div>
+        <div class="text-white text-sm flex items-center">
+            <button class="text-white text-xl font-medium hover:-translate-y-1 transition-transform duration-200">Mentions légales</button>
+            <span class="self-stretch w-px bg-white mx-3"></span>
+            <button class="text-white text-xl font-medium hover:-translate-y-1 transition-transform duration-200">Politique de confidentialité</button>
+            <span class="self-stretch w-px bg-white mx-3"></span>
+            <a href="https://mediaschool.eu/" target="_blank"><img src="../img/ms_logo_cmjn_blanc_1.png" alt="Logo" class="h-12"></a>
+        </div>
     </div>
 
-    <!-- PANEL DEBUG -->
-    <div id="debug-panel" class="fixed bottom-16 right-4 z-[200] hidden w-64 bg-[var(--color-principal)] text-white rounded-2xl shadow-2xl p-4 border border-[var(--color-secondaire)]">
-      <div class="flex justify-between items-center mb-4">
-        <span class="font-bold text-[var(--color-secondaire)] text-sm uppercase tracking-wider">🛠 Dev Tools</span>
-        <button id="debug-close" class="text-gray-400 hover:text-white text-lg font-bold leading-none transition-colors">✕</button>
-      </div>
-      <div class="flex flex-col gap-2 text-sm">
-        <p class="text-gray-400 text-xs uppercase tracking-wider mb-1">Compteur messages</p>
-        <div class="flex items-center gap-2">
-          <button id="dev-msg-add"    class="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-lg px-3 py-2 transition font-bold">+1</button>
-          <button id="dev-msg-remove" class="flex-1 bg-red-600 hover:bg-red-700 text-white rounded-lg px-3 py-2 transition font-bold">-1</button>
-          <button id="dev-msg-reset"  class="flex-1 bg-gray-600 hover:bg-gray-700 text-white rounded-lg px-3 py-2 transition text-xs font-medium">Reset</button>
+    <!-- ===== PANEL DEBUG / DEV ===== -->
+    <div id="debug-panel"
+         class="fixed bottom-16 right-4 z-[200] hidden w-64 bg-[var(--color-principal)] text-white rounded-2xl shadow-2xl p-4 border border-[var(--color-secondaire)]">
+        <div class="flex justify-between items-center mb-4">
+            <span class="font-bold text-[var(--color-secondaire)] text-sm uppercase tracking-wider">🛠 Dev Tools</span>
+            <button id="debug-close" class="text-gray-400 hover:text-white text-lg font-bold leading-none transition-colors">✕</button>
         </div>
-        <div class="flex items-center justify-between bg-white/10 rounded-lg px-3 py-2 mt-1">
-          <span class="text-gray-300 text-xs">Compteur actuel :</span>
-          <span id="debug-counter" class="text-[var(--color-secondaire)] font-bold text-lg">0</span>
+
+        <div class="flex flex-col gap-2 text-sm">
+            <p class="text-gray-400 text-xs uppercase tracking-wider mb-1">Compteur messages</p>
+            <div class="flex items-center gap-2">
+                <button id="dev-msg-add"
+                        class="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-lg px-3 py-2 transition font-bold">
+                    +1
+                </button>
+                <button id="dev-msg-remove"
+                        class="flex-1 bg-red-600 hover:bg-red-700 text-white rounded-lg px-3 py-2 transition font-bold">
+                    -1
+                </button>
+                <button id="dev-msg-reset"
+                        class="flex-1 bg-gray-600 hover:bg-gray-700 text-white rounded-lg px-3 py-2 transition text-xs font-medium">
+                    Reset
+                </button>
+            </div>
+            <div class="flex items-center justify-between bg-white/10 rounded-lg px-3 py-2 mt-1">
+                <span class="text-gray-300 text-xs">Compteur actuel :</span>
+                <span id="debug-counter" class="text-[var(--color-secondaire)] font-bold text-lg">0</span>
+            </div>
+
+            <p class="text-gray-400 text-xs uppercase tracking-wider mt-3 mb-1">Données</p>
+            <button id="dev-reset-data"
+                    class="bg-orange-600 hover:bg-orange-700 text-white rounded-lg px-3 py-2 text-left transition font-medium text-xs">
+                Reset données (défaut)
+            </button>
         </div>
-        <p class="text-gray-400 text-xs uppercase tracking-wider mt-3 mb-1">Données</p>
-        <button id="dev-reset-data" class="bg-orange-600 hover:bg-orange-700 text-white rounded-lg px-3 py-2 text-left transition font-medium text-xs">Reset données (défaut)</button>
-      </div>
     </div>
-    <button id="debug-toggle" class="fixed bottom-4 right-4 z-[200] bg-[var(--color-principal)] border-2 border-[var(--color-secondaire)] text-[var(--color-secondaire)] font-bold text-xs px-3 py-2 rounded-full shadow-lg hover:bg-[var(--color-secondaire)] hover:text-[var(--color-principal)] transition-all duration-200" title="Menu développeur">DEV</button>
 
-    <!-- ═══════════════ MODALES ═══════════════ -->
-
-    <!-- Créer un espace -->
-    <dialog id="modal-space" class="modal">
-      <div class="modal-box max-w-sm">
-        <h3 class="font-semibold text-lg mb-4">Nouvel espace</h3>
-        <input id="space-name-input" type="text" placeholder="Nom de l'espace" class="input input-bordered w-full mb-4" />
-        <div class="modal-action">
-          <button id="space-cancel"  class="btn btn-ghost">Annuler</button>
-          <button id="space-confirm" class="btn bg-[#07A6A6] hover:bg-[#07A6A6]/90 text-white">Créer</button>
-        </div>
-      </div>
-      <form method="dialog" class="modal-backdrop"><button>close</button></form>
-    </dialog>
-
-    <!-- Ajouter un document (sans select espace) -->
-    <dialog id="modal-doc" class="modal">
-      <div class="modal-box max-w-sm">
-        <h3 class="font-semibold text-lg mb-4">Ajouter un document</h3>
-        <input id="doc-name-input" type="text" placeholder="Nom du document" class="input input-bordered w-full mb-4" />
-        <div class="modal-action">
-          <button id="doc-cancel"  class="btn btn-ghost">Annuler</button>
-          <button id="doc-confirm" class="btn bg-[#07A6A6] hover:bg-[#07A6A6]/90 text-white">Ajouter</button>
-        </div>
-      </div>
-      <form method="dialog" class="modal-backdrop"><button>close</button></form>
-    </dialog>
-
-    <!-- Renommer un espace -->
-    <dialog id="modal-rename" class="modal">
-      <div class="modal-box max-w-sm">
-        <h3 class="font-semibold text-lg mb-4">Renommer l'espace</h3>
-        <input id="rename-input" type="text" placeholder="Nouveau nom" class="input input-bordered w-full mb-4" />
-        <div class="modal-action">
-          <button id="rename-cancel"  class="btn btn-ghost">Annuler</button>
-          <button id="rename-confirm" class="btn bg-[#07A6A6] hover:bg-[#07A6A6]/90 text-white">Renommer</button>
-        </div>
-      </div>
-      <form method="dialog" class="modal-backdrop"><button>close</button></form>
-    </dialog>
-
-    <!-- Confirmation suppression espace -->
-    <dialog id="modal-delete-space" class="modal">
-      <div class="modal-box max-w-sm">
-        <h3 class="font-semibold text-lg mb-2">Supprimer l'espace</h3>
-        <p class="text-sm text-gray-500 mb-4">Supprimer <strong id="delete-space-name"></strong> et tous ses documents ? Cette action est irréversible.</p>
-        <div class="modal-action">
-          <button id="delete-space-cancel"  class="btn btn-ghost">Annuler</button>
-          <button id="delete-space-confirm" class="btn bg-[#EC6F6F] hover:bg-[#EC6F6F]/90 text-white">Supprimer</button>
-        </div>
-      </div>
-      <form method="dialog" class="modal-backdrop"><button>close</button></form>
-    </dialog>
-
-    <!-- Confirmation suppression document -->
-    <dialog id="modal-delete-doc" class="modal">
-      <div class="modal-box max-w-sm">
-        <h3 class="font-semibold text-lg mb-2">Supprimer le document</h3>
-        <p class="text-sm text-gray-500 mb-4">Supprimer <strong id="delete-doc-name"></strong> ?</p>
-        <div class="modal-action">
-          <button id="delete-doc-cancel"  class="btn btn-ghost">Annuler</button>
-          <button id="delete-doc-confirm" class="btn bg-[#EC6F6F] hover:bg-[#EC6F6F]/90 text-white">Supprimer</button>
-        </div>
-      </div>
-      <form method="dialog" class="modal-backdrop"><button>close</button></form>
-    </dialog>
+    <!-- bouton toggle panel debug -->
+    <button id="debug-toggle"
+            class="fixed bottom-4 right-4 z-[200] bg-[var(--color-principal)] border-2 border-[var(--color-secondaire)] text-[var(--color-secondaire)] font-bold text-xs px-3 py-2 rounded-full shadow-lg hover:bg-[var(--color-secondaire)] hover:text-[var(--color-principal)] transition-all duration-200"
+            title="Menu développeur">
+        DEV
+    </button>
 
     <script type="module" src="/src/assets/script/script.js"></script>
-    <script type="module" src="/src/assets/script/doc.js"></script>
-  </body>
+</body>
 </html>
