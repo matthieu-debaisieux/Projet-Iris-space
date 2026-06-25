@@ -1,3 +1,19 @@
+// ===== PERSISTANCE localStorage =====
+const STORAGE_KEY = "iris_actualites";
+
+function sauvegarderActualites() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(actualites));
+}
+
+function chargerActualites() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    const data = JSON.parse(saved);
+    actualites.length = 0;
+    data.forEach(a => actualites.push(a));
+  }
+}
+
 // ===== DONNÉES ACTUALITÉS =====
 const actualites = [
   { id: 0, titre: "Actualité #0", date: "24 juin 2026", statut: "Publié",    image: "votre-image.jpg", contenu: "Contenu complet de l'actualité #0.", auteur: "Admin" },
@@ -64,27 +80,66 @@ function ouvrirModalModifier(id) {
   document.getElementById("modifier-contenu").value = actu.contenu;
   document.getElementById("modifier-auteur").value  = actu.auteur;
   document.getElementById("modifier-erreur").classList.add("hidden");
+  // Reset highlights
+  ["modifier-titre", "modifier-contenu", "modifier-auteur"].forEach(id => marquerChamp(document.getElementById(id), false));
+
+  // Pré-remplir la preview avec la photo actuelle
+  const preview = document.getElementById("modifier-photo-preview");
+  const placeholder = document.getElementById("modifier-photo-placeholder");
+  document.getElementById("modifier-photo").value = "";
+  if (actu.image) {
+    preview.src = actu.image;
+    preview.classList.remove("hidden");
+    placeholder.classList.add("hidden");
+  } else {
+    preview.src = "";
+    preview.classList.add("hidden");
+    placeholder.classList.remove("hidden");
+  }
+
   ouvrirModale("modal-modifier");
 }
 
-function validerModifier() {
-  const titre   = document.getElementById("modifier-titre").value.trim();
-  const statut  = document.getElementById("modifier-statut").value;
-  const contenu = document.getElementById("modifier-contenu").value.trim();
-  const auteur  = document.getElementById("modifier-auteur").value.trim();
+async function validerModifier() {
+  const titreEl   = document.getElementById("modifier-titre");
+  const contenuEl = document.getElementById("modifier-contenu");
+  const auteurEl  = document.getElementById("modifier-auteur");
 
-  if (!titre || !contenu || !auteur) {
+  const titre   = titreEl.value.trim();
+  const statut  = document.getElementById("modifier-statut").value;
+  const contenu = contenuEl.value.trim();
+  const auteur  = auteurEl.value.trim();
+
+  const erreurs = {
+    titre:   !titre,
+    contenu: !contenu,
+    auteur:  !auteur,
+  };
+
+  marquerChamp(titreEl,   erreurs.titre);
+  marquerChamp(contenuEl, erreurs.contenu);
+  marquerChamp(auteurEl,  erreurs.auteur);
+
+  if (Object.values(erreurs).some(Boolean)) {
     document.getElementById("modifier-erreur").classList.remove("hidden");
     return;
   }
 
+  document.getElementById("modifier-erreur").classList.add("hidden");
+
   const actu = actualites.find(a => a.id === actuIdCourant);
   if (!actu) return;
+
+  // Lire la nouvelle image si une a été choisie, sinon garder l'ancienne
+  const nouvelleImage = await lireImageBase64(document.getElementById("modifier-photo"));
 
   actu.titre   = titre;
   actu.statut  = statut;
   actu.contenu = contenu;
   actu.auteur  = auteur;
+  if (nouvelleImage) actu.image = nouvelleImage;
+
+  sauvegarderActualites();
 
   // Mettre à jour la card dans la grille
   const btn = document.querySelector(`[data-actu-id="${actuIdCourant}"]`);
@@ -97,8 +152,17 @@ function validerModifier() {
       const badgeStatut = card.querySelector(".badge-statut");
       badgeStatut.textContent = statut;
       badgeStatut.className = `badge-statut text-[11px] px-2 py-0.5 rounded-full ${statutClasses[statut] ?? ""}`;
+      if (nouvelleImage) {
+        const img = card.querySelector("img");
+        if (img) img.src = nouvelleImage;
+      }
     }
   }
+
+  // Réinitialiser la preview
+  document.getElementById("modifier-photo-preview").classList.add("hidden");
+  document.getElementById("modifier-photo-placeholder").classList.remove("hidden");
+  document.getElementById("modifier-photo").value = "";
 
   fermerModale("modal-modifier");
   fermerModale("modal-actualite");
@@ -139,6 +203,26 @@ function ajouterCard(actu) {
   grille.appendChild(card);
 }
 
+// ===== SUPPRIMER UNE ACTUALITE =====
+function supprimerActu(id) {
+  const index = actualites.findIndex(a => a.id === id);
+  if (index === -1) return;
+
+  // Retirer du tableau
+  actualites.splice(index, 1);
+
+  // Sauvegarder dans localStorage
+  sauvegarderActualites();
+
+  // Retirer la card du DOM
+  const btn = document.querySelector(`[data-actu-id="${id}"]`);
+  if (btn) {
+    btn.closest(".rounded-3xl").remove();
+  }
+
+  fermerModale("modal-actualite");
+}
+
 // ===== MODALE CREER UN ARTICLE =====
 function ouvrirModalCreer() {
   ["creer-titre", "creer-date", "creer-contenu", "creer-auteur"].forEach(id => {
@@ -146,26 +230,125 @@ function ouvrirModalCreer() {
   });
   document.getElementById("creer-statut").value = "Publié";
   document.getElementById("creer-erreur").classList.add("hidden");
+  // Réinitialiser la preview photo
+  document.getElementById("creer-photo").value = "";
+  document.getElementById("creer-photo-preview").classList.add("hidden");
+  document.getElementById("creer-photo-placeholder").classList.remove("hidden");
   ouvrirModale("modal-creer");
 }
 
-function validerCreer() {
-  const titre   = document.getElementById("creer-titre").value.trim();
-  const date    = document.getElementById("creer-date").value;
-  const statut  = document.getElementById("creer-statut").value;
-  const contenu = document.getElementById("creer-contenu").value.trim();
-  const auteur  = document.getElementById("creer-auteur").value.trim();
+// ===== HELPER : lire un <input type=file> en base64 =====
+function lireImageBase64(input) {
+  return new Promise((resolve) => {
+    const file = input.files[0];
+    if (!file) { resolve(null); return; }
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result);
+    reader.readAsDataURL(file);
+  });
+}
 
-  if (!titre || !date || !contenu || !auteur) {
+// ===== PREVIEW photo (Créer) =====
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("creer-photo")?.addEventListener("change", function () {
+    const file = this.files[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    const preview = document.getElementById("creer-photo-preview");
+    const placeholder = document.getElementById("creer-photo-placeholder");
+    preview.src = url;
+    preview.classList.remove("hidden");
+    placeholder.classList.add("hidden");
+  });
+
+  // PREVIEW photo (Modifier)
+  document.getElementById("modifier-photo")?.addEventListener("change", function () {
+    const file = this.files[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    const preview = document.getElementById("modifier-photo-preview");
+    const placeholder = document.getElementById("modifier-photo-placeholder");
+    preview.src = url;
+    preview.classList.remove("hidden");
+    placeholder.classList.add("hidden");
+  });
+});
+
+// ===== HELPER VALIDATION =====
+function marquerChamp(el, invalide) {
+  if (!el) return;
+  const BASE = "border-gray-300";
+  const ERR  = ["border-red-400", "bg-red-50"];
+  if (invalide) {
+    el.classList.remove(BASE);
+    el.classList.add(...ERR);
+  } else {
+    el.classList.add(BASE);
+    el.classList.remove(...ERR);
+  }
+}
+
+async function validerCreer() {
+  const titreEl   = document.getElementById("creer-titre");
+  const dateEl    = document.getElementById("creer-date");
+  const contenuEl = document.getElementById("creer-contenu");
+  const auteurEl  = document.getElementById("creer-auteur");
+  const photoInput = document.getElementById("creer-photo");
+  const photoLabel = document.getElementById("creer-photo-label");
+
+  const titre   = titreEl.value.trim();
+  const date    = dateEl.value;
+  const statut  = document.getElementById("creer-statut").value;
+  const contenu = contenuEl.value.trim();
+  const auteur  = auteurEl.value.trim();
+
+  const erreurs = {
+    titre:   !titre,
+    date:    !date,
+    contenu: !contenu,
+    auteur:  !auteur,
+    photo:   !photoInput.files[0],
+  };
+
+  marquerChamp(titreEl,   erreurs.titre);
+  marquerChamp(dateEl,    erreurs.date);
+  marquerChamp(contenuEl, erreurs.contenu);
+  marquerChamp(auteurEl,  erreurs.auteur);
+  // Champ photo (label dashed)
+  if (erreurs.photo) {
+    photoLabel.classList.add("border-red-400", "bg-red-50");
+    photoLabel.classList.remove("border-gray-300");
+  } else {
+    photoLabel.classList.remove("border-red-400", "bg-red-50");
+    photoLabel.classList.add("border-gray-300");
+  }
+
+  if (Object.values(erreurs).some(Boolean)) {
     document.getElementById("creer-erreur").classList.remove("hidden");
     return;
   }
 
-  const dateFr = new Date(date).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
-  const nouvelId = actualites.length;
-  actualites.push({ id: nouvelId, titre, date: dateFr, statut, image: "votre-image.jpg", contenu, auteur });
+  document.getElementById("creer-erreur").classList.add("hidden");
 
-  ajouterCard({ id: nouvelId, titre, date: dateFr, statut, image: "votre-image.jpg", contenu, auteur });
+  // Lire l'image choisie (obligatoire)
+  const imageBase64 = await lireImageBase64(photoInput) ?? "";
+
+  const dateFr = new Date(date).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+  const nouvelId = actualites.length > 0 ? Math.max(...actualites.map(a => a.id)) + 1 : 0;
+  const nouvelleActu = { id: nouvelId, titre, date: dateFr, statut, image: imageBase64, contenu, auteur };
+
+  actualites.push(nouvelleActu);
+  sauvegarderActualites();
+  ajouterCard(nouvelleActu);
+
+  // Réinitialiser la preview et les highlights
+  document.getElementById("creer-photo-preview").classList.add("hidden");
+  document.getElementById("creer-photo-placeholder").classList.remove("hidden");
+  photoInput.value = "";
+  [titreEl, dateEl, contenuEl, auteurEl].forEach(el => marquerChamp(el, false));
+  photoLabel.classList.remove("border-red-400", "bg-red-50");
+  photoLabel.classList.add("border-gray-300");
+
   fermerModale("modal-creer");
 }
 
@@ -216,11 +399,19 @@ function rechercherActus(query) {
 // ===== INIT =====
 document.addEventListener("DOMContentLoaded", () => {
 
+  // Charger depuis localStorage (ou garder les données par défaut si rien en stock)
+  chargerActualites();
+
   // Générer toutes les cards depuis les données
   actualites.forEach(actu => ajouterCard(actu));
 
   // Modale detail
   bindFermer("modal-actu-backdrop", "modal-actu-close", "modal-actu-fermer", "modal-actualite");
+
+  // Bouton Supprimer
+  document.getElementById("modal-actu-supprimer")?.addEventListener("click", () => {
+    if (actuIdCourant !== null) supprimerActu(actuIdCourant);
+  });
 
   // Bouton Modifier
   document.getElementById("modal-actu-modifier")?.addEventListener("click", () => {
