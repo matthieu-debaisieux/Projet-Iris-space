@@ -4,21 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Messages</title>
-    <link rel="stylesheet" href="../style/style.css">
+    <link rel="stylesheet" href="../../style/style.css">
 </head>
 <body class="flex flex-col h-screen overflow-hidden">
 
     <!-- navbar -->
     <navbar class="flex justify-between items-center bg-[var(--color-principal)] sticky top-0 z-50 shrink-0">
         <div class="flex items-center gap-5">
-            <div class="logo"><a href="../../../index.html"><img src="../img/Logo_IRIS_SPACE.svg" alt="Logo" class="h-auto w-40 p-0 m-0"></a></div>
+            <div class="logo"><a href="../../../../index.html"><img src="../../img/Logo_IRIS_SPACE.svg" alt="Logo" class="h-auto w-40 p-0 m-0"></a></div>
             <div class="title text-2xl text-white">Admin</div>
         </div>
         <div class="flex items-center">
             <!-- icône messages avec badge notification -->
             <div class="relative hidden md:block pr-4">
                 <a href="Messages.html" id="msg-icon-link">
-                    <img src="../img/messages.svg" alt="Messages" class="h-auto w-15 p-0 m-0">
+                    <img src="../../img/messages.svg" alt="Messages" class="h-auto w-15 p-0 m-0">
                 </a>
                 <span id="msg-badge"
                       class="hidden absolute -top-1 right-3 min-w-[20px] h-5 bg-red-600 text-white text-xs font-bold rounded-full items-center justify-center px-1 leading-none pointer-events-none">
@@ -65,18 +65,52 @@
     <div class="flex flex-1 overflow-hidden">
 
         <!-- sidebar : navigation -->
-        <div class="hidden md:flex flex-col w-64 bg-[var(--color-principal)] overflow-y-auto p-6 shrink-0">
-            <nav class="flex flex-col gap-5 flex-1">
-                <a href="AdminAcceuil.html" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">DashBoard</a>
-                <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Elèves</a>
-                <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Professeurs</a>
-                <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Directions</a>
-                <a href="Messages.html" class="text-[var(--color-secondaire)] text-xl font-semibold hover:translate-x-2 transition-transform duration-200">Messages</a>
-                <a href="Administration.html" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Administration</a>
-                <a href="documents.html" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Documents</a>
-                <a href="#" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200 mt-auto">Actualité</a>
-            </nav>
-        </div>
+      <div
+        class="hidden md:flex flex-col w-64 bg-[var(--color-principal)] overflow-y-auto p-6 shrink-0"
+      >
+        <nav class="flex flex-col gap-5 flex-1">
+          <a
+            href="AdminAcceuil.html"
+            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
+            >DashBoard</a
+          >
+          <a
+            href="Abscence.html"
+            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
+            >Absences</a
+          >
+          <a
+            href="../prof/WorkInProgress.html"
+            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
+            >Professeurs</a
+          >
+          <!-- <a
+            href="Directions.html"
+            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
+            >Directions</a
+          > -->
+          <a
+            href="Messages.html"
+            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
+            >Messages</a
+          >
+          <!-- <a
+            href="Administration.html"
+            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
+            >Administration</a
+          > -->
+          <a
+            href="documents.html"
+            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
+            >Documents</a
+          >
+          <a
+            href="Actualite.html"
+            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
+            >Actualité</a
+          >
+        </nav>
+      </div>
 
         <!-- colonne : liste des conversations -->
         <div class="hidden lg:flex flex-col w-80 bg-[var(--color-principal)] overflow-hidden shrink-0 border-l border-white/10">
@@ -140,7 +174,7 @@
             <span class="self-stretch w-px bg-white mx-3"></span>
             <button class="text-white text-xl font-medium hover:-translate-y-1 transition-transform duration-200">Politique de confidentialité</button>
             <span class="self-stretch w-px bg-white mx-3"></span>
-            <a href="https://mediaschool.eu/" target="_blank"><img src="../img/ms_logo_cmjn_blanc_1.png" alt="Logo" class="h-12"></a>
+            <a href="https://mediaschool.eu/" target="_blank"><img src="../../img/ms_logo_cmjn_blanc_1.png" alt="Logo" class="h-12"></a>
         </div>
     </div>
 

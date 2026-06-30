@@ -7,7 +7,7 @@ function handleLogin() {
     const errorEl  = document.getElementById('login-error');
 
     if (email === 'admin' && password === 'admin') {
-        window.location.href = './src/assets/pages/AdminAcceuil.html';
+        window.location.href = './src/assets/pages/administration/AdminAcceuil.html';
     } else if (errorEl) {
         errorEl.classList.remove('hidden');
     }
