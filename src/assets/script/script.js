@@ -89,13 +89,13 @@ function renderAbsences() {
     if (!tbody) return;
     const data = loadAbsences();
     tbody.innerHTML = data.map((row, i) => `
-        <tr class="hover:bg-gray-100 cursor-pointer" data-index="${i}" data-table="absence">
+        <tr class="hover:bg-gray-100" data-index="${i}" data-table="absence">
             <td class="border border-gray-400 px-3 py-2 text-center">${row.eleve}</td>
             <td class="border border-gray-400 px-3 py-2 text-center">${row.classe}</td>
             <td class="border border-gray-400 px-3 py-2 text-center">${row.heureDebut} – ${row.heureFin}</td>
             <td class="border border-gray-400 px-3 py-2 text-center">${STATUT_LABEL[row.statut] ?? row.statut}</td>
             <td class="border border-gray-400 px-3 py-2 text-center">
-                <button class="contact-btn bg-(--color-secondaire) text-white text-xs font-medium px-3 py-1 rounded-lg hover:opacity-80 transition" data-index="${i}">Contact</button>
+                <button class="contact-btn bg-(--color-secondaire) btn btn-sm text-white text-xs px-3 py-1 rounded-lg hover:opacity-80 transition" data-index="${i}">Contact</button>
             </td>
         </tr>`).join('');
 
