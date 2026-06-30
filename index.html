@@ -8,48 +8,102 @@
     <title>IRIS-SPACE — Connexion</title>
   </head>
   <body class="flex flex-col h-screen overflow-hidden">
-
     <!-- navbar -->
-    <navbar class="flex justify-between items-center bg-[var(--color-principal)] sticky top-0 z-50 shrink-0">
+    <navbar
+      class="flex justify-between items-center bg-[var(--color-principal)] sticky top-0 z-50 shrink-0"
+    >
       <div class="flex items-center gap-5">
-        <div class="logo"><a href="./index.html"><img src="./src/assets/img/Logo_IRIS_SPACE.svg" alt="Logo" class="h-auto w-40 p-0 m-0"></a></div>
+        <div class="logo">
+          <a href="./index.html"
+            ><img
+              src="./src/assets/img/Logo_IRIS_SPACE.svg"
+              alt="Logo"
+              class="h-auto w-40 p-0 m-0"
+          /></a>
+        </div>
         <div class="title text-2xl text-white">Admin</div>
       </div>
       <div class="flex items-center"></div>
     </navbar>
 
     <!-- contenu principal -->
-    <main class="flex flex-1 flex-col items-center justify-center gap-8 overflow-y-auto p-6 bg-[var(--color-page)]">
-
+    <main
+      class="flex flex-1 flex-col items-center justify-center gap-8 overflow-y-auto p-6 bg-[var(--color-page)]"
+    >
       <div class="title text-center">
-        <h1 class="text-2xl font-bold text-[var(--color-titre)]">Bienvenue sur la page de connexion</h1>
+        <h1 class="text-2xl font-bold text-[var(--color-titre)]">
+          Bienvenue sur la page de connexion
+        </h1>
       </div>
 
       <div id="login-form">
-        <fieldset class="fieldset bg-base-200 border-base-300 rounded-box w-xs border p-4">
+        <fieldset
+          class="fieldset bg-base-200 border-base-300 rounded-box w-xs border p-4"
+        >
           <legend class="fieldset-legend">Login</legend>
 
           <label class="label">Email</label>
-          <input type="text" id="login-email" class="input" placeholder="Email" />
+          <input
+            type="text"
+            id="login-email"
+            class="input"
+            placeholder="Email"
+          />
 
           <label class="label">Password</label>
-          <input type="password" id="login-password" class="input" placeholder="Password" />
+          <input
+            type="password"
+            id="login-password"
+            class="input"
+            placeholder="Password"
+          />
 
-          <p id="login-error" class="hidden text-error text-sm mt-2">Identifiants incorrects</p>
+          <p id="login-error" class="hidden text-error text-sm mt-2">
+            Identifiants incorrects
+          </p>
           <a href="#" class="underline"> mot de passe oublié?</a>
-          <button type="button" id="login-btn" class="btn btn-neutral mt-4">Login</button>
+          <button
+            type="button"
+            id="login-btn"
+            class="btn bg-[var(--color-button)] mt-4"
+          >
+            Login
+          </button>
         </fieldset>
+      </div>
+      <div class="text-center">
+        <h1 class="text-2xl font-bold text-[var(--color-titre)]">
+          Vous n'avez pas de compte ?
+        </h1>
+        <a
+          href="./src/assets/pages/visiteur/Acceuil.html"
+          class="btn bg-[var(--color-button)] mt-4"
+          >Visitez les actualitées</a
+        >
       </div>
     </main>
 
     <!-- footer -->
     <div class="flex justify-start align-middle p-2 bg-[#5D5C60] shrink-0">
       <div class="text-white text-sm flex items-center">
-        <button class="text-white text-xl font-medium hover:-translate-y-1 transition-transform duration-200">Mentions légales</button>
+        <button
+          class="text-white text-xl font-medium hover:-translate-y-1 transition-transform duration-200"
+        >
+          Mentions légales
+        </button>
         <span class="self-stretch w-px bg-white mx-3"></span>
-        <button class="text-white text-xl font-medium hover:-translate-y-1 transition-transform duration-200">Politique de confidentialité</button>
+        <button
+          class="text-white text-xl font-medium hover:-translate-y-1 transition-transform duration-200"
+        >
+          Politique de confidentialité
+        </button>
         <span class="self-stretch w-px bg-white mx-3"></span>
-        <a href="https://mediaschool.eu/" target="_blank"><img src="./src/assets/img/ms_logo_cmjn_blanc_1.png" alt="Logo" class="h-12"></a>
+        <a href="https://mediaschool.eu/" target="_blank"
+          ><img
+            src="./src/assets/img/ms_logo_cmjn_blanc_1.png"
+            alt="Logo"
+            class="h-12"
+        /></a>
       </div>
     </div>
 

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IRIS-SPACE — BON PLANS</title>
+    <link rel="stylesheet" href="../../style/style.css">
+</head>
+<body class="flex flex-col h-screen overflow-hidden">
+
+    <!-- navbar -->
+    <navbar class="flex justify-between items-center bg-[var(--color-mediaschool)] sticky top-0 z-50 shrink-0 pr-4">
+        <div class="flex items-center gap-5">
+            <div class="logo"><a href="../../../../index.html"><img src="../../img/ms_logo_cmjn_blanc_1.png" alt="Logo IRIS SPACE" class="h-auto w-40 p-0 m-0"></a></div>
+        </div>
+        <div class="title text-2xl text-white tracking-wide">
+            <p id="Name">Nom Prenom</p>
+        </div>
+
+        <!-- navigation desktop -->
+        <nav class="hidden md:flex items-center gap-8 text-white">
+            <a href="./Accueil.html" aria-label="Accueil" class="hover:scale-110 transition-transform duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 3 2 12h3v8h6v-5h2v5h6v-8h3L12 3z" />
+                </svg>
+            </a>
+        </nav>
+
+        <!-- menu burger (mobile) -->
+        <div class="md:hidden">
+            <label class="btn border-0 bg-[var(--color-mediaschool)] swap swap-rotate active:scale-100 active:translate-y-0 shadow-none active:shadow-none">
+                <input type="checkbox" id="nav-toggle" />
+                <svg class="swap-off fill-current filter invert" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 512 512">
+                    <path d="M64,384H448V341.33H64Zm0-106.67H448V234.67H64ZM64,128v42.67H448V128Z" />
+                </svg>
+                <svg class="swap-on fill-current filter invert" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 512 512">
+                    <polygon points="400 145.49 366.51 112 256 222.51 145.49 112 112 145.49 222.51 256 112 366.51 145.49 400 256 289.49 366.51 400 400 366.51 289.49 256 400 145.49" />
+                </svg>
+            </label>
+        </div>
+    </navbar>
+
+    <!-- menu déroulant (overlay mobile) -->
+    <div class="fixed inset-0 z-50 hidden" id="dropdown-overlay">
+        <div class="absolute inset-0 bg-black/40 transition-opacity duration-300" id="dropdown-backdrop"></div>
+        <div id="dropdown-panel"
+            class="absolute top-0 right-0 h-full w-72 bg-[var(--color-mediaschool-secondaire)] rounded-l-3xl shadow-2xl flex flex-col p-6 translate-x-full transition-transform duration-300 ease-in-out">
+            <div class="flex justify-end mb-8">
+                <button id="dropdown-close" class="text-white text-3xl font-bold leading-none hover:scale-125 transition-transform duration-200" aria-label="Fermer le menu">→</button>
+            </div>
+            <nav class="flex flex-col gap-5">
+                <a href="./Accueil.html" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Accueil</a>
+            </nav>
+        </div>
+    </div>
+
+    <!-- contenu principal -->
+    <main id="a-propos" class="flex-1 overflow-y-auto p-6 md:p-10 bg-[var(--color-page)]">
+
+        <!-- Titre -->
+        <h1 class="text-center text-2xl font-bold tracking-wide uppercase mb-4 text-[var(--color-principal)]">
+            Les Bons Plans de MediaSchool
+        </h1>
+
+        <!-- Edito -->
+        <p class="text-sm text-center mb-2 leading-relaxed">
+            <span class="font-semibold text-[var(--color-principal)]">Edito : </span>
+            <span class="text-gray-600">
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Etiam ac sapien turpis.
+                Morbi at venenatis libero. Curabitur sed volutpat enim. Nulla a felis mauris.
+                Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae;
+                Aenean ac bibendum massa.
+            </span>
+        </p>
+
+        <!-- Grille des catégories -->
+        <div class="grid grid-cols-3 gap-4 md:gap-6 max-w-2xl mx-auto mt-8">
+
+            <!-- Carte Les plages -->
+            <a href="./Details.html" class="flex flex-col items-center gap-2 group cursor-pointer">
+                <div class="w-full aspect-square bg-gray-200 rounded-lg overflow-hidden flex items-center justify-center group-hover:shadow-md transition-shadow">
+                    <span class="text-gray-400 text-xs">Exemple</span>
+                </div>
+                <span class="text-sm text-gray-700 font-medium">Les plages</span>
+            </a>
+
+            <!-- Carte Events -->
+            <a href="./Events.html" class="flex flex-col items-center gap-2 group cursor-pointer">
+                <div class="w-full aspect-square bg-gray-200 rounded-lg overflow-hidden flex items-center justify-center group-hover:shadow-md transition-shadow">
+                    <span class="text-gray-400 text-xs">Exemple</span>
+                </div>
+                <span class="text-sm text-gray-700 font-medium">Events</span>
+            </a>
+
+            <!-- Carte générique -->
+            <a href="#" class="flex flex-col items-center gap-2 group cursor-pointer">
+                <div class="w-full aspect-square bg-gray-200 rounded-lg overflow-hidden flex items-center justify-center group-hover:shadow-md transition-shadow">
+                    <span class="text-gray-400 text-xs"></span>
+                </div>
+                <span class="text-sm text-gray-700 font-medium uppercase tracking-wide">TITRE</span>
+            </a>
+
+        </div>
+
+    </main>
+
+    <!-- footer -->
+    <div class="flex justify-between items-center p-2 px-4 bg-[#5D5C60] shrink-0">
+        <div class="text-white text-sm flex items-center">
+            <button class="text-white text-xl font-medium hover:-translate-y-1 transition-transform duration-200">Mentions légales</button>
+            <span class="self-stretch w-px bg-white mx-3"></span>
+            <button class="text-white text-xl font-medium hover:-translate-y-1 transition-transform duration-200">Confidentialité</button>
+            <span class="self-stretch w-px bg-white mx-3"></span>
+            <a href="https://mediaschool.eu/" target="_blank"><img src="../../img/ms_logo_cmjn_blanc_1.png" alt="Logo MediaSchool" class="h-12"></a>
+        </div>
+        <a href="https://mediaschool.eu/" target="_blank"
+           class="hidden sm:inline-block text-white text-base font-medium border border-white rounded-full px-5 py-2 hover:bg-white hover:text-[#5D5C60] transition-colors duration-200">
+            Page de MédiaSchool
+        </a>
+    </div>
+
+    <script type="module" src="/src/assets/script/visiteur.js"></script>
+</body>
+</html>

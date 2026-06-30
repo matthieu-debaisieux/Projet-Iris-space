@@ -1,404 +1,858 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dashboard Administration</title>
-    <link rel="stylesheet" href="../style/style.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-</head>
-<body class="flex flex-col h-screen overflow-hidden">
-
+    <link rel="stylesheet" href="../style/style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"
+    />
+  </head>
+  <body class="flex flex-col h-screen overflow-hidden">
     <!-- navbar -->
-    <navbar class="flex justify-between items-center bg-[var(--color-principal)] sticky top-0 z-50 shrink-0">
-        <div class="flex items-center gap-5">
-            <div class="logo"><a href="../../../index.html"><img src="../img/Logo_IRIS_SPACE.svg" alt="Logo" class="h-auto w-40 p-0 m-0"></a></div>
-            <div class="title text-2xl text-white">Admin</div>
+    <navbar
+      class="flex justify-between items-center bg-[var(--color-principal)] sticky top-0 z-50 shrink-0"
+    >
+      <div class="flex items-center gap-5">
+        <div class="logo">
+          <a href="../../../index.html"
+            ><img
+              src="../img/Logo_IRIS_SPACE.svg"
+              alt="Logo"
+              class="h-auto w-40 p-0 m-0"
+          /></a>
         </div>
-        <div class="flex items-center">
-            <div class="relative hidden md:block pr-4">
-                <a href="#" id="msg-icon-link">
-                    <img src="../img/messages.svg" alt="Messages" class="h-auto w-15 p-0 m-0">
-                </a>
-                <span id="msg-badge"
-                      class="hidden absolute -top-1 right-3 min-w-[20px] h-5 bg-red-600 text-white text-xs font-bold rounded-full items-center justify-center px-1 leading-none pointer-events-none">
-                </span>
-            </div>
-            <div class="md:hidden pr-4">
-                <label class="btn border-0 bg-[var(--color-principal)] swap swap-rotate active:scale-100 active:translate-y-0 shadow-none active:shadow-none">
-                    <input type="checkbox" />
-                    <svg class="swap-off fill-current filter invert" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 512 512">
-                        <path d="M64,384H448V341.33H64Zm0-106.67H448V234.67H64ZM64,128v42.67H448V128Z" />
-                    </svg>
-                    <svg class="swap-on fill-current filter invert" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 512 512">
-                        <polygon points="400 145.49 366.51 112 256 222.51 145.49 112 112 145.49 222.51 256 112 366.51 145.49 400 256 289.49 366.51 400 400 366.51 289.49 256 400 145.49" />
-                    </svg>
-                </label>
-            </div>
+        <div class="title text-2xl text-white">Admin</div>
+      </div>
+      <div class="flex items-center">
+        <div class="relative hidden md:block pr-4">
+          <a href="#" id="msg-icon-link">
+            <img
+              src="../img/messages.svg"
+              alt="Messages"
+              class="h-auto w-15 p-0 m-0"
+            />
+          </a>
+          <span
+            id="msg-badge"
+            class="hidden absolute -top-1 right-3 min-w-[20px] h-5 bg-red-600 text-white text-xs font-bold rounded-full items-center justify-center px-1 leading-none pointer-events-none"
+          >
+          </span>
         </div>
+        <div class="md:hidden pr-4">
+          <label
+            class="btn border-0 bg-[var(--color-principal)] swap swap-rotate active:scale-100 active:translate-y-0 shadow-none active:shadow-none"
+          >
+            <input type="checkbox" />
+            <svg
+              class="swap-off fill-current filter invert"
+              xmlns="http://www.w3.org/2000/svg"
+              width="32"
+              height="32"
+              viewBox="0 0 512 512"
+            >
+              <path
+                d="M64,384H448V341.33H64Zm0-106.67H448V234.67H64ZM64,128v42.67H448V128Z"
+              />
+            </svg>
+            <svg
+              class="swap-on fill-current filter invert"
+              xmlns="http://www.w3.org/2000/svg"
+              width="32"
+              height="32"
+              viewBox="0 0 512 512"
+            >
+              <polygon
+                points="400 145.49 366.51 112 256 222.51 145.49 112 112 145.49 222.51 256 112 366.51 145.49 400 256 289.49 366.51 400 400 366.51 289.49 256 400 145.49"
+              />
+            </svg>
+          </label>
+        </div>
+      </div>
     </navbar>
 
     <!-- menu déroulant (overlay) -->
     <div class="fixed inset-0 z-50 hidden" id="dropdown-overlay">
-        <div class="absolute inset-0 bg-black/40 transition-opacity duration-300" id="dropdown-backdrop"></div>
-        <div id="dropdown-panel"
-             class="absolute top-0 right-0 h-full w-72 bg-[var(--color-secondaire)] rounded-l-3xl shadow-2xl flex flex-col p-6 translate-x-full transition-transform duration-300 ease-in-out">
-            <div class="flex justify-end mb-8">
-                <button id="dropdown-close" class="text-white text-3xl font-bold leading-none hover:scale-125 transition-transform duration-200" aria-label="Fermer le menu">→</button>
-            </div>
-            <nav class="flex flex-col gap-5 flex-1">
-                <a href="AdminAcceuil.html" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">DashBoard</a>
-                <a href="Abscence.html" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Absences</a>
-                <a href="Messages.html" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Messages</a>
-                <a href="documents.html" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Documents</a>
-                <a href="./Actualite.html" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200 mt-auto">Actualité</a>
-            </nav>
+      <div
+        class="absolute inset-0 bg-black/40 transition-opacity duration-300"
+        id="dropdown-backdrop"
+      ></div>
+      <div
+        id="dropdown-panel"
+        class="absolute top-0 right-0 h-full w-72 bg-[var(--color-secondaire)] rounded-l-3xl shadow-2xl flex flex-col p-6 translate-x-full transition-transform duration-300 ease-in-out"
+      >
+        <div class="flex justify-end mb-8">
+          <button
+            id="dropdown-close"
+            class="text-white text-3xl font-bold leading-none hover:scale-125 transition-transform duration-200"
+            aria-label="Fermer le menu"
+          >
+            →
+          </button>
         </div>
+        <nav class="flex flex-col gap-5 flex-1">
+          <a
+            href="AdminAcceuil.html"
+            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
+            >DashBoard</a
+          >
+          <a
+            href="Abscence.html"
+            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
+            >Absences</a
+          >
+          <a
+            href="Messages.html"
+            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
+            >Messages</a
+          >
+          <a
+            href="documents.html"
+            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
+            >Documents</a
+          >
+          <a
+            href="./Actualite.html"
+            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200 mt-auto"
+            >Actualité</a
+          >
+        </nav>
+      </div>
     </div>
 
     <!-- layout principal -->
     <div class="flex flex-1 overflow-hidden">
+      <!-- sidebar -->
+      <div
+        class="hidden md:flex flex-col w-64 bg-[var(--color-principal)] overflow-y-auto p-6 shrink-0"
+      >
+        <nav class="flex flex-col gap-5 flex-1">
+          <a
+            href="AdminAcceuil.html"
+            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
+            >DashBoard</a
+          >
+          <a
+            href="Abscence.html"
+            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
+            >Absences</a
+          >
+          <a
+            href="Messages.html"
+            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
+            >Messages</a
+          >
+          <a
+            href="documents.html"
+            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
+            >Documents</a
+          >
+          <a
+            href="Actualite.html"
+            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
+            >Actualité</a
+          >
+        </nav>
+      </div>
 
-        <!-- sidebar -->
-        <div class="hidden md:flex flex-col w-64 bg-[var(--color-principal)] overflow-y-auto p-6 shrink-0">
-            <nav class="flex flex-col gap-5 flex-1">
-                <a href="AdminAcceuil.html" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">DashBoard</a>
-                <a href="Abscence.html" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Absences</a>
-                <a href="Messages.html" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Messages</a>
-                <a href="documents.html" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Documents</a>
-                <a href="Actualite.html" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Actualité</a>
-            </nav>
+      <!-- contenu principal -->
+      <div class="flex-1 overflow-y-auto p-6 bg-[var(--color-page)]">
+        <!-- Barre d'actions -->
+        <div class="flex items-center justify-between mb-6">
+          <button
+            id="btn-creer"
+            class="inline-flex items-center gap-2 bg-[#E8735A] text-white font-semibold text-base px-5 py-2.5 rounded-full hover:brightness-90 transition"
+          >
+            <i
+              class="ti ti-news"
+              style="font-size: 18px"
+              aria-hidden="true"
+            ></i>
+            Créer un article
+            <i
+              class="ti ti-plus"
+              style="font-size: 18px"
+              aria-hidden="true"
+            ></i>
+          </button>
+          <button
+            id="btn-rechercher"
+            class="inline-flex items-center gap-2 bg-[#F0B429] text-white font-semibold text-base px-5 py-2.5 rounded-full hover:brightness-90 transition"
+          >
+            <i
+              class="ti ti-search"
+              style="font-size: 18px"
+              aria-hidden="true"
+            ></i>
+            Rechercher
+          </button>
         </div>
 
-        <!-- contenu principal -->
-        <div class="flex-1 overflow-y-auto p-6 bg-[var(--color-page)]">
-
-            <!-- Barre d'actions -->
-            <div class="flex items-center justify-between mb-6">
-                <button id="btn-creer" class="inline-flex items-center gap-2 bg-[#E8735A] text-white font-semibold text-base px-5 py-2.5 rounded-full hover:brightness-90 transition">
-                    <i class="ti ti-news" style="font-size:18px" aria-hidden="true"></i>
-                    Créer un article
-                    <i class="ti ti-plus" style="font-size:18px" aria-hidden="true"></i>
-                </button>
-                <button id="btn-rechercher" class="inline-flex items-center gap-2 bg-[#F0B429] text-white font-semibold text-base px-5 py-2.5 rounded-full hover:brightness-90 transition">
-                    <i class="ti ti-search" style="font-size:18px" aria-hidden="true"></i>
-                    Rechercher
-                </button>
-            </div>
-
-            <!-- Grille 2 colonnes -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6" id="actu-grid">
-            </div>
-        </div>
+        <!-- Grille 2 colonnes -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6" id="actu-grid"></div>
+      </div>
     </div>
 
     <!-- Modale créer un article -->
-    <div id="modal-creer" class="hidden fixed inset-0 z-[300] items-center justify-center">
-        <div id="modal-creer-backdrop" class="absolute inset-0 bg-black/50"></div>
-        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 z-10 overflow-hidden">
-            <div class="p-6 flex flex-col gap-5">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-xl font-semibold text-teal-700 flex items-center gap-2">
-                        <i class="ti ti-news" style="font-size:20px" aria-hidden="true"></i>
-                        Créer un article
-                    </h3>
-                    <button id="modal-creer-close" class="inline-flex items-center justify-center text-gray-400 hover:text-gray-700 text-2xl font-bold leading-none">
-                        <i class="ti ti-x" aria-label="Fermer"></i>
-                    </button>
-                </div>
-                <div class="flex flex-col gap-4">
-                    <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">Titre <span class="text-red-500">*</span></label>
-                        <input id="creer-titre" type="text" placeholder="Titre de l'actualité"
-                            class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-teal-500 transition-colors" />
-                    </div>
-                    <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">Date <span class="text-red-500">*</span></label>
-                        <input id="creer-date" type="date"
-                            class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-teal-500 transition-colors" />
-                    </div>
-                    <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</label>
-                        <select id="creer-statut"
-                            class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-teal-500 transition-colors">
-                            <option value="Publié">Publié</option>
-                            <option value="Brouillon">Brouillon</option>
-                            <option value="Archivé">Archivé</option>
-                        </select>
-                    </div>
-                    <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">Contenu <span class="text-red-500">*</span></label>
-                        <textarea id="creer-contenu" rows="4" placeholder="Contenu de l'article..."
-                            class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-teal-500 transition-colors resize-none"></textarea>
-                    </div>
-                    <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">Auteur <span class="text-red-500">*</span></label>
-                        <input id="creer-auteur" type="text" placeholder="Nom de l'auteur"
-                            class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-teal-500 transition-colors" />
-                    </div>
-                    <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">Photo de l'article <span class="text-red-500">*</span></label>
-                        <label class="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-teal-400 hover:bg-teal-50 transition-colors group" id="creer-photo-label">
-                            <div id="creer-photo-placeholder" class="flex flex-col items-center gap-1 text-gray-400 group-hover:text-teal-500 transition-colors">
-                                <i class="ti ti-photo-up" style="font-size:28px" aria-hidden="true"></i>
-                                <span class="text-xs font-medium">Cliquer pour choisir une image</span>
-                                <span class="text-[11px] text-gray-300">JPG, PNG, WEBP — max 2 Mo</span>
-                            </div>
-                            <img id="creer-photo-preview" src="" alt="Aperçu" class="hidden w-full h-full object-cover rounded-xl" />
-                            <input id="creer-photo" type="file" accept="image/*" class="hidden" />
-                        </label>
-                    </div>
-                </div>
-                <div id="creer-erreur" class="hidden text-xs text-red-500 font-medium flex items-center gap-1">
-                    <i class="ti ti-alert-circle" style="font-size:14px" aria-hidden="true"></i>
-                    Veuillez remplir tous les champs.
-                </div>
-                <div class="flex justify-end gap-2 pt-2 border-t border-black/10">
-                    <button id="modal-creer-fermer" class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 border border-gray-300 rounded-full px-4 py-1.5 hover:bg-gray-100 transition-colors">
-                        <i class="ti ti-x" style="font-size:14px" aria-hidden="true"></i>
-                        Annuler
-                    </button>
-                    <button id="modal-creer-valider" class="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-[#E8735A] rounded-full px-4 py-1.5 hover:brightness-90 transition-colors">
-                        <i class="ti ti-send" style="font-size:14px" aria-hidden="true"></i>
-                        Publier l'article
-                    </button>
-                </div>
+    <div
+      id="modal-creer"
+      class="hidden fixed inset-0 z-[300] items-center justify-center"
+    >
+      <div id="modal-creer-backdrop" class="absolute inset-0 bg-black/50"></div>
+      <div
+        class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 z-10 overflow-hidden"
+      >
+        <div class="p-6 flex flex-col gap-5">
+          <div class="flex items-center justify-between">
+            <h3
+              class="text-xl font-semibold text-teal-700 flex items-center gap-2"
+            >
+              <i
+                class="ti ti-news"
+                style="font-size: 20px"
+                aria-hidden="true"
+              ></i>
+              Créer un article
+            </h3>
+            <button
+              id="modal-creer-close"
+              class="inline-flex items-center justify-center text-gray-400 hover:text-gray-700 text-2xl font-bold leading-none"
+            >
+              <i class="ti ti-x" aria-label="Fermer"></i>
+            </button>
+          </div>
+          <div class="flex flex-col gap-4">
+            <div class="flex flex-col gap-1.5">
+              <label
+                class="text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >Titre <span class="text-red-500">*</span></label
+              >
+              <input
+                id="creer-titre"
+                type="text"
+                placeholder="Titre de l'actualité"
+                class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-teal-500 transition-colors"
+              />
             </div>
+            <div class="flex flex-col gap-1.5">
+              <label
+                class="text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >Date <span class="text-red-500">*</span></label
+              >
+              <input
+                id="creer-date"
+                type="date"
+                class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-teal-500 transition-colors"
+              />
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label
+                class="text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >Statut</label
+              >
+              <select
+                id="creer-statut"
+                class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-teal-500 transition-colors"
+              >
+                <option value="Publié">Publié</option>
+                <option value="Brouillon">Brouillon</option>
+                <option value="Archivé">Archivé</option>
+              </select>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label
+                class="text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >Contenu <span class="text-red-500">*</span></label
+              >
+              <textarea
+                id="creer-contenu"
+                rows="4"
+                placeholder="Contenu de l'article..."
+                class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-teal-500 transition-colors resize-none"
+              ></textarea>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label
+                class="text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >Auteur <span class="text-red-500">*</span></label
+              >
+              <input
+                id="creer-auteur"
+                type="text"
+                placeholder="Nom de l'auteur"
+                class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-teal-500 transition-colors"
+              />
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label
+                class="text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >Photo de l'article <span class="text-red-500">*</span></label
+              >
+              <label
+                class="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-teal-400 hover:bg-teal-50 transition-colors group"
+                id="creer-photo-label"
+              >
+                <div
+                  id="creer-photo-placeholder"
+                  class="flex flex-col items-center gap-1 text-gray-400 group-hover:text-teal-500 transition-colors"
+                >
+                  <i
+                    class="ti ti-photo-up"
+                    style="font-size: 28px"
+                    aria-hidden="true"
+                  ></i>
+                  <span class="text-xs font-medium"
+                    >Cliquer pour choisir une image</span
+                  >
+                  <span class="text-[11px] text-gray-300"
+                    >JPG, PNG, WEBP — max 2 Mo</span
+                  >
+                </div>
+                <img
+                  id="creer-photo-preview"
+                  src=""
+                  alt="Aperçu"
+                  class="hidden w-full h-full object-cover rounded-xl"
+                />
+                <input
+                  id="creer-photo"
+                  type="file"
+                  accept="image/*"
+                  class="hidden"
+                />
+              </label>
+            </div>
+          </div>
+          <div
+            id="creer-erreur"
+            class="hidden text-xs text-red-500 font-medium flex items-center gap-1"
+          >
+            <i
+              class="ti ti-alert-circle"
+              style="font-size: 14px"
+              aria-hidden="true"
+            ></i>
+            Veuillez remplir tous les champs.
+          </div>
+          <div class="flex justify-end gap-2 pt-2 border-t border-black/10">
+            <button
+              id="modal-creer-fermer"
+              class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 border border-gray-300 rounded-full px-4 py-1.5 hover:bg-gray-100 transition-colors"
+            >
+              <i class="ti ti-x" style="font-size: 14px" aria-hidden="true"></i>
+              Annuler
+            </button>
+            <button
+              id="modal-creer-valider"
+              class="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-[#E8735A] rounded-full px-4 py-1.5 hover:brightness-90 transition-colors"
+            >
+              <i
+                class="ti ti-send"
+                style="font-size: 14px"
+                aria-hidden="true"
+              ></i>
+              Publier l'article
+            </button>
+          </div>
         </div>
+      </div>
     </div>
 
     <!-- Modale rechercher -->
-    <div id="modal-rechercher" class="hidden fixed inset-0 z-[300] items-center justify-center">
-        <div id="modal-rechercher-backdrop" class="absolute inset-0 bg-black/50"></div>
-        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 z-10 overflow-hidden">
-            <div class="p-6 flex flex-col gap-5">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-xl font-semibold text-[#F0B429] flex items-center gap-2">
-                        <i class="ti ti-search" style="font-size:20px" aria-hidden="true"></i>
-                        Rechercher
-                    </h3>
-                    <button id="modal-rechercher-close" class="inline-flex items-center justify-center text-gray-400 hover:text-gray-700 text-2xl font-bold leading-none">
-                        <i class="ti ti-x" aria-label="Fermer"></i>
-                    </button>
-                </div>
-                <div class="relative">
-                    <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" style="font-size:16px" aria-hidden="true"></i>
-                    <input id="rechercher-input" type="text" placeholder="Rechercher une actualité..."
-                        class="w-full border border-gray-300 rounded-xl pl-9 pr-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-[#F0B429] transition-colors" />
-                </div>
-                <div id="rechercher-resultats" class="flex flex-col gap-2 max-h-60 overflow-y-auto">
-                    <!-- résultats injectés par JS -->
-                </div>
-                <div class="flex justify-end pt-2 border-t border-black/10">
-                    <button id="modal-rechercher-fermer" class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 border border-gray-300 rounded-full px-4 py-1.5 hover:bg-gray-100 transition-colors">
-                        <i class="ti ti-x" style="font-size:14px" aria-hidden="true"></i>
-                        Fermer
-                    </button>
-                </div>
-            </div>
+    <div
+      id="modal-rechercher"
+      class="hidden fixed inset-0 z-[300] items-center justify-center"
+    >
+      <div
+        id="modal-rechercher-backdrop"
+        class="absolute inset-0 bg-black/50"
+      ></div>
+      <div
+        class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 z-10 overflow-hidden"
+      >
+        <div class="p-6 flex flex-col gap-5">
+          <div class="flex items-center justify-between">
+            <h3
+              class="text-xl font-semibold text-[#F0B429] flex items-center gap-2"
+            >
+              <i
+                class="ti ti-search"
+                style="font-size: 20px"
+                aria-hidden="true"
+              ></i>
+              Rechercher
+            </h3>
+            <button
+              id="modal-rechercher-close"
+              class="inline-flex items-center justify-center text-gray-400 hover:text-gray-700 text-2xl font-bold leading-none"
+            >
+              <i class="ti ti-x" aria-label="Fermer"></i>
+            </button>
+          </div>
+          <div class="relative">
+            <i
+              class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              style="font-size: 16px"
+              aria-hidden="true"
+            ></i>
+            <input
+              id="rechercher-input"
+              type="text"
+              placeholder="Rechercher une actualité..."
+              class="w-full border border-gray-300 rounded-xl pl-9 pr-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-[#F0B429] transition-colors"
+            />
+          </div>
+          <div
+            id="rechercher-resultats"
+            class="flex flex-col gap-2 max-h-60 overflow-y-auto"
+          >
+            <!-- résultats injectés par JS -->
+          </div>
+          <div class="flex justify-end pt-2 border-t border-black/10">
+            <button
+              id="modal-rechercher-fermer"
+              class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 border border-gray-300 rounded-full px-4 py-1.5 hover:bg-gray-100 transition-colors"
+            >
+              <i class="ti ti-x" style="font-size: 14px" aria-hidden="true"></i>
+              Fermer
+            </button>
+          </div>
         </div>
+      </div>
     </div>
 
     <!-- footer -->
     <div class="flex justify-start align-middle p-2 bg-[#5D5C60] shrink-0">
-        <div class="text-white text-sm flex items-center">
-            <button class="text-white text-xl font-medium hover:-translate-y-1 transition-transform duration-200">Mentions légales</button>
-            <span class="self-stretch w-px bg-white mx-3"></span>
-            <button class="text-white text-xl font-medium hover:-translate-y-1 transition-transform duration-200">Politique de confidentialité</button>
-            <span class="self-stretch w-px bg-white mx-3"></span>
-            <a href="https://mediaschool.eu/" target="_blank"><img src="../img/ms_logo_cmjn_blanc_1.png" alt="Logo" class="h-12"></a>
-        </div>
+      <div class="text-white text-sm flex items-center">
+        <button
+          class="text-white text-xl font-medium hover:-translate-y-1 transition-transform duration-200"
+        >
+          Mentions légales
+        </button>
+        <span class="self-stretch w-px bg-white mx-3"></span>
+        <button
+          class="text-white text-xl font-medium hover:-translate-y-1 transition-transform duration-200"
+        >
+          Politique de confidentialité
+        </button>
+        <span class="self-stretch w-px bg-white mx-3"></span>
+        <a href="https://mediaschool.eu/" target="_blank"
+          ><img src="../img/ms_logo_cmjn_blanc_1.png" alt="Logo" class="h-12"
+        /></a>
+      </div>
     </div>
 
     <!-- ===== PANEL DEBUG / DEV ===== -->
-    <div id="debug-panel"
-         class="fixed bottom-16 right-4 z-[200] hidden w-64 bg-[var(--color-principal)] text-white rounded-2xl shadow-2xl p-4 border border-[var(--color-secondaire)]">
-        <div class="flex justify-between items-center mb-4">
-            <span class="font-bold text-[var(--color-secondaire)] text-sm uppercase tracking-wider flex items-center gap-1.5">
-                <i class="ti ti-tool" style="font-size:16px" aria-hidden="true"></i>
-                Dev Tools
-            </span>
-            <button id="debug-close" class="text-gray-400 hover:text-white text-lg font-bold leading-none transition-colors">
-                <i class="ti ti-x" aria-label="Fermer"></i>
-            </button>
+    <div
+      id="debug-panel"
+      class="fixed bottom-16 right-4 z-[200] hidden w-64 bg-[var(--color-principal)] text-white rounded-2xl shadow-2xl p-4 border border-[var(--color-secondaire)]"
+    >
+      <div class="flex justify-between items-center mb-4">
+        <span
+          class="font-bold text-[var(--color-secondaire)] text-sm uppercase tracking-wider flex items-center gap-1.5"
+        >
+          <i class="ti ti-tool" style="font-size: 16px" aria-hidden="true"></i>
+          Dev Tools
+        </span>
+        <button
+          id="debug-close"
+          class="text-gray-400 hover:text-white text-lg font-bold leading-none transition-colors"
+        >
+          <i class="ti ti-x" aria-label="Fermer"></i>
+        </button>
+      </div>
+      <div class="flex flex-col gap-2 text-sm">
+        <p class="text-gray-400 text-xs uppercase tracking-wider mb-1">
+          Compteur messages
+        </p>
+        <div class="flex items-center gap-2">
+          <button
+            id="dev-msg-add"
+            class="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-lg px-3 py-2 transition font-bold flex items-center justify-center gap-1"
+          >
+            <i class="ti ti-plus" style="font-size: 14px" aria-hidden="true"></i
+            >1
+          </button>
+          <button
+            id="dev-msg-remove"
+            class="flex-1 bg-red-600 hover:bg-red-700 text-white rounded-lg px-3 py-2 transition font-bold flex items-center justify-center gap-1"
+          >
+            <i
+              class="ti ti-minus"
+              style="font-size: 14px"
+              aria-hidden="true"
+            ></i
+            >1
+          </button>
+          <button
+            id="dev-msg-reset"
+            class="flex-1 bg-gray-600 hover:bg-gray-700 text-white rounded-lg px-3 py-2 transition text-xs font-medium flex items-center justify-center gap-1"
+          >
+            <i
+              class="ti ti-refresh"
+              style="font-size: 14px"
+              aria-hidden="true"
+            ></i
+            >Reset
+          </button>
         </div>
-        <div class="flex flex-col gap-2 text-sm">
-            <p class="text-gray-400 text-xs uppercase tracking-wider mb-1">Compteur messages</p>
-            <div class="flex items-center gap-2">
-                <button id="dev-msg-add" class="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-lg px-3 py-2 transition font-bold flex items-center justify-center gap-1">
-                    <i class="ti ti-plus" style="font-size:14px" aria-hidden="true"></i>1
-                </button>
-                <button id="dev-msg-remove" class="flex-1 bg-red-600 hover:bg-red-700 text-white rounded-lg px-3 py-2 transition font-bold flex items-center justify-center gap-1">
-                    <i class="ti ti-minus" style="font-size:14px" aria-hidden="true"></i>1
-                </button>
-                <button id="dev-msg-reset" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white rounded-lg px-3 py-2 transition text-xs font-medium flex items-center justify-center gap-1">
-                    <i class="ti ti-refresh" style="font-size:14px" aria-hidden="true"></i>Reset
-                </button>
-            </div>
-            <div class="flex items-center justify-between bg-white/10 rounded-lg px-3 py-2 mt-1">
-                <span class="text-gray-300 text-xs">Compteur actuel :</span>
-                <span id="debug-counter" class="text-[var(--color-secondaire)] font-bold text-lg">0</span>
-            </div>
-            <p class="text-gray-400 text-xs uppercase tracking-wider mt-3 mb-1">Données</p>
-            <button id="dev-reset-data" class="inline-flex items-center gap-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg px-3 py-2 text-left transition font-medium text-xs">
-                <i class="ti ti-database-import" style="font-size:14px" aria-hidden="true"></i>
-                Reset données (défaut)
-            </button>
+        <div
+          class="flex items-center justify-between bg-white/10 rounded-lg px-3 py-2 mt-1"
+        >
+          <span class="text-gray-300 text-xs">Compteur actuel :</span>
+          <span
+            id="debug-counter"
+            class="text-[var(--color-secondaire)] font-bold text-lg"
+            >0</span
+          >
         </div>
+        <p class="text-gray-400 text-xs uppercase tracking-wider mt-3 mb-1">
+          Données
+        </p>
+        <button
+          id="dev-reset-data"
+          class="inline-flex items-center gap-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg px-3 py-2 text-left transition font-medium text-xs"
+        >
+          <i
+            class="ti ti-database-import"
+            style="font-size: 14px"
+            aria-hidden="true"
+          ></i>
+          Reset données (défaut)
+        </button>
+      </div>
     </div>
 
     <!-- bouton toggle panel debug -->
-    <button id="debug-toggle"
-            class="fixed bottom-4 right-4 z-[200] bg-[var(--color-principal)] border-2 border-[var(--color-secondaire)] text-[var(--color-secondaire)] font-bold text-xs px-3 py-2 rounded-full shadow-lg hover:bg-[var(--color-secondaire)] hover:text-[var(--color-principal)] transition-all duration-200 flex items-center gap-1"
-            title="Menu développeur">
-        <i class="ti ti-code" style="font-size:14px" aria-hidden="true"></i>
-        DEV
+    <button
+      id="debug-toggle"
+      class="fixed bottom-4 right-4 z-[200] bg-[var(--color-principal)] border-2 border-[var(--color-secondaire)] text-[var(--color-secondaire)] font-bold text-xs px-3 py-2 rounded-full shadow-lg hover:bg-[var(--color-secondaire)] hover:text-[var(--color-principal)] transition-all duration-200 flex items-center gap-1"
+      title="Menu développeur"
+    >
+      <i class="ti ti-code" style="font-size: 14px" aria-hidden="true"></i>
+      DEV
     </button>
 
     <!-- Modale coordonnées contact -->
-    <div id="modal-contact" class="hidden fixed inset-0 z-[300] items-center justify-center">
-        <div id="modal-contact-backdrop" class="absolute inset-0 bg-black/50"></div>
-        <div class="relative bg-white rounded-lg shadow-2xl p-8 w-full max-w-sm mx-4 z-10">
-            <button class="modal-close absolute top-4 right-4 inline-flex items-center justify-center text-gray-400 hover:text-gray-700 text-2xl font-bold leading-none" data-modal="modal-contact">
-                <i class="ti ti-x" aria-label="Fermer"></i>
-            </button>
-            <h3 class="text-lg font-bold text-[var(--color-titre)] mb-6 flex items-center gap-2">
-                <i class="ti ti-user" style="font-size:18px" aria-hidden="true"></i>
-                Coordonnées du contact
-            </h3>
-            <div class="flex flex-col gap-4">
-                <div>
-                    <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Élève</p>
-                    <p id="contact-nom" class="font-semibold text-gray-800 text-base"></p>
-                </div>
-                <div>
-                    <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Téléphone</p>
-                    <a id="contact-tel" href="#" class="inline-flex items-center gap-1.5 font-medium text-[var(--color-secondaire)] hover:underline text-base">
-                        <i class="ti ti-phone" style="font-size:16px" aria-hidden="true"></i>
-                    </a>
-                </div>
-                <div>
-                    <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Email</p>
-                    <a id="contact-email" href="#" class="inline-flex items-center gap-1.5 font-medium text-[var(--color-secondaire)] hover:underline text-base break-all">
-                        <i class="ti ti-mail" style="font-size:16px" aria-hidden="true"></i>
-                    </a>
-                </div>
-            </div>
+    <div
+      id="modal-contact"
+      class="hidden fixed inset-0 z-[300] items-center justify-center"
+    >
+      <div
+        id="modal-contact-backdrop"
+        class="absolute inset-0 bg-black/50"
+      ></div>
+      <div
+        class="relative bg-white rounded-lg shadow-2xl p-8 w-full max-w-sm mx-4 z-10"
+      >
+        <button
+          class="modal-close absolute top-4 right-4 inline-flex items-center justify-center text-gray-400 hover:text-gray-700 text-2xl font-bold leading-none"
+          data-modal="modal-contact"
+        >
+          <i class="ti ti-x" aria-label="Fermer"></i>
+        </button>
+        <h3
+          class="text-lg font-bold text-[var(--color-titre)] mb-6 flex items-center gap-2"
+        >
+          <i class="ti ti-user" style="font-size: 18px" aria-hidden="true"></i>
+          Coordonnées du contact
+        </h3>
+        <div class="flex flex-col gap-4">
+          <div>
+            <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">
+              Élève
+            </p>
+            <p
+              id="contact-nom"
+              class="font-semibold text-gray-800 text-base"
+            ></p>
+          </div>
+          <div>
+            <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">
+              Téléphone
+            </p>
+            <a
+              id="contact-tel"
+              href="#"
+              class="inline-flex items-center gap-1.5 font-medium text-[var(--color-secondaire)] hover:underline text-base"
+            >
+              <i
+                class="ti ti-phone"
+                style="font-size: 16px"
+                aria-hidden="true"
+              ></i>
+            </a>
+          </div>
+          <div>
+            <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">
+              Email
+            </p>
+            <a
+              id="contact-email"
+              href="#"
+              class="inline-flex items-center gap-1.5 font-medium text-[var(--color-secondaire)] hover:underline text-base break-all"
+            >
+              <i
+                class="ti ti-mail"
+                style="font-size: 16px"
+                aria-hidden="true"
+              ></i>
+            </a>
+          </div>
         </div>
+      </div>
     </div>
 
     <!-- Modale détail actualité -->
-    <div id="modal-actualite" class="hidden fixed inset-0 z-[300] items-center justify-center">
-        <div id="modal-actu-backdrop" class="absolute inset-0 bg-black/50"></div>
-        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 z-10 overflow-hidden">
-            <div class="w-full h-48 bg-gray-300 overflow-hidden">
-                <img id="modal-actu-image" src="" alt="Image actualité" class="w-full h-full object-cover" />
-            </div>
-            <div class="p-6 flex flex-col gap-4">
-                <div class="flex items-start justify-between gap-4">
-                    <h3 id="modal-actu-titre" class="text-xl font-semibold text-teal-700"></h3>
-                </div>
-                <div class="flex items-center gap-3 flex-wrap">
-                    <span id="modal-actu-statut" class="text-[11px] font-medium px-3 py-0.5 rounded-full"></span>
-                    <span class="text-xs text-gray-400">•</span>
-                    <span id="modal-actu-date" class="text-xs text-gray-500 flex items-center gap-1">
-                        <i class="ti ti-calendar" style="font-size:13px" aria-hidden="true"></i>
-                    </span>
-                    <span class="text-xs text-gray-400">•</span>
-                    <span class="text-xs text-gray-500 flex items-center gap-1">
-                        <i class="ti ti-user" style="font-size:13px" aria-hidden="true"></i>
-                        Par <span id="modal-actu-auteur" class="font-medium ml-1"></span>
-                    </span>
-                </div>
-                <p id="modal-actu-contenu" class="text-sm text-gray-600 leading-relaxed"></p>
-                <div class="flex justify-between gap-2 pt-2 border-t border-black/10">
-                    <button id="modal-actu-supprimer" class="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-red-500 rounded-full px-4 py-1.5 hover:bg-red-600 transition-colors">
-                        <i class="ti ti-trash" style="font-size:14px" aria-hidden="true"></i>
-                        Supprimer
-                    </button>
-                    <div class="flex gap-2">
-                        <button id="modal-actu-fermer" class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 border border-gray-300 rounded-full px-4 py-1.5 hover:bg-gray-100 transition-colors">
-                            <i class="ti ti-x" style="font-size:14px" aria-hidden="true"></i>
-                            Fermer
-                        </button>
-                        <button id="modal-actu-modifier" class="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-teal-600 rounded-full px-4 py-1.5 hover:bg-teal-700 transition-colors">
-                            <i class="ti ti-edit" style="font-size:14px" aria-hidden="true"></i>
-                            Modifier
-                        </button>
-                    </div>
-                </div>
-            </div>
+    <div
+      id="modal-actualite"
+      class="hidden fixed inset-0 z-[300] items-center justify-center"
+    >
+      <div id="modal-actu-backdrop" class="absolute inset-0 bg-black/50"></div>
+      <div
+        class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 z-10 overflow-hidden"
+      >
+        <div class="w-full h-48 bg-gray-300 overflow-hidden">
+          <img
+            id="modal-actu-image"
+            src=""
+            alt="Image actualité"
+            class="w-full h-full object-cover"
+          />
         </div>
+        <div class="p-6 flex flex-col gap-4">
+          <div class="flex items-start justify-between gap-4">
+            <h3
+              id="modal-actu-titre"
+              class="text-xl font-semibold text-teal-700"
+            ></h3>
+          </div>
+          <div class="flex items-center gap-3 flex-wrap">
+            <span
+              id="modal-actu-statut"
+              class="text-[11px] font-medium px-3 py-0.5 rounded-full"
+            ></span>
+            <span class="text-xs text-gray-400">•</span>
+            <span
+              id="modal-actu-date"
+              class="text-xs text-gray-500 flex items-center gap-1"
+            >
+              <i
+                class="ti ti-calendar"
+                style="font-size: 13px"
+                aria-hidden="true"
+              ></i>
+            </span>
+            <span class="text-xs text-gray-400">•</span>
+            <span class="text-xs text-gray-500 flex items-center gap-1">
+              <i
+                class="ti ti-user"
+                style="font-size: 13px"
+                aria-hidden="true"
+              ></i>
+              Par <span id="modal-actu-auteur" class="font-medium ml-1"></span>
+            </span>
+          </div>
+          <p
+            id="modal-actu-contenu"
+            class="text-sm text-gray-600 leading-relaxed"
+          ></p>
+          <div class="flex justify-between gap-2 pt-2 border-t border-black/10">
+            <button
+              id="modal-actu-supprimer"
+              class="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-red-500 rounded-full px-4 py-1.5 hover:bg-red-600 transition-colors"
+            >
+              <i
+                class="ti ti-trash"
+                style="font-size: 14px"
+                aria-hidden="true"
+              ></i>
+              Supprimer
+            </button>
+            <div class="flex gap-2">
+              <button
+                id="modal-actu-fermer"
+                class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 border border-gray-300 rounded-full px-4 py-1.5 hover:bg-gray-100 transition-colors"
+              >
+                <i
+                  class="ti ti-x"
+                  style="font-size: 14px"
+                  aria-hidden="true"
+                ></i>
+                Fermer
+              </button>
+              <button
+                id="modal-actu-modifier"
+                class="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-teal-600 rounded-full px-4 py-1.5 hover:bg-teal-700 transition-colors"
+              >
+                <i
+                  class="ti ti-edit"
+                  style="font-size: 14px"
+                  aria-hidden="true"
+                ></i>
+                Modifier
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script type="module" src="/src/assets/script/script.js"></script>
     <script src="../script/Actualite.js" defer></script>
 
     <!-- Modale modifier un article -->
-    <div id="modal-modifier" class="hidden fixed inset-0 z-[300] items-center justify-center">
-        <div id="modal-modifier-backdrop" class="absolute inset-0 bg-black/50"></div>
-        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 z-10 overflow-hidden">
-            <div class="p-6 flex flex-col gap-5">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-xl font-semibold text-teal-700 flex items-center gap-2">
-                        <i class="ti ti-edit" style="font-size:20px" aria-hidden="true"></i>
-                        Modifier l'article
-                    </h3>
-                    <button id="modal-modifier-close" class="inline-flex items-center justify-center text-gray-400 hover:text-gray-700 text-2xl font-bold leading-none">
-                        <i class="ti ti-x" aria-label="Fermer"></i>
-                    </button>
-                </div>
-                <div class="flex flex-col gap-4">
-                    <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">Titre <span class="text-red-500">*</span></label>
-                        <input id="modifier-titre" type="text" class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-teal-500 transition-colors" />
-                    </div>
-                    <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</label>
-                        <select id="modifier-statut" class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-teal-500 transition-colors">
-                            <option value="Publié">Publié</option>
-                            <option value="Brouillon">Brouillon</option>
-                            <option value="Archivé">Archivé</option>
-                        </select>
-                    </div>
-                    <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">Contenu <span class="text-red-500">*</span></label>
-                        <textarea id="modifier-contenu" rows="4" class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-teal-500 transition-colors resize-none"></textarea>
-                    </div>
-                    <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">Auteur <span class="text-red-500">*</span></label>
-                        <input id="modifier-auteur" type="text" class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-teal-500 transition-colors" />
-                    </div>
-                    <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">Photo de l'article</label>
-                        <label class="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-teal-400 hover:bg-teal-50 transition-colors group relative overflow-hidden" id="modifier-photo-label">
-                            <div id="modifier-photo-placeholder" class="flex flex-col items-center gap-1 text-gray-400 group-hover:text-teal-500 transition-colors">
-                                <i class="ti ti-photo-up" style="font-size:28px" aria-hidden="true"></i>
-                                <span class="text-xs font-medium">Changer la photo</span>
-                                <span class="text-[11px] text-gray-300">JPG, PNG, WEBP — max 2 Mo</span>
-                            </div>
-                            <img id="modifier-photo-preview" src="" alt="Aperçu" class="hidden absolute inset-0 w-full h-full object-cover rounded-xl" />
-                            <input id="modifier-photo" type="file" accept="image/*" class="hidden" />
-                        </label>
-                    </div>
-                </div>
-                <div id="modifier-erreur" class="hidden text-xs text-red-500 font-medium flex items-center gap-1">
-                    <i class="ti ti-alert-circle" style="font-size:14px" aria-hidden="true"></i>
-                    Veuillez remplir tous les champs.
-                </div>
-                <div class="flex justify-end gap-2 pt-2 border-t border-black/10">
-                    <button id="modal-modifier-fermer" class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 border border-gray-300 rounded-full px-4 py-1.5 hover:bg-gray-100 transition-colors">
-                        <i class="ti ti-x" style="font-size:14px" aria-hidden="true"></i>
-                        Annuler
-                    </button>
-                    <button id="modal-modifier-valider" class="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-teal-600 rounded-full px-4 py-1.5 hover:bg-teal-700 transition-colors">
-                        <i class="ti ti-check" style="font-size:14px" aria-hidden="true"></i>
-                        Enregistrer
-                    </button>
-                </div>
+    <div
+      id="modal-modifier"
+      class="hidden fixed inset-0 z-[300] items-center justify-center"
+    >
+      <div
+        id="modal-modifier-backdrop"
+        class="absolute inset-0 bg-black/50"
+      ></div>
+      <div
+        class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 z-10 overflow-hidden"
+      >
+        <div class="p-6 flex flex-col gap-5">
+          <div class="flex items-center justify-between">
+            <h3
+              class="text-xl font-semibold text-teal-700 flex items-center gap-2"
+            >
+              <i
+                class="ti ti-edit"
+                style="font-size: 20px"
+                aria-hidden="true"
+              ></i>
+              Modifier l'article
+            </h3>
+            <button
+              id="modal-modifier-close"
+              class="inline-flex items-center justify-center text-gray-400 hover:text-gray-700 text-2xl font-bold leading-none"
+            >
+              <i class="ti ti-x" aria-label="Fermer"></i>
+            </button>
+          </div>
+          <div class="flex flex-col gap-4">
+            <div class="flex flex-col gap-1.5">
+              <label
+                class="text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >Titre <span class="text-red-500">*</span></label
+              >
+              <input
+                id="modifier-titre"
+                type="text"
+                class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-teal-500 transition-colors"
+              />
             </div>
+            <div class="flex flex-col gap-1.5">
+              <label
+                class="text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >Statut</label
+              >
+              <select
+                id="modifier-statut"
+                class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-teal-500 transition-colors"
+              >
+                <option value="Publié">Publié</option>
+                <option value="Brouillon">Brouillon</option>
+                <option value="Archivé">Archivé</option>
+              </select>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label
+                class="text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >Contenu <span class="text-red-500">*</span></label
+              >
+              <textarea
+                id="modifier-contenu"
+                rows="4"
+                class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-teal-500 transition-colors resize-none"
+              ></textarea>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label
+                class="text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >Auteur <span class="text-red-500">*</span></label
+              >
+              <input
+                id="modifier-auteur"
+                type="text"
+                class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-teal-500 transition-colors"
+              />
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label
+                class="text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >Photo de l'article</label
+              >
+              <label
+                class="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-teal-400 hover:bg-teal-50 transition-colors group relative overflow-hidden"
+                id="modifier-photo-label"
+              >
+                <div
+                  id="modifier-photo-placeholder"
+                  class="flex flex-col items-center gap-1 text-gray-400 group-hover:text-teal-500 transition-colors"
+                >
+                  <i
+                    class="ti ti-photo-up"
+                    style="font-size: 28px"
+                    aria-hidden="true"
+                  ></i>
+                  <span class="text-xs font-medium">Changer la photo</span>
+                  <span class="text-[11px] text-gray-300"
+                    >JPG, PNG, WEBP — max 2 Mo</span
+                  >
+                </div>
+                <img
+                  id="modifier-photo-preview"
+                  src=""
+                  alt="Aperçu"
+                  class="hidden absolute inset-0 w-full h-full object-cover rounded-xl"
+                />
+                <input
+                  id="modifier-photo"
+                  type="file"
+                  accept="image/*"
+                  class="hidden"
+                />
+              </label>
+            </div>
+          </div>
+          <div
+            id="modifier-erreur"
+            class="hidden text-xs text-red-500 font-medium flex items-center gap-1"
+          >
+            <i
+              class="ti ti-alert-circle"
+              style="font-size: 14px"
+              aria-hidden="true"
+            ></i>
+            Veuillez remplir tous les champs.
+          </div>
+          <div class="flex justify-end gap-2 pt-2 border-t border-black/10">
+            <button
+              id="modal-modifier-fermer"
+              class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 border border-gray-300 rounded-full px-4 py-1.5 hover:bg-gray-100 transition-colors"
+            >
+              <i class="ti ti-x" style="font-size: 14px" aria-hidden="true"></i>
+              Annuler
+            </button>
+            <button
+              id="modal-modifier-valider"
+              class="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-teal-600 rounded-full px-4 py-1.5 hover:bg-teal-700 transition-colors"
+            >
+              <i
+                class="ti ti-check"
+                style="font-size: 14px"
+                aria-hidden="true"
+              ></i>
+              Enregistrer
+            </button>
+          </div>
         </div>
+      </div>
     </div>
-
-</body>
+  </body>
 </html>

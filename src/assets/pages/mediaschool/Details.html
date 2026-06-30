@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IRIS-SPACE — BON PLANS</title>
+    <link rel="stylesheet" href="../../style/style.css">
+</head>
+<body class="flex flex-col h-screen overflow-hidden">
+
+    <!-- navbar -->
+    <navbar class="flex justify-between items-center bg-[var(--color-mediaschool)] sticky top-0 z-50 shrink-0 pr-4">
+        <div class="flex items-center gap-5">
+            <div class="logo"><a href="../../../../index.html"><img src="../../img/ms_logo_cmjn_blanc_1.png" alt="Logo IRIS SPACE" class="h-auto w-40 p-0 m-0"></a></div>
+        </div>
+        <div class="title text-2xl text-white tracking-wide">
+            <p id="Name">Nom Prenom</p>
+        </div>
+
+        <!-- navigation desktop -->
+        <nav class="hidden md:flex items-center gap-8 text-white">
+            <a href="./Accueil.html" aria-label="Accueil" class="hover:scale-110 transition-transform duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 3 2 12h3v8h6v-5h2v5h6v-8h3L12 3z" />
+                </svg>
+            </a>
+        </nav>
+
+        <!-- menu burger (mobile) -->
+        <div class="md:hidden">
+            <label class="btn border-0 bg-[var(--color-mediaschool)] swap swap-rotate active:scale-100 active:translate-y-0 shadow-none active:shadow-none">
+                <input type="checkbox" id="nav-toggle" />
+                <svg class="swap-off fill-current filter invert" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 512 512">
+                    <path d="M64,384H448V341.33H64Zm0-106.67H448V234.67H64ZM64,128v42.67H448V128Z" />
+                </svg>
+                <svg class="swap-on fill-current filter invert" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 512 512">
+                    <polygon points="400 145.49 366.51 112 256 222.51 145.49 112 112 145.49 222.51 256 112 366.51 145.49 400 256 289.49 366.51 400 400 366.51 289.49 256 400 145.49" />
+                </svg>
+            </label>
+        </div>
+    </navbar>
+
+    <!-- menu déroulant (overlay mobile) -->
+    <div class="fixed inset-0 z-50 hidden" id="dropdown-overlay">
+        <div class="absolute inset-0 bg-black/40 transition-opacity duration-300" id="dropdown-backdrop"></div>
+        <div id="dropdown-panel"
+            class="absolute top-0 right-0 h-full w-72 bg-[var(--color-mediaschool-secondaire)] rounded-l-3xl shadow-2xl flex flex-col p-6 translate-x-full transition-transform duration-300 ease-in-out">
+            <div class="flex justify-end mb-8">
+                <button id="dropdown-close" class="text-white text-3xl font-bold leading-none hover:scale-125 transition-transform duration-200" aria-label="Fermer le menu">→</button>
+            </div>
+            <nav class="flex flex-col gap-5">
+                <a href="./Accueil.html" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Accueil</a>
+            </nav>
+        </div>
+    </div>
+
+    <!-- contenu principal -->
+    <main id="a-propos" class="flex-1 overflow-y-auto p-6 md:p-10 bg-[var(--color-page)]">
+
+        <!-- Titre -->
+        <h1 class="text-center text-2xl font-bold tracking-wide uppercase mb-6 text-[var(--color-principal)]">
+            Les Plages
+        </h1>
+
+        <!-- ===================== LAYOUT DESKTOP : 2 colonnes ===================== -->
+        <!-- Sur mobile : flex-col (empilé) | Sur desktop (md+) : flex-row (côte à côte) -->
+        <div class="flex flex-col md:flex-row md:gap-10 md:items-start">
+
+            <!-- COLONNE GAUCHE : Description (mobile: pleine largeur | desktop: ~40%) -->
+            <div class="w-full md:w-2/5 mb-6 md:mb-0">
+                <p class="text-sm leading-relaxed">
+                    <span class="font-semibold text-[var(--color-principal)]">Description : </span>
+                    <span class="text-gray-600">
+                        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Etiam ac sapien turpis.
+                        Morbi at venenatis libero. Curabitur sed volutpat enim. Nulla a felis mauris.
+                        Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae;
+                        Aenean ac bibendum massa. Nullam semper lectus tellus, vitae sollicitudin metus
+                        consectetur nec. Nullam ut nunc nisl. Quisque fringilla lectus nisl,
+                        ut blandit diam rutrum ut.
+                    </span>
+                </p>
+            </div>
+
+            <!-- COLONNE DROITE : Photos (mobile: pleine largeur | desktop: ~60%) -->
+            <div class="w-full md:w-3/5">
+                <p class="text-sm font-semibold text-[var(--color-principal)] mb-3">Photos :</p>
+
+                <!-- MOBILE : galerie scroll horizontal avec flèches -->
+                <div class="md:hidden relative flex items-center gap-2">
+                    <button
+                        onclick="document.getElementById('gallery-mobile').scrollBy({left: -148, behavior: 'smooth'})"
+                        class="shrink-0 w-8 h-8 rounded-full bg-white border border-gray-300 shadow flex items-center justify-center text-gray-600 hover:bg-[var(--color-principal)] hover:text-white hover:border-[var(--color-principal)] transition-colors duration-200"
+                        aria-label="Précédent"
+                    >‹</button>
+
+                    <div
+                        id="gallery-mobile"
+                        class="flex gap-3 overflow-x-auto"
+                        style="scrollbar-width: none; scroll-snap-type: x mandatory;"
+                    >
+                        <div class="shrink-0 w-36 h-24 bg-gray-200 rounded-lg" style="scroll-snap-align: start;"></div>
+                        <div class="shrink-0 w-36 h-24 bg-gray-200 rounded-lg" style="scroll-snap-align: start;"></div>
+                        <div class="shrink-0 w-36 h-24 bg-gray-200 rounded-lg" style="scroll-snap-align: start;"></div>
+                        <div class="shrink-0 w-36 h-24 bg-gray-200 rounded-lg" style="scroll-snap-align: start;"></div>
+                        <div class="shrink-0 w-36 h-24 bg-gray-200 rounded-lg" style="scroll-snap-align: start;"></div>
+                    </div>
+
+                    <button
+                        onclick="document.getElementById('gallery-mobile').scrollBy({left: 148, behavior: 'smooth'})"
+                        class="shrink-0 w-8 h-8 rounded-full bg-white border border-gray-300 shadow flex items-center justify-center text-gray-600 hover:bg-[var(--color-principal)] hover:text-white hover:border-[var(--color-principal)] transition-colors duration-200"
+                        aria-label="Suivant"
+                    >›</button>
+                </div>
+
+                <!-- DESKTOP : grille 2x2 de photos -->
+                <div class="hidden md:grid grid-cols-2 gap-3">
+                    <div class="w-full aspect-video bg-gray-200 rounded-lg"></div>
+                    <div class="w-full aspect-video bg-gray-200 rounded-lg"></div>
+                    <div class="w-full aspect-video bg-gray-200 rounded-lg"></div>
+                    <div class="w-full aspect-video bg-gray-200 rounded-lg"></div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- footer -->
+    <div class="flex justify-between items-center p-2 px-4 bg-[#5D5C60] shrink-0">
+        <div class="text-white text-sm flex items-center">
+            <button class="text-white text-xl font-medium hover:-translate-y-1 transition-transform duration-200">Mentions légales</button>
+            <span class="self-stretch w-px bg-white mx-3"></span>
+            <button class="text-white text-xl font-medium hover:-translate-y-1 transition-transform duration-200">Confidentialité</button>
+            <span class="self-stretch w-px bg-white mx-3"></span>
+            <a href="https://mediaschool.eu/" target="_blank"><img src="../../img/ms_logo_cmjn_blanc_1.png" alt="Logo MediaSchool" class="h-12"></a>
+        </div>
+        <a href="https://mediaschool.eu/" target="_blank"
+           class="hidden sm:inline-block text-white text-base font-medium border border-white rounded-full px-5 py-2 hover:bg-white hover:text-[#5D5C60] transition-colors duration-200">
+            Page de MédiaSchool
+        </a>
+    </div>
+
+    <script type="module" src="/src/assets/script/visiteur.js"></script>
+</body>
+</html>
