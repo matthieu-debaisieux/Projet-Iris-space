@@ -9,7 +9,7 @@ function handleLogin() {
 	if (email === 'admin' && password === 'admin') {
 		window.location.href = './src/assets/pages/administration/AdminAccueil.html';
 	}	else if (email === 'eleve' && password === 'eleve') {
-			window.location.href = './src/assets/pages/eleve/Acceuil.html';
+			window.location.href = './src/assets/pages/élève/Accueil.html';
 	}   else if (errorEl) {
 			errorEl.classList.remove('hidden');
 	}
