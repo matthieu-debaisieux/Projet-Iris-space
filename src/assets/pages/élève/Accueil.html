@@ -1,11 +1,803 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard</title>
-</head>
-<body>
-    
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Actualité</title>
+    <link rel="stylesheet" href="../../style/style.css" />
+  </head>
+  <body class="flex flex-col h-screen overflow-hidden">
+    <!-- navbar -->
+    <navbar
+      class="flex justify-between items-center bg-[var(--color-principal)] sticky top-0 z-50 shrink-0 px-4 py-2"
+    >
+      <div class="flex items-center gap-4">
+        <div class="logo">
+          <a href="../../../../index.html"
+            ><img
+              src="../../img/Logo_IRIS_SPACE.svg"
+              alt="Logo IRIS SPACE"
+              class="h-auto w-32 p-0 m-0"
+          /></a>
+        </div>
+
+        <span class="text-white/30 text-xl font-light hidden md:inline">|</span>
+
+        <div
+          class="title text-lg text-white tracking-wide font-medium hidden md:block"
+        >
+          NOM PRENOM
+        </div>
+
+        <!-- avatar -->
+        <div
+          class="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden shrink-0"
+        >
+          <a
+            href="./Profil.html"
+            aria-label="Profil"
+            class="btn btn-ghost btn-circle border-0"
+          >
+            <img
+              src="../../img/avatar-default.png"
+              alt="Avatar"
+              class="w-full h-full object-cover"
+              onerror="this.style.display = 'none'"
+            />
+          </a>
+        </div>
+
+        <!-- accueil -->
+        <a
+          href="./Accueil.html"
+          class="text-white hover:-translate-y-0.5 transition-transform duration-200"
+          aria-label="Accueil"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M3 9.5 12 3l9 6.5V21a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V9.5Z"
+            />
+          </svg>
+        </a>
+      </div>
+
+      <!-- navigation desktop -->
+      <nav class="hidden md:flex items-center gap-8 text-white">
+        <a
+          href="./Devoir.html"
+          class="text-base font-medium hover:-translate-y-0.5 transition-transform duration-200"
+          >Devoir</a
+        >
+        <a
+          href="./Notes.html"
+          class="text-base font-medium hover:-translate-y-0.5 transition-transform duration-200"
+          >Notes</a
+        >
+        <a
+          href="./VieScolaire.html"
+          class="text-base font-medium hover:-translate-y-0.5 transition-transform duration-200"
+          >Vie scolaire</a
+        >
+        <a
+          href="./Actualite.html"
+          class="text-base font-medium hover:-translate-y-0.5 transition-transform duration-200"
+          >Actualité</a
+        >
+        <a
+          href="./EmploiDuTemps.html"
+          class="text-base font-medium hover:-translate-y-0.5 transition-transform duration-200"
+          >Emploi du temps</a
+        >
+      </nav>
+
+      <div class="flex items-center gap-3">
+        <!-- messagerie -->
+        <a
+          href="./Messagerie.html"
+          class="w-10 h-10 rounded-full flex items-center justify-center hover:-translate-y-0.5 transition-transform duration-200"
+          aria-label="Messagerie"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="white"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+            />
+          </svg>
+        </a>
+
+        <!-- menu burger (mobile) -->
+        <div class="md:hidden">
+          <label
+            class="btn border-0 bg-[var(--color-principal)] swap swap-rotate active:scale-100 active:translate-y-0 shadow-none active:shadow-none"
+          >
+            <input type="checkbox" id="nav-toggle" />
+            <svg
+              class="swap-off fill-current filter invert"
+              xmlns="http://www.w3.org/2000/svg"
+              width="32"
+              height="32"
+              viewBox="0 0 512 512"
+            >
+              <path
+                d="M64,384H448V341.33H64Zm0-106.67H448V234.67H64ZM64,128v42.67H448V128Z"
+              />
+            </svg>
+            <svg
+              class="swap-on fill-current filter invert"
+              xmlns="http://www.w3.org/2000/svg"
+              width="32"
+              height="32"
+              viewBox="0 0 512 512"
+            >
+              <polygon
+                points="400 145.49 366.51 112 256 222.51 145.49 112 112 145.49 222.51 256 112 366.51 145.49 400 256 289.49 366.51 400 400 366.51 289.49 256 400 145.49"
+              />
+            </svg>
+          </label>
+        </div>
+      </div>
+    </navbar>
+
+    <!-- menu déroulant (overlay mobile) -->
+    <div class="fixed inset-0 z-50 hidden" id="dropdown-overlay">
+      <div
+        class="absolute inset-0 bg-black/40 transition-opacity duration-300"
+        id="dropdown-backdrop"
+      ></div>
+      <div
+        id="dropdown-panel"
+        class="absolute top-0 right-0 h-full w-72 bg-[var(--color-secondaire)] rounded-l-3xl shadow-2xl flex flex-col p-6 translate-x-full transition-transform duration-300 ease-in-out"
+      >
+        <div class="flex justify-end mb-8">
+          <button
+            id="dropdown-close"
+            class="text-white text-3xl font-bold leading-none hover:scale-125 transition-transform duration-200"
+            aria-label="Fermer le menu"
+          >
+            →
+          </button>
+        </div>
+        <nav class="flex flex-col gap-5 text-white text-lg">
+          <a
+            href="./Devoirs.html"
+            class="text-base font-medium hover:-translate-y-0.5 transition-transform duration-200"
+            >Devoir</a
+          >
+          <a
+            href="./Notes.html"
+            class="text-base font-medium hover:-translate-y-0.5 transition-transform duration-200"
+            >Notes</a
+          >
+          <a
+            href="./Abscence.html"
+            class="text-base font-medium hover:-translate-y-0.5 transition-transform duration-200"
+            >Vie scolaire</a
+          >
+          <a
+            href="./Actualite.html"
+            class="text-base font-medium hover:-translate-y-0.5 transition-transform duration-200"
+            >Actualité</a
+          >
+          <a
+            href="./Cours.html"
+            class="text-base font-medium hover:-translate-y-0.5 transition-transform duration-200"
+            >Emploi du temps</a
+          >
+          <a
+            href="./Documents.html"
+            class="text-base font-medium hover:-translate-y-0.5 transition-transform duration-200"
+            >Documents</a
+          >
+        </nav>
+      </div>
+    </div>
+
+      <!-- contenu principal -->
+      <div class="flex-1 overflow-y-auto p-6 bg-[var(--color-page)]">
+        <!-- navigation de date -->
+        <div class="flex items-center gap-4 mb-8">
+          <button
+            id="date-prev"
+            class="w-9 h-9 rounded-full bg-[var(--color-secondaire)] text-white flex items-center justify-center hover:opacity-90 transition"
+            aria-label="Jour précédent"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="white"
+              stroke-width="2.5"
+            >
+              <path
+                d="M15 18l-6-6 6-6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+
+          <div
+            id="current-date"
+            class="border border-gray-300 rounded-full px-6 py-2 text-sm font-medium text-[var(--color-titre)]"
+          >
+            Jeudi 09 Septembre 2028
+          </div>
+
+          <button
+            id="date-next"
+            class="w-9 h-9 rounded-full bg-[var(--color-secondaire)] text-white flex items-center justify-center hover:opacity-90 transition"
+            aria-label="Jour suivant"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="white"
+              stroke-width="2.5"
+            >
+              <path
+                d="M9 18l6-6-6-6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+
+        <!-- grille : emploi du temps / raccourcis / actualité -->
+        <div class="flex flex-col xl:flex-row gap-8 items-start">
+          <!-- emploi du temps du jour -->
+          <div class="w-full xl:w-72 shrink-0">
+            <div class="border border-gray-300 rounded-md overflow-hidden">
+              <table class="w-full border-collapse text-xs">
+                <tbody id="emploi-tbody">
+                  <!-- une ligne par heure, vide - aucune donnée -->
+                  <tr>
+                    <td
+                      class="border border-gray-500 align-top px-2 py-3 w-16 text-gray-600 font-medium"
+                    >
+                      08h00
+                    </td>
+                    <td
+                      class="border border-gray-500 bg-[var(--color-background)] h-16 px-2 py-1"
+                    >
+                      <p class="text-xs font-semibold text-[var(--color-titre)] leading-tight mt-1">Mathématiques</p>
+                      <p class="text-[11px] text-gray-500 leading-tight">Salle 204</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td
+                      class="border border-gray-500 align-top px-2 py-3 w-16 text-gray-600 font-medium"
+                    >
+                      09h00
+                    </td>
+                    <td
+                      class="border border-gray-500 bg-[var(--color-background)] h-16 px-2 py-1"
+                    >
+                      <p class="text-xs font-semibold text-[var(--color-titre)] leading-tight mt-1">Mathématiques</p>
+                      <p class="text-[11px] text-gray-500 leading-tight">Salle 204</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td
+                      class="border border-gray-500 align-top px-2 py-3 w-16 text-gray-600 font-medium"
+                    >
+                      10h00
+                    </td>
+                    <td
+                      class="border border-gray-500 bg-[var(--color-background)] h-16 px-2 py-1"
+                    >
+                      <p class="text-xs font-semibold text-[var(--color-titre)] leading-tight mt-1">Français</p>
+                      <p class="text-[11px] text-gray-500 leading-tight">Salle 108</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td
+                      class="border border-gray-500 align-top px-2 py-3 w-16 text-gray-600 font-medium"
+                    >
+                      11h00
+                    </td>
+                    <td
+                      class="border border-gray-500 bg-[var(--color-background)] h-16 px-2 py-1"
+                    >
+                      <p class="text-xs font-semibold text-[var(--color-titre)] leading-tight mt-1">Français</p>
+                      <p class="text-[11px] text-gray-500 leading-tight">Salle 108</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td
+                      class="border border-gray-500 align-top px-2 py-3 w-16 text-gray-600 font-medium"
+                    >
+                      12h00
+                    </td>
+                    <td
+                      class="border border-gray-500 bg-[var(--color-background)] h-16 px-2 py-1"
+                    >
+                      <p class="text-xs italic text-gray-500 text-center mt-3">Pause déjeuner</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td
+                      class="border border-gray-500 align-top px-2 py-3 w-16 text-gray-600 font-medium"
+                    >
+                      13h00
+                    </td>
+                    <td
+                      class="border border-gray-500 bg-[var(--color-background)] h-16 px-2 py-1"
+                    >
+                      <p class="text-xs font-semibold text-[var(--color-titre)] leading-tight mt-1">Histoire-Géo</p>
+                      <p class="text-[11px] text-gray-500 leading-tight">Salle 112</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td
+                      class="border border-gray-500 align-top px-2 py-3 w-16 text-gray-600 font-medium"
+                    >
+                      14h00
+                    </td>
+                    <td
+                      class="border border-gray-500 bg-[var(--color-background)] h-16 px-2 py-1"
+                    >
+                      <p class="text-xs font-semibold text-[var(--color-titre)] leading-tight mt-1">SVT</p>
+                      <p class="text-[11px] text-gray-500 leading-tight">Labo 2</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td
+                      class="border border-gray-500 align-top px-2 py-3 w-16 text-gray-600 font-medium"
+                    >
+                      15h00
+                    </td>
+                    <td
+                      class="border border-gray-500 bg-[var(--color-background)] h-16 px-2 py-1"
+                    >
+                      <p class="text-xs font-semibold text-[var(--color-titre)] leading-tight mt-1">Anglais</p>
+                      <p class="text-[11px] text-gray-500 leading-tight">Salle 305</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td
+                      class="border border-gray-500 align-top px-2 py-3 w-16 text-gray-600 font-medium"
+                    >
+                      16h00
+                    </td>
+                    <td
+                      class="border border-gray-500 bg-[var(--color-background)] h-16 px-2 py-1"
+                    >
+                      <p class="text-xs font-semibold text-[var(--color-titre)] leading-tight mt-1">EPS</p>
+                      <p class="text-[11px] text-gray-500 leading-tight">Gymnase</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td
+                      class="border border-gray-500 align-top px-2 py-3 w-16 text-gray-600 font-medium"
+                    >
+                      17h00
+                    </td>
+                    <td
+                      class="border border-gray-500 bg-[var(--color-background)] h-16"
+                    ></td>
+                  </tr>
+                  <tr>
+                    <td
+                      class="border border-gray-500 align-top px-2 py-3 w-16 text-gray-600 font-medium"
+                    >
+                      18h00
+                    </td>
+                    <td
+                      class="border border-gray-500 bg-[var(--color-background)] h-16 px-2 py-1"
+                    >
+                      <p class="text-xs font-semibold text-[var(--color-titre)] leading-tight mt-1">Permanence</p>
+                      <p class="text-[11px] text-gray-500 leading-tight">Salle 401</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td
+                      class="border border-gray-500 align-top px-2 py-3 w-16 text-gray-600 font-medium"
+                    >
+                      19h00
+                    </td>
+                    <td
+                      class="border border-gray-500 bg-[var(--color-background)] h-16"
+                    ></td>
+                  </tr>
+                  <tr>
+                    <td
+                      class="border border-gray-500 align-top px-2 py-3 w-16 text-gray-600 font-medium"
+                    >
+                      20h00
+                    </td>
+                    <td
+                      class="border border-gray-500 bg-[var(--color-background)] h-16"
+                    ></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- raccourcis -->
+          <div class="w-full xl:w-72 shrink-0 flex flex-col gap-6">
+            <div>
+              <h2
+                class="text-lg font-bold text-[var(--color-titre)] text-center mb-2"
+              >
+                Travail à faire
+              </h2>
+              <div
+                id="travail-box"
+                class="bg-[var(--color-background)] rounded-lg p-3 flex flex-col text-xs text-gray-700"
+              >
+                <p class="py-1.5"><span class="font-semibold">Maths</span> — Exercices 12 à 15 p.42</p>
+                <hr class="border-t border-gray-400" />
+                <p class="py-1.5"><span class="font-semibold">Histoire</span> — Fiche de révision Ch.3</p>
+                <hr class="border-t border-gray-400" />
+                <p class="py-1.5"><span class="font-semibold">Anglais</span> — Préparer l'oral</p>
+              </div>
+            </div>
+
+            <div>
+              <h2
+                class="text-lg font-bold text-[var(--color-titre)] text-center mb-2"
+              >
+                Dernières ressources
+              </h2>
+              <div
+                id="ressources-box"
+                class="bg-[var(--color-background)] rounded-lg p-3 flex flex-col text-xs text-gray-700"
+              >
+                <p class="py-1.5">📄 Cours_SVT_chap4.pdf</p>
+                <hr class="border-t border-gray-400" />
+                <p class="py-1.5">📄 Diaporama_Physique.pptx</p>
+                <hr class="border-t border-gray-400" />
+                <p class="py-1.5">🔗 Lien vidéo — Révisions Bac</p>
+              </div>
+            </div>
+
+            <div>
+              <h2
+                class="text-lg font-bold text-[var(--color-titre)] text-center mb-2"
+              >
+                Vie Scolaire
+              </h2>
+              <div
+                id="vie-scolaire-box"
+                class="bg-[var(--color-background)] rounded-lg p-3 flex flex-col text-xs text-gray-700"
+              >
+                <p class="py-1.5">✅ Retard justifié — 28/06</p>
+                <hr class="border-t border-gray-400" />
+                <p class="py-1.5">⚠️ Absence non justifiée — 24/06</p>
+                <hr class="border-t border-gray-400" />
+                <p class="py-1.5">Ponctualité : 96%</p>
+              </div>
+            </div>
+
+            <div>
+              <h2
+                class="text-lg font-bold text-[var(--color-titre)] text-center mb-2"
+              >
+                Dernières notes
+              </h2>
+              <div
+                id="notes-box"
+                class="bg-[var(--color-background)] rounded-lg p-3 flex flex-col text-xs text-gray-700"
+              >
+                <p class="py-1.5"><span class="font-semibold">Maths</span> — 16/20</p>
+                <hr class="border-t border-gray-400" />
+                <p class="py-1.5"><span class="font-semibold">Français</span> — 13/20</p>
+                <hr class="border-t border-gray-400" />
+                <p class="py-1.5"><span class="font-semibold">SVT</span> — 15,5/20</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- actualité -->
+          <div class="flex-1 w-full min-w-0">
+            <h2
+              class="text-xl font-bold text-[var(--color-titre)] text-center mb-3"
+            >
+              Actualité
+            </h2>
+            <div
+              id="actualite-box"
+              class="bg-[var(--color-background)] rounded-lg h-[420px] p-4 flex flex-col text-sm text-gray-700 overflow-y-auto"
+            >
+              <div class="pb-4">
+                <p class="font-semibold text-[var(--color-titre)]">Sortie pédagogique au musée — 15 septembre</p>
+                <p class="text-xs text-gray-500 mb-1">Publié le 28/06/2028</p>
+                <p>Les élèves de seconde participeront à une sortie au musée des sciences. Autorisation à retourner avant le 10 septembre.</p>
+              </div>
+              <hr class="border-t border-gray-400" />
+              <div class="py-4">
+                <p class="font-semibold text-[var(--color-titre)]">Réunion parents-professeurs</p>
+                <p class="text-xs text-gray-500 mb-1">Publié le 25/06/2028</p>
+                <p>La réunion aura lieu le 20 septembre à 18h en salle polyvalente.</p>
+              </div>
+              <hr class="border-t border-gray-400" />
+              <div class="pt-4">
+                <p class="font-semibold text-[var(--color-titre)]">Fermeture exceptionnelle</p>
+                <p class="text-xs text-gray-500 mb-1">Publié le 20/06/2028</p>
+                <p>L'établissement sera fermé le 1er septembre pour travaux de maintenance.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- footer -->
+    <div
+      class="flex justify-between items-center p-2 px-4 bg-[#5D5C60] shrink-0"
+    >
+      <div class="text-white text-sm flex items-center">
+        <button
+          class="text-white text-xl font-medium hover:-translate-y-1 transition-transform duration-200"
+        >
+          Mentions légales
+        </button>
+        <span class="self-stretch w-px bg-white mx-3"></span>
+        <button
+          class="text-white text-xl font-medium hover:-translate-y-1 transition-transform duration-200"
+        >
+          Confidentialité
+        </button>
+        <span class="self-stretch w-px bg-white mx-3"></span>
+        <a href="https://mediaschool.eu/" target="_blank"
+          ><img
+            src="../../img/ms_logo_cmjn_blanc_1.png"
+            alt="Logo MediaSchool"
+            class="h-12"
+        /></a>
+      </div>
+      <a
+        href="https://mediaschool.eu/"
+        target="_blank"
+        class="hidden sm:inline-block text-white text-base font-medium border border-white rounded-full px-5 py-2 hover:bg-white hover:text-[#5D5C60] transition-colors duration-200"
+      >
+        Page de MédiaSchool
+      </a>
+    </div>
+
+    <!-- ========== MODAL POPUP ========== -->
+    <div
+      id="actu-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Détail de l'actualité"
+      style="
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 200;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s ease;
+        padding: 1rem;
+      "
+      onclick="if (event.target === this) closeActuModal();"
+    >
+      <div
+        id="actu-modal-box"
+        style="
+          background: white;
+          border-radius: 1.5rem;
+          max-width: 520px;
+          width: 100%;
+          padding: 1.75rem;
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+          transform: translateY(24px);
+          transition: transform 0.25s ease;
+          max-height: 90vh;
+          overflow-y: auto;
+        "
+      >
+        <!-- En-tête modal -->
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+          "
+        >
+          <h2
+            id="modal-titre"
+            style="
+              font-size: 1.25rem;
+              font-weight: 700;
+              color: #0f766e;
+              margin: 0;
+              line-height: 1.3;
+            "
+          ></h2>
+          <button
+            onclick="closeActuModal()"
+            aria-label="Fermer"
+            style="
+              background: none;
+              border: none;
+              font-size: 1.75rem;
+              cursor: pointer;
+              color: #9ca3af;
+              line-height: 1;
+              flex-shrink: 0;
+              padding: 0 4px;
+              border-radius: 6px;
+              transition: color 0.15s;
+            "
+            onmouseover="this.style.color = '#374151'"
+            onmouseout="this.style.color = '#9ca3af'"
+          >
+            ×
+          </button>
+        </div>
+
+        <!-- Image -->
+        <img
+          id="modal-img"
+          src=""
+          alt="Image de l'actualité"
+          style="
+            width: 100%;
+            height: 200px;
+            border-radius: 1rem;
+            object-fit: cover;
+            background: #d1d5db;
+          "
+        />
+
+        <!-- Badge + méta -->
+        <div
+          style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap"
+        >
+          <span
+            style="
+              display: inline-flex;
+              align-items: center;
+              background: #0d9488;
+              color: white;
+              font-size: 11px;
+              font-weight: 600;
+              padding: 3px 12px;
+              border-radius: 999px;
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
+            "
+            >Actualité</span
+          >
+          <span id="modal-meta" style="font-size: 12px; color: #6b7280"></span>
+        </div>
+
+        <!-- Contenu complet -->
+        <p
+          id="modal-contenu"
+          style="font-size: 15px; color: #374151; line-height: 1.75; margin: 0"
+        ></p>
+
+        <!-- Pied de modal -->
+        <p
+          id="modal-date"
+          style="
+            font-size: 12px;
+            color: #9ca3af;
+            border-top: 1px solid #f3f4f6;
+            padding-top: 0.75rem;
+            margin: 0;
+          "
+        ></p>
+      </div>
+    </div>
+    <!-- ========== FIN MODAL ========== -->
+
+    <script>
+      const STORAGE_KEY = "iris_actualites";
+
+      /* ---- Fonctions modal ---- */
+      function openActuModal(actu) {
+        document.getElementById("modal-titre").textContent = actu.titre;
+        document.getElementById("modal-img").src = actu.image;
+        document.getElementById("modal-meta").textContent =
+          actu.date + " — Par " + actu.auteur;
+        document.getElementById("modal-contenu").textContent = actu.contenu;
+        document.getElementById("modal-date").textContent =
+          "Publié le " + actu.date;
+
+        const modal = document.getElementById("actu-modal");
+        modal.style.opacity = "1";
+        modal.style.pointerEvents = "all";
+        document.getElementById("actu-modal-box").style.transform =
+          "translateY(0)";
+        document.body.style.overflow = "hidden";
+      }
+
+      function closeActuModal() {
+        const modal = document.getElementById("actu-modal");
+        modal.style.opacity = "0";
+        modal.style.pointerEvents = "none";
+        document.getElementById("actu-modal-box").style.transform =
+          "translateY(24px)";
+        document.body.style.overflow = "";
+      }
+
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") closeActuModal();
+      });
+
+      /* ---- Génération des cartes ---- */
+      document.addEventListener("DOMContentLoaded", () => {
+        const grille = document.getElementById("actu-grid");
+        const saved = localStorage.getItem(STORAGE_KEY);
+        const actualites = saved ? JSON.parse(saved) : [];
+
+        const publies = actualites.filter((a) => a.statut === "Publié");
+
+        if (publies.length === 0) {
+          grille.innerHTML = `<p class="col-span-full text-gray-400 text-lg text-center py-10">Aucune actualité publiée pour le moment.</p>`;
+          return;
+        }
+
+        publies.forEach((actu) => {
+          const card = document.createElement("div");
+          card.className =
+            "max-w-md bg-gray-200 rounded-3xl p-5 border border-black/[0.08] flex flex-col gap-4 hover:-translate-y-1 transition-transform duration-200";
+
+          /* On sérialise l'objet actu pour le passer au onclick */
+          const actuJson = JSON.stringify(actu).replace(/'/g, "\\'");
+
+          card.innerHTML = `
+                <div class="flex items-center justify-between">
+                <span class="inline-flex items-center gap-1.5 bg-teal-600 text-white text-[11px] font-medium px-3 py-1 rounded-full uppercase tracking-wide">
+                    Actualité
+                </span>
+                <span class="text-xs text-gray-500">${actu.date}</span>
+                </div>
+                <h2 class="text-lg font-semibold text-teal-700 leading-snug">${actu.titre}</h2>
+                <div class="flex gap-3 items-start">
+                <p class="flex-1 text-sm text-gray-600 leading-relaxed line-clamp-3">${actu.contenu}</p>
+                <div class="w-[100px] h-[80px] rounded-xl overflow-hidden flex-shrink-0 bg-gray-400">
+                    <img src="${actu.image}" alt="Actualité" class="w-full h-full object-cover" />
+                </div>
+                </div>
+                <div class="border-t border-black/10 pt-3 flex items-center justify-between">
+                <span class="text-[11px] text-gray-400">Par ${actu.auteur}</span>
+                <button
+                    onclick='openActuModal(${JSON.stringify(actu)})'
+                    class="border border-teal-600 text-teal-600 text-sm font-medium rounded-full px-4 py-1.5 hover:bg-teal-600 hover:text-white transition-colors duration-200 cursor-pointer"
+                >+ d'informations</button>
+                </div>
+            `;
+          grille.appendChild(card);
+        });
+      });
+    </script>
+    <script type="module" src="/src/assets/script/script.js"></script>
+  </body>
 </html>
