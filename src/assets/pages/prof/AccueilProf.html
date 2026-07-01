@@ -159,38 +159,7 @@
           <h2 class="text-center text-lg font-semibold text-[var(--color-titre)] underline underline-offset-4">
             Actualité
           </h2>
-          <ul class="flex flex-col gap-4">
-            <li class="flex items-start gap-3">
-              <div class="shrink-0 w-10 h-10 rounded-full bg-gray-200 flex flex-col items-center justify-center leading-none text-[10px] font-semibold text-gray-500">
-                <span>13</span>
-                <span>oct</span>
-              </div>
-              <div>
-                <p class="font-bold text-sm text-[var(--color-titre)]">Titre en H4</p>
-                <p class="text-sm text-gray-500">Paragraphe informatif</p>
-              </div>
-            </li>
-            <li class="flex items-start gap-3">
-              <div class="shrink-0 w-10 h-10 rounded-full bg-gray-200 flex flex-col items-center justify-center leading-none text-[10px] font-semibold text-gray-500">
-                <span>17</span>
-                <span>sept</span>
-              </div>
-              <div>
-                <p class="font-bold text-sm text-[var(--color-titre)]">Titre en H4</p>
-                <p class="text-sm text-gray-500">Paragraphe informatif</p>
-              </div>
-            </li>
-            <li class="flex items-start gap-3">
-              <div class="shrink-0 w-10 h-10 rounded-full bg-gray-200 flex flex-col items-center justify-center leading-none text-[10px] font-semibold text-gray-500">
-                <span>9</span>
-                <span>sept</span>
-              </div>
-              <div>
-                <p class="font-bold text-sm text-[var(--color-titre)]">Titre en H4</p>
-                <p class="text-sm text-gray-500">Paragraphe informatif</p>
-              </div>
-            </li>
-          </ul>
+          <ul id="actualites-mobile-list" class="flex flex-col gap-4"></ul>
         </section>
 
         <!-- Prochain devoir -->
@@ -198,9 +167,16 @@
           <h2 class="text-center text-lg font-semibold text-[var(--color-secondaire)] underline underline-offset-4">
             Prochain devoir
           </h2>
-          <p class="text-center text-base font-medium text-[var(--color-titre)]">
-            entrée devoir à donner
-          </p>
+          <p id="devoir-text" class="text-center text-base font-medium text-[var(--color-titre)] cursor-pointer hover:opacity-70 transition" title="Cliquer pour modifier"></p>
+          <div id="devoir-form" class="hidden flex-col gap-2 items-center">
+            <input id="devoir-titre" type="text" placeholder="Titre du devoir" class="w-full max-w-xs border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-secondaire)] transition-colors" />
+            <input id="devoir-classe" type="text" placeholder="Classe" class="w-full max-w-xs border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-secondaire)] transition-colors" />
+            <input id="devoir-date" type="date" class="w-full max-w-xs border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-secondaire)] transition-colors" />
+            <div class="flex gap-2">
+              <button id="devoir-save" type="button" class="bg-(--color-secondaire) text-white text-sm font-semibold rounded-lg px-4 py-1.5 hover:opacity-90 transition">Enregistrer</button>
+              <button id="devoir-cancel" type="button" class="text-sm text-gray-400 hover:text-gray-600 transition">Annuler</button>
+            </div>
+          </div>
         </section>
 
         <!-- Notes -->
@@ -212,49 +188,16 @@
 
         <!-- Cours à venir -->
         <section class="flex flex-col gap-3">
-          <h2 class="text-center text-lg font-semibold text-[var(--color-secondaire)] underline underline-offset-4">
-            Cours à venir
-          </h2>
+          <div class="flex items-center justify-center gap-2 relative">
+            <h2 class="text-center text-lg font-semibold text-[var(--color-secondaire)] underline underline-offset-4">
+              Cours à venir
+            </h2>
+            <button id="planning-add-btn-mobile" class="absolute right-0 text-xs font-bold text-[var(--color-secondaire)] hover:opacity-70 transition" title="Ajouter un cours">+ Ajouter</button>
+          </div>
           <p class="text-center font-semibold text-sm text-[var(--color-titre)]">
             Pour lundi 23 septembre
           </p>
-          <ul id="cours-a-venir-mobile" class="flex flex-col divide-y divide-gray-200">
-            <li class="flex items-center gap-3 py-2">
-              <span class="text-sm text-gray-500 w-12 shrink-0">10h30</span>
-              <span class="text-sm font-bold text-sky-500 w-20 shrink-0">FRANCAIS</span>
-              <span class="text-sm text-gray-500 flex-1">MARC L.</span>
-              <span class="text-sm text-gray-500">318</span>
-            </li>
-            <li class="flex items-center gap-3 py-2">
-              <span class="text-sm text-gray-500 w-12 shrink-0">11h30</span>
-              <span class="text-sm font-bold text-sky-500 w-20 shrink-0">FRANCAIS</span>
-              <span class="text-sm text-gray-500 flex-1">MARC L.</span>
-              <span class="text-sm text-gray-500">318</span>
-            </li>
-            <li class="flex items-center gap-3 py-2">
-              <span class="text-sm text-gray-500 w-12 shrink-0">10h30</span>
-              <span class="text-sm font-bold text-red-500 w-20 shrink-0">FRANCAIS</span>
-              <span class="text-sm text-gray-500 flex-1">MARC L.</span>
-              <span class="text-sm text-gray-500">318</span>
-            </li>
-            <li class="flex items-center gap-3 py-2">
-              <span class="text-sm text-gray-500 w-12 shrink-0">11h30</span>
-              <span class="text-sm font-bold text-sky-500 w-20 shrink-0">FRANCAIS</span>
-              <span class="text-sm text-gray-500 flex-1">MARC L.</span>
-              <span class="text-sm text-gray-500">318</span>
-            </li>
-            <li class="flex items-center gap-3 py-2">
-              <span class="text-sm text-gray-500 w-12 shrink-0">10h30</span>
-              <span class="text-sm font-bold text-sky-500 w-20 shrink-0">FRANCAIS</span>
-              <span class="text-sm text-gray-500 flex-1">MARC L.</span>
-              <span class="text-sm text-gray-500">318</span>
-            </li>
-            <li class="flex items-center gap-3 py-2">
-              <span class="text-sm text-gray-500 w-12 shrink-0">11h30</span>
-              <span class="text-sm font-bold text-sky-500 w-20 shrink-0"></span>
-              <span class="text-sm text-gray-500 flex-1">318</span>
-            </li>
-          </ul>
+          <ul id="cours-a-venir-mobile" class="flex flex-col divide-y divide-gray-200"></ul>
         </section>
       </div>
 
@@ -275,18 +218,22 @@
 
           <!-- planning horaire -->
           <div class="flex flex-col h-full min-h-0">
+            <div class="flex items-center justify-between mb-1 shrink-0">
+              <h2 class="text-sm font-bold text-[var(--color-titre)]">Planning</h2>
+              <button id="planning-add-btn-desktop" class="text-xs font-bold text-[var(--color-secondaire)] hover:opacity-70 transition" title="Ajouter un cours">+ Ajouter</button>
+            </div>
             <table class="w-full h-full border-collapse text-sm table-fixed">
-              <tbody class="[&>tr]:h-[10%]">
-                <tr><td class="border border-gray-300 px-2 text-xs text-gray-500 align-top w-16">09h00</td><td class="border border-gray-300 bg-gray-100"></td></tr>
-                <tr><td class="border border-gray-300 px-2 text-xs text-gray-500 align-top">10h00</td><td class="border border-gray-300 bg-gray-100"></td></tr>
-                <tr><td class="border border-gray-300 px-2 text-xs text-gray-500 align-top">11h00</td><td class="border border-gray-300 bg-gray-100"></td></tr>
-                <tr><td class="border border-gray-300 px-2 text-xs text-gray-500 align-top">12h00</td><td class="border border-gray-300 bg-gray-100"></td></tr>
-                <tr><td class="border border-gray-300 px-2 text-xs text-gray-500 align-top">13h00</td><td class="border border-gray-300 bg-gray-100"></td></tr>
-                <tr><td class="border border-gray-300 px-2 text-xs text-gray-500 align-top">14h00</td><td class="border border-gray-300 bg-gray-100"></td></tr>
-                <tr><td class="border border-gray-300 px-2 text-xs text-gray-500 align-top">15h00</td><td class="border border-gray-300 bg-gray-100"></td></tr>
-                <tr><td class="border border-gray-300 px-2 text-xs text-gray-500 align-top">16h00</td><td class="border border-gray-300 bg-gray-100"></td></tr>
-                <tr><td class="border border-gray-300 px-2 text-xs text-gray-500 align-top">17h00</td><td class="border border-gray-300 bg-gray-100"></td></tr>
-                <tr><td class="border border-gray-300 px-2 text-xs text-gray-500 align-top">18h00</td><td class="border border-gray-300 bg-gray-100"></td></tr>
+              <tbody id="planning-tbody" class="[&>tr]:h-[10%]">
+                <tr data-heure="09h00"><td class="border border-gray-300 px-2 text-xs text-gray-500 align-top w-16">09h00</td><td class="planning-cell border border-gray-300 bg-gray-100"></td></tr>
+                <tr data-heure="10h00"><td class="border border-gray-300 px-2 text-xs text-gray-500 align-top">10h00</td><td class="planning-cell border border-gray-300 bg-gray-100"></td></tr>
+                <tr data-heure="11h00"><td class="border border-gray-300 px-2 text-xs text-gray-500 align-top">11h00</td><td class="planning-cell border border-gray-300 bg-gray-100"></td></tr>
+                <tr data-heure="12h00"><td class="border border-gray-300 px-2 text-xs text-gray-500 align-top">12h00</td><td class="planning-cell border border-gray-300 bg-gray-100"></td></tr>
+                <tr data-heure="13h00"><td class="border border-gray-300 px-2 text-xs text-gray-500 align-top">13h00</td><td class="planning-cell border border-gray-300 bg-gray-100"></td></tr>
+                <tr data-heure="14h00"><td class="border border-gray-300 px-2 text-xs text-gray-500 align-top">14h00</td><td class="planning-cell border border-gray-300 bg-gray-100"></td></tr>
+                <tr data-heure="15h00"><td class="border border-gray-300 px-2 text-xs text-gray-500 align-top">15h00</td><td class="planning-cell border border-gray-300 bg-gray-100"></td></tr>
+                <tr data-heure="16h00"><td class="border border-gray-300 px-2 text-xs text-gray-500 align-top">16h00</td><td class="planning-cell border border-gray-300 bg-gray-100"></td></tr>
+                <tr data-heure="17h00"><td class="border border-gray-300 px-2 text-xs text-gray-500 align-top">17h00</td><td class="planning-cell border border-gray-300 bg-gray-100"></td></tr>
+                <tr data-heure="18h00"><td class="border border-gray-300 px-2 text-xs text-gray-500 align-top">18h00</td><td class="planning-cell border border-gray-300 bg-gray-100"></td></tr>
               </tbody>
             </table>
           </div>
@@ -294,23 +241,30 @@
           <!-- colonne cartes (travail donné / ressources / notes) -->
           <div class="flex flex-col h-full min-h-0 gap-6">
             <div class="flex-1 flex flex-col min-h-0">
-              <h2 class="text-sm font-bold text-[var(--color-titre)] mb-2 shrink-0">Travail donné</h2>
-              <div class="bg-gray-200 rounded-md flex-1"></div>
+              <div class="flex items-center justify-between mb-2 shrink-0">
+                <h2 class="text-sm font-bold text-[var(--color-titre)]">Travail donné</h2>
+                <button id="travail-add-btn" class="text-xs font-bold text-[var(--color-secondaire)] hover:opacity-70 transition" title="Ajouter">+ Ajouter</button>
+              </div>
+              <div id="travail-add-row" class="hidden mb-2 shrink-0 flex flex-col gap-1">
+                <input id="travail-add-classe" type="text" placeholder="Classe (ex: BTS 1re année)" class="w-full border border-gray-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-[var(--color-secondaire)] transition-colors" />
+                <input id="travail-add-input" type="text" placeholder="Travail donné puis Entrée" class="w-full border border-gray-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-[var(--color-secondaire)] transition-colors" />
+              </div>
+              <div id="travail-donne-list" class="bg-gray-200 rounded-md flex-1 overflow-y-auto"></div>
             </div>
             <div class="flex-1 flex flex-col min-h-0">
               <h2 class="text-sm font-bold text-[var(--color-titre)] mb-2 shrink-0">Dernières ressources</h2>
-              <div class="bg-gray-200 rounded-md flex-1"></div>
+              <div id="ressources-list" class="bg-gray-200 rounded-md flex-1 overflow-y-auto"></div>
             </div>
             <div class="flex-1 flex flex-col min-h-0">
               <h2 class="text-sm font-bold text-[var(--color-titre)] mb-2 shrink-0">Dernières notes</h2>
-              <div class="bg-gray-200 rounded-md flex-1"></div>
+              <div id="notes-resume-list" class="bg-gray-200 rounded-md flex-1 overflow-y-auto"></div>
             </div>
           </div>
 
           <!-- actualité -->
           <div class="flex flex-col h-full min-h-0 min-w-0">
             <h2 class="text-lg font-bold text-[var(--color-titre)] mb-3 shrink-0">Actualité</h2>
-            <div class="bg-gray-200 rounded-md flex-1"></div>
+            <div id="actualites-desktop-list" class="bg-gray-200 rounded-md flex-1 overflow-y-auto"></div>
           </div>
         </div>
       </div>
@@ -392,6 +346,46 @@
       </div>
     </div>
 
+    <!-- Modale ajout d'un cours (planning) -->
+    <div id="modal-planning" class="hidden fixed inset-0 z-[300] items-center justify-center">
+      <div id="modal-planning-backdrop" class="absolute inset-0 bg-black/50"></div>
+      <div class="relative bg-white rounded-lg shadow-2xl p-8 w-full max-w-sm mx-4 z-10">
+        <button class="modal-close absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl font-bold leading-none" data-modal="modal-planning">✕</button>
+        <h3 class="text-lg font-bold text-[var(--color-titre)] mb-6">Ajouter un cours</h3>
+        <form id="form-planning" class="flex flex-col gap-4">
+          <div>
+            <label class="text-xs text-gray-400 uppercase tracking-wider">Heure</label>
+            <select id="planning-heure" class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-[var(--color-secondaire)] transition-colors">
+              <option>09h00</option>
+              <option>10h00</option>
+              <option>11h00</option>
+              <option>12h00</option>
+              <option>13h00</option>
+              <option>14h00</option>
+              <option>15h00</option>
+              <option>16h00</option>
+              <option>17h00</option>
+              <option>18h00</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 uppercase tracking-wider">Matière</label>
+            <input id="planning-matiere" type="text" required class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-[var(--color-secondaire)] transition-colors" />
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 uppercase tracking-wider">Classe</label>
+            <input id="planning-classe" type="text" required class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-[var(--color-secondaire)] transition-colors" />
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 uppercase tracking-wider">Salle</label>
+            <input id="planning-salle" type="text" required class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-[var(--color-secondaire)] transition-colors" />
+          </div>
+          <button type="submit" class="bg-(--color-secondaire) text-white font-semibold rounded-xl py-2.5 hover:opacity-90 transition">Enregistrer</button>
+        </form>
+      </div>
+    </div>
+
     <script type="module" src="/src/assets/script/script.js"></script>
+    <script type="module" src="/src/assets/script/AccueilProf.js"></script>
   </body>
 </html>
