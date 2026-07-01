@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Actualité</title>
+    <link rel="stylesheet" href="../../style/style.css" />
+  </head>
+  <body class="flex flex-col h-screen overflow-hidden">
+    <!-- navbar -->
+    <navbar
+      class="flex justify-between items-center bg-[var(--color-principal)] sticky top-0 z-50 shrink-0 px-4 gap-4"
+    >
+      <!-- partie gauche : logo + nom + avatar + accueil -->
+      <div class="flex items-center gap-4">
+        <div class="logo">
+          <a href="../../../../index.html"
+            ><img
+              src="../../img/Logo_IRIS_SPACE.svg"
+              alt="Logo"
+              class="h-auto w-40 p-0 m-0"
+          /></a>
+        </div>
+        <span class="text-white text-lg font-medium hidden sm:inline"
+          >NOM PRENOM</span
+        >
+        <a href="profile.html" class="shrink-0" aria-label="Profil">
+          <div
+            class="w-10 h-10 rounded-full bg-gray-300 hover:opacity-80 transition"
+          ></div>
+        </a>
+        <a href="AccueilProf.html" class="shrink-0" aria-label="Accueil">
+          <svg
+            class="w-7 h-7 fill-white"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+          >
+            <path d="M12 3l9 8h-3v9h-5v-6h-2v6H6v-9H3l9-8z" />
+          </svg>
+        </a>
+      </div>
+
+      <!-- liens de navigation (desktop) -->
+      <div class="hidden md:flex items-center gap-8">
+        <a
+          href="devoirs.html"
+          class="text-white text-lg font-medium hover:-translate-y-0.5 transition-transform duration-200"
+          >Devoir</a
+        >
+        <a
+          href="note.html"
+          class="text-white text-lg font-medium hover:-translate-y-0.5 transition-transform duration-200"
+          >Notes</a
+        >
+        <a
+          href="actualité.html"
+          class="text-white text-lg font-medium hover:-translate-y-0.5 transition-transform duration-200"
+          >Actualité</a
+        >
+        <a
+          href="edt.html"
+          class="text-white text-lg font-medium hover:-translate-y-0.5 transition-transform duration-200"
+          >Emploi du temps</a
+        >
+      </div>
+
+      <!-- partie droite : messages + burger -->
+      <div class="flex items-center">
+        <!-- icône messages avec badge notification -->
+        <div class="relative pr-2">
+          <a href="messages.html" id="msg-icon-link">
+            <img
+              src="../../img/messages.svg"
+              alt="Messages"
+              class="h-auto w-15 p-0 m-0"
+            />
+          </a>
+          <span
+            id="msg-badge"
+            class="hidden absolute -top-1 right-0 min-w-[20px] h-5 bg-red-600 text-white text-xs font-bold rounded-full items-center justify-center px-1 leading-none pointer-events-none"
+          >
+          </span>
+        </div>
+
+        <!-- menu burger -->
+        <div class="md:hidden pl-2">
+          <label
+            class="btn border-0 bg-[var(--color-principal)] swap swap-rotate active:scale-100 active:translate-y-0 shadow-none active:shadow-none"
+          >
+            <!-- Cette checkbox masquée permet de contrôler l'état de la navbar-->
+            <input type="checkbox" />
+
+            <!-- icon hamburger -->
+            <svg
+              class="swap-off fill-current filter invert"
+              xmlns="http://www.w3.org/2000/svg"
+              width="32"
+              height="32"
+              viewBox="0 0 512 512"
+            >
+              <path
+                d="M64,384H448V341.33H64Zm0-106.67H448V234.67H64ZM64,128v42.67H448V128Z"
+              />
+            </svg>
+
+            <!-- icon de fermeture -->
+            <svg
+              class="swap-on fill-current filter invert"
+              xmlns="http://www.w3.org/2000/svg"
+              width="32"
+              height="32"
+              viewBox="0 0 512 512"
+            >
+              <polygon
+                points="400 145.49 366.51 112 256 222.51 145.49 112 112 145.49 222.51 256 112 366.51 145.49 400 256 289.49 366.51 400 400 366.51 289.49 256 400 145.49"
+              />
+            </svg>
+          </label>
+        </div>
+      </div>
+    </navbar>
+
+    <!-- menu déroulant (overlay) -->
+    <div class="fixed inset-0 z-50 hidden" id="dropdown-overlay">
+      <!-- backdrop sombre -->
+      <div
+        class="absolute inset-0 bg-black/40 transition-opacity duration-300"
+        id="dropdown-backdrop"
+      ></div>
+
+      <!-- panneau latéral -->
+      <div
+        id="dropdown-panel"
+        class="absolute top-0 right-0 h-full w-72 bg-[var(--color-secondaire)] rounded-l-3xl shadow-2xl flex flex-col p-6 translate-x-full transition-transform duration-300 ease-in-out"
+      >
+        <!-- bouton fermeture -->
+        <div class="flex justify-end mb-8">
+          <button
+            id="dropdown-close"
+            class="text-white text-3xl font-bold leading-none hover:scale-125 transition-transform duration-200"
+            aria-label="Fermer le menu"
+          >
+            →
+          </button>
+        </div>
+
+        <!-- liens de navigation -->
+        <nav class="flex flex-col gap-5">
+          <a
+            href="AccueilProf.html"
+            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
+            >Accueil</a
+          >
+          <a
+            href="devoirs.html"
+            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
+            >Devoirs</a
+          >
+          <a
+            href="note.html"
+            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
+            >Notes</a
+          >
+          <a
+            href="edt.html"
+            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
+            >Emploi du temps</a
+          >
+          <a
+            href="messages.html"
+            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
+            >Messages</a
+          >
+          <a
+            href="actualité.html"
+            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
+            >Actualité</a
+          >
+          <a
+            href="profile.html"
+            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
+            >Profil</a
+          >
+        </nav>
+      </div>
+    </div>
+
+    <!-- content -->
+    <main class="flex-1 overflow-y-auto p-6">
+      <div class="w-full border border-gray-300 rounded-lg p-4">
+        <h1 class="text-center text-orange-500 font-semibold text-lg mb-4">
+          Actualité
+        </h1>
+      </div>
+    </main>
+
+    <div class="flex justify-start align-middle p-2 bg-[#5D5C60] shrink-0">
+      <div class="text-white text-sm flex items-center">
+        <button
+          class="text-white text-xl font-medium hover:-translate-y-1 transition-transform duration-200"
+        >
+          Mentions légales
+        </button>
+        <span class="self-stretch w-px bg-white mx-3"></span>
+        <button
+          class="text-white text-xl font-medium hover:-translate-y-1 transition-transform duration-200"
+        >
+          Politique de confidentialité
+        </button>
+        <span class="self-stretch w-px bg-white mx-3"></span>
+        <a href="https://mediaschool.eu/" target="_blank" class=""
+          ><img src="../../img/ms_logo_cmjn_blanc_1.png" alt="Logo" class="h-12"
+        /></a>
+      </div>
+    </div>
+
+    <script type="module" src="/src/assets/script/script.js"></script>
+  </body>
+</html>
