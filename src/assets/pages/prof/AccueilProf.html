@@ -87,10 +87,7 @@
           <label
             class="btn border-0 bg-[var(--color-principal)] swap swap-rotate active:scale-100 active:translate-y-0 shadow-none active:shadow-none"
           >
-            <!-- Cette checkbox masquée permet de contrôler l'état de la navbar-->
             <input type="checkbox" />
-
-            <!-- icon hamburger -->
             <svg
               class="swap-off fill-current filter invert"
               xmlns="http://www.w3.org/2000/svg"
@@ -102,8 +99,6 @@
                 d="M64,384H448V341.33H64Zm0-106.67H448V234.67H64ZM64,128v42.67H448V128Z"
               />
             </svg>
-
-            <!-- icon de fermeture -->
             <svg
               class="swap-on fill-current filter invert"
               xmlns="http://www.w3.org/2000/svg"
@@ -122,18 +117,14 @@
 
     <!-- menu déroulant (overlay) -->
     <div class="fixed inset-0 z-50 hidden" id="dropdown-overlay">
-      <!-- backdrop sombre -->
       <div
         class="absolute inset-0 bg-black/40 transition-opacity duration-300"
         id="dropdown-backdrop"
       ></div>
-
-      <!-- panneau latéral -->
       <div
         id="dropdown-panel"
         class="absolute top-0 right-0 h-full w-72 bg-[var(--color-secondaire)] rounded-l-3xl shadow-2xl flex flex-col p-6 translate-x-full transition-transform duration-300 ease-in-out"
       >
-        <!-- bouton fermeture -->
         <div class="flex justify-end mb-8">
           <button
             id="dropdown-close"
@@ -143,74 +134,261 @@
             →
           </button>
         </div>
-
-        <!-- liens de navigation -->
         <nav class="flex flex-col gap-5">
-          <a
-            href="AccueilProf.html"
-            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
-            >Accueil</a
-          >
-          <a
-            href="devoirs.html"
-            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
-            >Devoirs</a
-          >
-          <a
-            href="note.html"
-            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
-            >Notes</a
-          >
-          <a
-            href="edt.html"
-            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
-            >Emploi du temps</a
-          >
-          <a
-            href="messages.html"
-            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
-            >Messages</a
-          >
-          <a
-            href="actualité.html"
-            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
-            >Actualité</a
-          >
-          <a
-            href="profile.html"
-            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
-            >Profil</a
-          >
+          <a href="AccueilProf.html" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Accueil</a>
+          <a href="devoirs.html" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Devoirs</a>
+          <a href="note.html" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Notes</a>
+          <a href="edt.html" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Emploi du temps</a>
+          <a href="messages.html" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Messages</a>
+          <a href="actualité.html" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Actualité</a>
+          <a href="profile.html" class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200">Profil</a>
         </nav>
       </div>
     </div>
 
-    <!-- content -->
-    <main class="flex-1 overflow-y-auto p-6">
-      <div class="w-full border border-gray-300 rounded-lg p-4">
-        <h1 class="text-center text-orange-500 font-semibold text-lg mb-4">
-          Bienvenue
-        </h1>
-      </div>
-    </main>
+    <!-- ============================================================ -->
+    <!-- contenu principal -->
+    <!-- ============================================================ -->
+    <div class="flex-1 overflow-y-auto bg-[var(--color-page)]">
 
+      <!-- ===================== VERSION MOBILE (< md) ===================== -->
+      <div class="md:hidden p-4 flex flex-col gap-8">
+
+        <!-- Actualité -->
+        <section class="flex flex-col gap-4">
+          <h2 class="text-center text-lg font-semibold text-[var(--color-titre)] underline underline-offset-4">
+            Actualité
+          </h2>
+          <ul class="flex flex-col gap-4">
+            <li class="flex items-start gap-3">
+              <div class="shrink-0 w-10 h-10 rounded-full bg-gray-200 flex flex-col items-center justify-center leading-none text-[10px] font-semibold text-gray-500">
+                <span>13</span>
+                <span>oct</span>
+              </div>
+              <div>
+                <p class="font-bold text-sm text-[var(--color-titre)]">Titre en H4</p>
+                <p class="text-sm text-gray-500">Paragraphe informatif</p>
+              </div>
+            </li>
+            <li class="flex items-start gap-3">
+              <div class="shrink-0 w-10 h-10 rounded-full bg-gray-200 flex flex-col items-center justify-center leading-none text-[10px] font-semibold text-gray-500">
+                <span>17</span>
+                <span>sept</span>
+              </div>
+              <div>
+                <p class="font-bold text-sm text-[var(--color-titre)]">Titre en H4</p>
+                <p class="text-sm text-gray-500">Paragraphe informatif</p>
+              </div>
+            </li>
+            <li class="flex items-start gap-3">
+              <div class="shrink-0 w-10 h-10 rounded-full bg-gray-200 flex flex-col items-center justify-center leading-none text-[10px] font-semibold text-gray-500">
+                <span>9</span>
+                <span>sept</span>
+              </div>
+              <div>
+                <p class="font-bold text-sm text-[var(--color-titre)]">Titre en H4</p>
+                <p class="text-sm text-gray-500">Paragraphe informatif</p>
+              </div>
+            </li>
+          </ul>
+        </section>
+
+        <!-- Prochain devoir -->
+        <section class="flex flex-col gap-2">
+          <h2 class="text-center text-lg font-semibold text-[var(--color-secondaire)] underline underline-offset-4">
+            Prochain devoir
+          </h2>
+          <p class="text-center text-base font-medium text-[var(--color-titre)]">
+            entrée devoir à donner
+          </p>
+        </section>
+
+        <!-- Notes -->
+        <section>
+          <a href="note.html" class="block text-center text-lg font-semibold text-[var(--color-secondaire)] underline underline-offset-4">
+            Notes
+          </a>
+        </section>
+
+        <!-- Cours à venir -->
+        <section class="flex flex-col gap-3">
+          <h2 class="text-center text-lg font-semibold text-[var(--color-secondaire)] underline underline-offset-4">
+            Cours à venir
+          </h2>
+          <p class="text-center font-semibold text-sm text-[var(--color-titre)]">
+            Pour lundi 23 septembre
+          </p>
+          <ul id="cours-a-venir-mobile" class="flex flex-col divide-y divide-gray-200">
+            <li class="flex items-center gap-3 py-2">
+              <span class="text-sm text-gray-500 w-12 shrink-0">10h30</span>
+              <span class="text-sm font-bold text-sky-500 w-20 shrink-0">FRANCAIS</span>
+              <span class="text-sm text-gray-500 flex-1">MARC L.</span>
+              <span class="text-sm text-gray-500">318</span>
+            </li>
+            <li class="flex items-center gap-3 py-2">
+              <span class="text-sm text-gray-500 w-12 shrink-0">11h30</span>
+              <span class="text-sm font-bold text-sky-500 w-20 shrink-0">FRANCAIS</span>
+              <span class="text-sm text-gray-500 flex-1">MARC L.</span>
+              <span class="text-sm text-gray-500">318</span>
+            </li>
+            <li class="flex items-center gap-3 py-2">
+              <span class="text-sm text-gray-500 w-12 shrink-0">10h30</span>
+              <span class="text-sm font-bold text-red-500 w-20 shrink-0">FRANCAIS</span>
+              <span class="text-sm text-gray-500 flex-1">MARC L.</span>
+              <span class="text-sm text-gray-500">318</span>
+            </li>
+            <li class="flex items-center gap-3 py-2">
+              <span class="text-sm text-gray-500 w-12 shrink-0">11h30</span>
+              <span class="text-sm font-bold text-sky-500 w-20 shrink-0">FRANCAIS</span>
+              <span class="text-sm text-gray-500 flex-1">MARC L.</span>
+              <span class="text-sm text-gray-500">318</span>
+            </li>
+            <li class="flex items-center gap-3 py-2">
+              <span class="text-sm text-gray-500 w-12 shrink-0">10h30</span>
+              <span class="text-sm font-bold text-sky-500 w-20 shrink-0">FRANCAIS</span>
+              <span class="text-sm text-gray-500 flex-1">MARC L.</span>
+              <span class="text-sm text-gray-500">318</span>
+            </li>
+            <li class="flex items-center gap-3 py-2">
+              <span class="text-sm text-gray-500 w-12 shrink-0">11h30</span>
+              <span class="text-sm font-bold text-sky-500 w-20 shrink-0"></span>
+              <span class="text-sm text-gray-500 flex-1">318</span>
+            </li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- ===================== VERSION DESKTOP (>= md) ===================== -->
+      <div class="hidden md:flex md:flex-col p-6 h-full box-border">
+
+        <!-- date bar -->
+        <div class="flex justify-center items-center gap-3 mb-8 shrink-0">
+          <span class="w-3 h-3 rounded-full bg-sky-400 shrink-0"></span>
+          <span class="px-5 py-1.5 rounded-full border border-gray-300 bg-white text-sm font-medium text-[var(--color-titre)]">
+            Jeudi 09 Septembre 2028
+          </span>
+          <span class="w-3 h-3 rounded-full bg-sky-400 shrink-0"></span>
+        </div>
+
+        <!-- grille alignée : planning / cartes / actualité -->
+        <div class="flex-1 min-h-0 grid grid-cols-1 2xl:grid-cols-[14rem_18rem_1fr] gap-8 items-stretch">
+
+          <!-- planning horaire -->
+          <div class="flex flex-col h-full min-h-0">
+            <table class="w-full h-full border-collapse text-sm table-fixed">
+              <tbody class="[&>tr]:h-[10%]">
+                <tr><td class="border border-gray-300 px-2 text-xs text-gray-500 align-top w-16">09h00</td><td class="border border-gray-300 bg-gray-100"></td></tr>
+                <tr><td class="border border-gray-300 px-2 text-xs text-gray-500 align-top">10h00</td><td class="border border-gray-300 bg-gray-100"></td></tr>
+                <tr><td class="border border-gray-300 px-2 text-xs text-gray-500 align-top">11h00</td><td class="border border-gray-300 bg-gray-100"></td></tr>
+                <tr><td class="border border-gray-300 px-2 text-xs text-gray-500 align-top">12h00</td><td class="border border-gray-300 bg-gray-100"></td></tr>
+                <tr><td class="border border-gray-300 px-2 text-xs text-gray-500 align-top">13h00</td><td class="border border-gray-300 bg-gray-100"></td></tr>
+                <tr><td class="border border-gray-300 px-2 text-xs text-gray-500 align-top">14h00</td><td class="border border-gray-300 bg-gray-100"></td></tr>
+                <tr><td class="border border-gray-300 px-2 text-xs text-gray-500 align-top">15h00</td><td class="border border-gray-300 bg-gray-100"></td></tr>
+                <tr><td class="border border-gray-300 px-2 text-xs text-gray-500 align-top">16h00</td><td class="border border-gray-300 bg-gray-100"></td></tr>
+                <tr><td class="border border-gray-300 px-2 text-xs text-gray-500 align-top">17h00</td><td class="border border-gray-300 bg-gray-100"></td></tr>
+                <tr><td class="border border-gray-300 px-2 text-xs text-gray-500 align-top">18h00</td><td class="border border-gray-300 bg-gray-100"></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- colonne cartes (travail donné / ressources / notes) -->
+          <div class="flex flex-col h-full min-h-0 gap-6">
+            <div class="flex-1 flex flex-col min-h-0">
+              <h2 class="text-sm font-bold text-[var(--color-titre)] mb-2 shrink-0">Travail donné</h2>
+              <div class="bg-gray-200 rounded-md flex-1"></div>
+            </div>
+            <div class="flex-1 flex flex-col min-h-0">
+              <h2 class="text-sm font-bold text-[var(--color-titre)] mb-2 shrink-0">Dernières ressources</h2>
+              <div class="bg-gray-200 rounded-md flex-1"></div>
+            </div>
+            <div class="flex-1 flex flex-col min-h-0">
+              <h2 class="text-sm font-bold text-[var(--color-titre)] mb-2 shrink-0">Dernières notes</h2>
+              <div class="bg-gray-200 rounded-md flex-1"></div>
+            </div>
+          </div>
+
+          <!-- actualité -->
+          <div class="flex flex-col h-full min-h-0 min-w-0">
+            <h2 class="text-lg font-bold text-[var(--color-titre)] mb-3 shrink-0">Actualité</h2>
+            <div class="bg-gray-200 rounded-md flex-1"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- footer -->
     <div class="flex justify-start align-middle p-2 bg-[#5D5C60] shrink-0">
       <div class="text-white text-sm flex items-center">
-        <button
-          class="text-white text-xl font-medium hover:-translate-y-1 transition-transform duration-200"
-        >
+        <button class="text-white text-xl font-medium hover:-translate-y-1 transition-transform duration-200">
           Mentions légales
         </button>
         <span class="self-stretch w-px bg-white mx-3"></span>
-        <button
-          class="text-white text-xl font-medium hover:-translate-y-1 transition-transform duration-200"
-        >
+        <button class="text-white text-xl font-medium hover:-translate-y-1 transition-transform duration-200">
           Politique de confidentialité
         </button>
         <span class="self-stretch w-px bg-white mx-3"></span>
-        <a href="https://mediaschool.eu/" target="_blank" class=""
+        <a href="https://mediaschool.eu/" target="_blank"
           ><img src="../../img/ms_logo_cmjn_blanc_1.png" alt="Logo" class="h-12"
         /></a>
+      </div>
+    </div>
+
+    <!-- ===== PANEL DEBUG / DEV ===== -->
+    <div
+      id="debug-panel"
+      class="fixed bottom-16 right-4 z-[200] hidden w-64 bg-[var(--color-principal)] text-white rounded-2xl shadow-2xl p-4 border border-[var(--color-secondaire)]"
+    >
+      <div class="flex justify-between items-center mb-4">
+        <span class="font-bold text-[var(--color-secondaire)] text-sm uppercase tracking-wider">🛠 Dev Tools</span>
+        <button id="debug-close" class="text-gray-400 hover:text-white text-lg font-bold leading-none transition-colors">✕</button>
+      </div>
+      <div class="flex flex-col gap-2 text-sm">
+        <p class="text-gray-400 text-xs uppercase tracking-wider mb-1">Compteur messages</p>
+        <div class="flex items-center gap-2">
+          <button id="dev-msg-add" class="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-lg px-3 py-2 transition font-bold">+1</button>
+          <button id="dev-msg-remove" class="flex-1 bg-red-600 hover:bg-red-700 text-white rounded-lg px-3 py-2 transition font-bold">-1</button>
+          <button id="dev-msg-reset" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white rounded-lg px-3 py-2 transition text-xs font-medium">Reset</button>
+        </div>
+        <div class="flex items-center justify-between bg-white/10 rounded-lg px-3 py-2 mt-1">
+          <span class="text-gray-300 text-xs">Compteur actuel :</span>
+          <span id="debug-counter" class="text-[var(--color-secondaire)] font-bold text-lg">0</span>
+        </div>
+        <p class="text-gray-400 text-xs uppercase tracking-wider mt-3 mb-1">Données</p>
+        <button id="dev-reset-data" class="bg-orange-600 hover:bg-orange-700 text-white rounded-lg px-3 py-2 text-left transition font-medium text-xs">
+          Reset données (défaut)
+        </button>
+      </div>
+    </div>
+
+    <!-- bouton toggle panel debug -->
+    <button
+      id="debug-toggle"
+      class="fixed bottom-4 right-4 z-[200] bg-[var(--color-principal)] border-2 border-[var(--color-secondaire)] text-[var(--color-secondaire)] font-bold text-xs px-3 py-2 rounded-full shadow-lg hover:bg-[var(--color-secondaire)] hover:text-[var(--color-principal)] transition-all duration-200"
+      title="Menu développeur"
+    >
+      DEV
+    </button>
+
+    <!-- Modale coordonnées contact -->
+    <div id="modal-contact" class="hidden fixed inset-0 z-[300] items-center justify-center">
+      <div id="modal-contact-backdrop" class="absolute inset-0 bg-black/50"></div>
+      <div class="relative bg-white rounded-lg shadow-2xl p-8 w-full max-w-sm mx-4 z-10">
+        <button class="modal-close absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl font-bold leading-none" data-modal="modal-contact">✕</button>
+        <h3 class="text-lg font-bold text-[var(--color-titre)] mb-6">Coordonnées du contact</h3>
+        <div class="flex flex-col gap-4">
+          <div>
+            <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Élève</p>
+            <p id="contact-nom" class="font-semibold text-gray-800 text-base"></p>
+          </div>
+          <div>
+            <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Téléphone</p>
+            <a id="contact-tel" href="#" class="font-medium text-[var(--color-secondaire)] hover:underline text-base"></a>
+          </div>
+          <div>
+            <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Email</p>
+            <a id="contact-email" href="#" class="font-medium text-[var(--color-secondaire)] hover:underline text-base break-all"></a>
+          </div>
+        </div>
       </div>
     </div>
 
