@@ -3,48 +3,133 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dashboard Administration</title>
+    <title>Actualité</title>
     <link rel="stylesheet" href="../../style/style.css" />
   </head>
   <body class="flex flex-col h-screen overflow-hidden">
     <!-- navbar -->
     <navbar
-      class="flex justify-between items-center bg-[var(--color-principal)] sticky top-0 z-50 shrink-0"
+      class="flex justify-between items-center bg-[var(--color-principal)] sticky top-0 z-50 shrink-0 px-4 py-2"
     >
-      <div class="flex items-center gap-5">
+      <div class="flex items-center gap-4">
         <div class="logo">
           <a href="../../../../index.html"
             ><img
               src="../../img/Logo_IRIS_SPACE.svg"
-              alt="Logo"
-              class="h-auto w-40 p-0 m-0"
+              alt="Logo IRIS SPACE"
+              class="h-auto w-32 p-0 m-0"
           /></a>
         </div>
-        <div class="title text-2xl text-white">Admin</div>
-      </div>
-      <div class="flex items-center">
-        <!-- icône messages avec badge notification -->
-        <div class="relative hidden md:block pr-4">
-          <a href="Messages.html" id="msg-icon-link">
-            <img
-              src="../../img/messages.svg"
-              alt="Messages"
-              class="h-auto w-15 p-0 m-0"
-            />
-          </a>
-          <span
-            id="msg-badge"
-            class="hidden absolute -top-1 right-3 min-w-[20px] h-5 bg-red-600 text-white text-xs font-bold rounded-full items-center justify-center px-1 leading-none pointer-events-none"
-          >
-          </span>
+
+        <span class="text-white/30 text-xl font-light hidden md:inline">|</span>
+
+        <div
+          class="title text-lg text-white tracking-wide font-medium hidden md:block"
+        >
+          NOM PRENOM
         </div>
 
-        <!-- menu burger -->
-        <div class="md:hidden pr-4">
+        <!-- avatar -->
+        <div
+          class="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden shrink-0"
+        >
+          <a
+            href="./Profil.html"
+            aria-label="Profil"
+            class="btn btn-ghost btn-circle border-0"
+          >
+            <img
+              src="../../img/avatar-default.png"
+              alt="Avatar"
+              class="w-full h-full object-cover"
+              onerror="this.style.display = 'none'"
+            />
+          </a>
+        </div>
+
+        <!-- accueil -->
+        <a
+          href="./Accueil.html"
+          class="text-white hover:-translate-y-0.5 transition-transform duration-200"
+          aria-label="Accueil"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M3 9.5 12 3l9 6.5V21a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V9.5Z"
+            />
+          </svg>
+        </a>
+      </div>
+
+      <!-- navigation desktop -->
+      <nav class="hidden md:flex items-center gap-8 text-white">
+        <a
+          href="./Devoir.html"
+          class="text-base font-medium hover:-translate-y-0.5 transition-transform duration-200"
+          >Devoir</a
+        >
+        <a
+          href="./Notes.html"
+          class="text-base font-medium hover:-translate-y-0.5 transition-transform duration-200"
+          >Notes</a
+        >
+        <a
+          href="./VieScolaire.html"
+          class="text-base font-medium hover:-translate-y-0.5 transition-transform duration-200"
+          >Vie scolaire</a
+        >
+        <a
+          href="./Actualite.html"
+          class="text-base font-medium hover:-translate-y-0.5 transition-transform duration-200"
+          >Actualité</a
+        >
+        <a
+          href="./EmploiDuTemps.html"
+          class="text-base font-medium hover:-translate-y-0.5 transition-transform duration-200"
+          >Emploi du temps</a
+        >
+      </nav>
+
+      <div class="flex items-center gap-3">
+        <!-- messagerie -->
+        <a
+          href="./Messagerie.html"
+          class="w-10 h-10 rounded-full flex items-center justify-center hover:-translate-y-0.5 transition-transform duration-200"
+          aria-label="Messagerie"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="white"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+            />
+          </svg>
+        </a>
+
+        <!-- menu burger (mobile) -->
+        <div class="md:hidden">
           <label
             class="btn border-0 bg-[var(--color-principal)] swap swap-rotate active:scale-100 active:translate-y-0 shadow-none active:shadow-none"
           >
-            <input type="checkbox" />
+            <input type="checkbox" id="nav-toggle" />
             <svg
               class="swap-off fill-current filter invert"
               xmlns="http://www.w3.org/2000/svg"
@@ -72,7 +157,7 @@
       </div>
     </navbar>
 
-    <!-- menu déroulant (overlay) -->
+    <!-- menu déroulant (overlay mobile) -->
     <div class="fixed inset-0 z-50 hidden" id="dropdown-overlay">
       <div
         class="absolute inset-0 bg-black/40 transition-opacity duration-300"
@@ -91,100 +176,40 @@
             →
           </button>
         </div>
-        <nav class="flex flex-col gap-5">
+        <nav class="flex flex-col gap-5 text-white text-lg">
           <a
-            href="AdminAcceuil.html"
-            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
-            >DashBoard</a
+            href="./Devoirs.html"
+            class="text-base font-medium hover:-translate-y-0.5 transition-transform duration-200"
+            >Devoir</a
           >
           <a
-            href="Abscence.html"
-            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
-            >Absences</a
+            href="./Notes.html"
+            class="text-base font-medium hover:-translate-y-0.5 transition-transform duration-200"
+            >Notes</a
           >
           <a
-            href="Professeurs.html"
-            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
-            >Professeurs</a
+            href="./Abscence.html"
+            class="text-base font-medium hover:-translate-y-0.5 transition-transform duration-200"
+            >Vie scolaire</a
           >
           <a
-            href="Directions.html"
-            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
-            >Directions</a
-          >
-          <a
-            href="Messages.html"
-            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
-            >Messages</a
-          >
-          <a
-            href="Administration.html"
-            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
-            >Administration</a
-          >
-          <a
-            href="documents.html"
-            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
-            >Documents</a
-          >
-          <a
-            href="Actualite.html"
-            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
+            href="./Actualite.html"
+            class="text-base font-medium hover:-translate-y-0.5 transition-transform duration-200"
             >Actualité</a
+          >
+          <a
+            href="./Cours.html"
+            class="text-base font-medium hover:-translate-y-0.5 transition-transform duration-200"
+            >Emploi du temps</a
+          >
+          <a
+            href="./Documents.html"
+            class="text-base font-medium hover:-translate-y-0.5 transition-transform duration-200"
+            >Documents</a
           >
         </nav>
       </div>
     </div>
-
-    <!-- layout principal -->
-    <div class="flex flex-1 overflow-hidden">
-      <!-- sidebar -->
-      <div
-        class="hidden md:flex flex-col w-64 bg-[var(--color-principal)] overflow-y-auto p-6 shrink-0"
-      >
-        <nav class="flex flex-col gap-5 flex-1">
-          <a
-            href="AdminAcceuil.html"
-            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
-            >DashBoard</a
-          >
-          <a
-            href="Abscence.html"
-            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
-            >Absences</a
-          >
-          <a
-            href="../prof/WorkInProgress.html"
-            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
-            >Professeurs</a
-          >
-          <!-- <a
-            href="Directions.html"
-            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
-            >Directions</a
-          > -->
-          <a
-            href="Messages.html"
-            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
-            >Messages</a
-          >
-          <!-- <a
-            href="Administration.html"
-            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
-            >Administration</a
-          > -->
-          <a
-            href="documents.html"
-            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
-            >Documents</a
-          >
-          <a
-            href="Actualite.html"
-            class="text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200"
-            >Actualité</a
-          >
-        </nav>
-      </div>
 
       <!-- contenu principal -->
       <div class="flex-1 overflow-y-auto p-6 bg-[var(--color-page)]">
@@ -524,7 +549,9 @@
     </div>
 
     <!-- footer -->
-    <div class="flex justify-start align-middle p-2 bg-[#5D5C60] shrink-0">
+    <div
+      class="flex justify-between items-center p-2 px-4 bg-[#5D5C60] shrink-0"
+    >
       <div class="text-white text-sm flex items-center">
         <button
           class="text-white text-xl font-medium hover:-translate-y-1 transition-transform duration-200"
@@ -535,144 +562,242 @@
         <button
           class="text-white text-xl font-medium hover:-translate-y-1 transition-transform duration-200"
         >
-          Politique de confidentialité
+          Confidentialité
         </button>
         <span class="self-stretch w-px bg-white mx-3"></span>
         <a href="https://mediaschool.eu/" target="_blank"
-          ><img src="../../img/ms_logo_cmjn_blanc_1.png" alt="Logo" class="h-12"
+          ><img
+            src="../../img/ms_logo_cmjn_blanc_1.png"
+            alt="Logo MediaSchool"
+            class="h-12"
         /></a>
       </div>
-    </div>
-
-    <!-- ===== PANEL DEBUG / DEV ===== -->
-    <div
-      id="debug-panel"
-      class="fixed bottom-16 right-4 z-[200] hidden w-64 bg-[var(--color-principal)] text-white rounded-2xl shadow-2xl p-4 border border-[var(--color-secondaire)]"
-    >
-      <div class="flex justify-between items-center mb-4">
-        <span
-          class="font-bold text-[var(--color-secondaire)] text-sm uppercase tracking-wider"
-          >🛠 Dev Tools</span
-        >
-        <button
-          id="debug-close"
-          class="text-gray-400 hover:text-white text-lg font-bold leading-none transition-colors"
-        >
-          ✕
-        </button>
-      </div>
-
-      <div class="flex flex-col gap-2 text-sm">
-        <p class="text-gray-400 text-xs uppercase tracking-wider mb-1">
-          Compteur messages
-        </p>
-        <div class="flex items-center gap-2">
-          <button
-            id="dev-msg-add"
-            class="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-lg px-3 py-2 transition font-bold"
-          >
-            +1
-          </button>
-          <button
-            id="dev-msg-remove"
-            class="flex-1 bg-red-600 hover:bg-red-700 text-white rounded-lg px-3 py-2 transition font-bold"
-          >
-            -1
-          </button>
-          <button
-            id="dev-msg-reset"
-            class="flex-1 bg-gray-600 hover:bg-gray-700 text-white rounded-lg px-3 py-2 transition text-xs font-medium"
-          >
-            Reset
-          </button>
-        </div>
-        <div
-          class="flex items-center justify-between bg-white/10 rounded-lg px-3 py-2 mt-1"
-        >
-          <span class="text-gray-300 text-xs">Compteur actuel :</span>
-          <span
-            id="debug-counter"
-            class="text-[var(--color-secondaire)] font-bold text-lg"
-            >0</span
-          >
-        </div>
-
-        <p class="text-gray-400 text-xs uppercase tracking-wider mt-3 mb-1">
-          Données
-        </p>
-        <button
-          id="dev-reset-data"
-          class="bg-orange-600 hover:bg-orange-700 text-white rounded-lg px-3 py-2 text-left transition font-medium text-xs"
-        >
-          Reset données (défaut)
-        </button>
-      </div>
-    </div>
-
-    <!-- bouton toggle panel debug -->
-    <button
-      id="debug-toggle"
-      class="fixed bottom-4 right-4 z-[200] bg-[var(--color-principal)] border-2 border-[var(--color-secondaire)] text-[var(--color-secondaire)] font-bold text-xs px-3 py-2 rounded-full shadow-lg hover:bg-[var(--color-secondaire)] hover:text-[var(--color-principal)] transition-all duration-200"
-      title="Menu développeur"
-    >
-      DEV
-    </button>
-
-    <!-- Modale coordonnées contact -->
-    <div
-      id="modal-contact"
-      class="hidden fixed inset-0 z-[300] items-center justify-center"
-    >
-      <div
-        id="modal-contact-backdrop"
-        class="absolute inset-0 bg-black/50"
-      ></div>
-      <div
-        class="relative bg-white rounded-lg shadow-2xl p-8 w-full max-w-sm mx-4 z-10"
+      <a
+        href="https://mediaschool.eu/"
+        target="_blank"
+        class="hidden sm:inline-block text-white text-base font-medium border border-white rounded-full px-5 py-2 hover:bg-white hover:text-[#5D5C60] transition-colors duration-200"
       >
-        <button
-          class="modal-close absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl font-bold leading-none"
-          data-modal="modal-contact"
-        >
-          ✕
-        </button>
-        <h3 class="text-lg font-bold text-[var(--color-titre)] mb-6">
-          Coordonnées du contact
-        </h3>
-        <div class="flex flex-col gap-4">
-          <div>
-            <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">
-              Élève
-            </p>
-            <p
-              id="contact-nom"
-              class="font-semibold text-gray-800 text-base"
-            ></p>
-          </div>
-          <div>
-            <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">
-              Téléphone
-            </p>
-            <a
-              id="contact-tel"
-              href="#"
-              class="font-medium text-[var(--color-secondaire)] hover:underline text-base"
-            ></a>
-          </div>
-          <div>
-            <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">
-              Email
-            </p>
-            <a
-              id="contact-email"
-              href="#"
-              class="font-medium text-[var(--color-secondaire)] hover:underline text-base break-all"
-            ></a>
-          </div>
-        </div>
-      </div>
+        Page de MédiaSchool
+      </a>
     </div>
 
+    <!-- ========== MODAL POPUP ========== -->
+    <div
+      id="actu-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Détail de l'actualité"
+      style="
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 200;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s ease;
+        padding: 1rem;
+      "
+      onclick="if (event.target === this) closeActuModal();"
+    >
+      <div
+        id="actu-modal-box"
+        style="
+          background: white;
+          border-radius: 1.5rem;
+          max-width: 520px;
+          width: 100%;
+          padding: 1.75rem;
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+          transform: translateY(24px);
+          transition: transform 0.25s ease;
+          max-height: 90vh;
+          overflow-y: auto;
+        "
+      >
+        <!-- En-tête modal -->
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+          "
+        >
+          <h2
+            id="modal-titre"
+            style="
+              font-size: 1.25rem;
+              font-weight: 700;
+              color: #0f766e;
+              margin: 0;
+              line-height: 1.3;
+            "
+          ></h2>
+          <button
+            onclick="closeActuModal()"
+            aria-label="Fermer"
+            style="
+              background: none;
+              border: none;
+              font-size: 1.75rem;
+              cursor: pointer;
+              color: #9ca3af;
+              line-height: 1;
+              flex-shrink: 0;
+              padding: 0 4px;
+              border-radius: 6px;
+              transition: color 0.15s;
+            "
+            onmouseover="this.style.color = '#374151'"
+            onmouseout="this.style.color = '#9ca3af'"
+          >
+            ×
+          </button>
+        </div>
+
+        <!-- Image -->
+        <img
+          id="modal-img"
+          src=""
+          alt="Image de l'actualité"
+          style="
+            width: 100%;
+            height: 200px;
+            border-radius: 1rem;
+            object-fit: cover;
+            background: #d1d5db;
+          "
+        />
+
+        <!-- Badge + méta -->
+        <div
+          style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap"
+        >
+          <span
+            style="
+              display: inline-flex;
+              align-items: center;
+              background: #0d9488;
+              color: white;
+              font-size: 11px;
+              font-weight: 600;
+              padding: 3px 12px;
+              border-radius: 999px;
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
+            "
+            >Actualité</span
+          >
+          <span id="modal-meta" style="font-size: 12px; color: #6b7280"></span>
+        </div>
+
+        <!-- Contenu complet -->
+        <p
+          id="modal-contenu"
+          style="font-size: 15px; color: #374151; line-height: 1.75; margin: 0"
+        ></p>
+
+        <!-- Pied de modal -->
+        <p
+          id="modal-date"
+          style="
+            font-size: 12px;
+            color: #9ca3af;
+            border-top: 1px solid #f3f4f6;
+            padding-top: 0.75rem;
+            margin: 0;
+          "
+        ></p>
+      </div>
+    </div>
+    <!-- ========== FIN MODAL ========== -->
+
+    <script>
+      const STORAGE_KEY = "iris_actualites";
+
+      /* ---- Fonctions modal ---- */
+      function openActuModal(actu) {
+        document.getElementById("modal-titre").textContent = actu.titre;
+        document.getElementById("modal-img").src = actu.image;
+        document.getElementById("modal-meta").textContent =
+          actu.date + " — Par " + actu.auteur;
+        document.getElementById("modal-contenu").textContent = actu.contenu;
+        document.getElementById("modal-date").textContent =
+          "Publié le " + actu.date;
+
+        const modal = document.getElementById("actu-modal");
+        modal.style.opacity = "1";
+        modal.style.pointerEvents = "all";
+        document.getElementById("actu-modal-box").style.transform =
+          "translateY(0)";
+        document.body.style.overflow = "hidden";
+      }
+
+      function closeActuModal() {
+        const modal = document.getElementById("actu-modal");
+        modal.style.opacity = "0";
+        modal.style.pointerEvents = "none";
+        document.getElementById("actu-modal-box").style.transform =
+          "translateY(24px)";
+        document.body.style.overflow = "";
+      }
+
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") closeActuModal();
+      });
+
+      /* ---- Génération des cartes ---- */
+      document.addEventListener("DOMContentLoaded", () => {
+        const grille = document.getElementById("actu-grid");
+        const saved = localStorage.getItem(STORAGE_KEY);
+        const actualites = saved ? JSON.parse(saved) : [];
+
+        const publies = actualites.filter((a) => a.statut === "Publié");
+
+        if (publies.length === 0) {
+          grille.innerHTML = `<p class="col-span-full text-gray-400 text-lg text-center py-10">Aucune actualité publiée pour le moment.</p>`;
+          return;
+        }
+
+        publies.forEach((actu) => {
+          const card = document.createElement("div");
+          card.className =
+            "max-w-md bg-gray-200 rounded-3xl p-5 border border-black/[0.08] flex flex-col gap-4 hover:-translate-y-1 transition-transform duration-200";
+
+          /* On sérialise l'objet actu pour le passer au onclick */
+          const actuJson = JSON.stringify(actu).replace(/'/g, "\\'");
+
+          card.innerHTML = `
+                <div class="flex items-center justify-between">
+                <span class="inline-flex items-center gap-1.5 bg-teal-600 text-white text-[11px] font-medium px-3 py-1 rounded-full uppercase tracking-wide">
+                    Actualité
+                </span>
+                <span class="text-xs text-gray-500">${actu.date}</span>
+                </div>
+                <h2 class="text-lg font-semibold text-teal-700 leading-snug">${actu.titre}</h2>
+                <div class="flex gap-3 items-start">
+                <p class="flex-1 text-sm text-gray-600 leading-relaxed line-clamp-3">${actu.contenu}</p>
+                <div class="w-[100px] h-[80px] rounded-xl overflow-hidden flex-shrink-0 bg-gray-400">
+                    <img src="${actu.image}" alt="Actualité" class="w-full h-full object-cover" />
+                </div>
+                </div>
+                <div class="border-t border-black/10 pt-3 flex items-center justify-between">
+                <span class="text-[11px] text-gray-400">Par ${actu.auteur}</span>
+                <button
+                    onclick='openActuModal(${JSON.stringify(actu)})'
+                    class="border border-teal-600 text-teal-600 text-sm font-medium rounded-full px-4 py-1.5 hover:bg-teal-600 hover:text-white transition-colors duration-200 cursor-pointer"
+                >+ d'informations</button>
+                </div>
+            `;
+          grille.appendChild(card);
+        });
+      });
+    </script>
     <script type="module" src="/src/assets/script/script.js"></script>
   </body>
-</html> 
+</html>
