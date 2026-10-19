@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import logo from '../assets/img/Logo_IRIS_SPACE.svg';
-import messagesIcon from '../assets/img/messages.svg';
-import { BurgerButton, MobileMenu } from '../components/MobileMenu.jsx';
-import MessageBadge from '../components/MessageBadge.jsx';
-import Footer from '../components/Footer.jsx';
-import DevPanel from '../components/DevPanel.jsx';
+import { Link, Outlet } from 'react-router-dom';
+import logo from '@/assets/img/Logo_IRIS_SPACE.svg';
+import messagesIcon from '@/assets/img/messages.svg';
+import { BurgerButton, MobileMenu } from '@/components/layout/MobileMenu.jsx';
+import MessageBadge from '@/components/layout/MessageBadge.jsx';
+import Footer from '@/components/layout/Footer.jsx';
+import { WithDevPanel } from '@/components/layout/DevPanel.jsx';
 
 const ADMIN_LINKS = [
   { to: '/admin', label: 'DashBoard' },
@@ -19,8 +19,8 @@ const ADMIN_LINKS = [
 const linkClass = 'text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200';
 
 // Navbar + sidebar + footer + panel DEV de l'espace administration.
-// La page fournit son propre conteneur principal en `children`.
-export default function AdminLayout({ children, devTools, onResetData }) {
+// Chaque page fournit son propre conteneur principal (rendu dans <Outlet />).
+export default function AdminLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -62,12 +62,12 @@ export default function AdminLayout({ children, devTools, onResetData }) {
           </nav>
         </div>
 
-        {children}
+        <WithDevPanel>
+          <Outlet />
+        </WithDevPanel>
       </div>
 
       <Footer />
-
-      <DevPanel onResetData={onResetData}>{devTools}</DevPanel>
     </div>
   );
 }

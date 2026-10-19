@@ -1,5 +1,4 @@
 import { useRef } from 'react';
-import MediaschoolLayout from '../../layouts/MediaschoolLayout.jsx';
 
 const arrowClass = 'shrink-0 w-8 h-8 rounded-full bg-white border border-gray-300 shadow flex items-center justify-center text-gray-600 hover:bg-[var(--color-principal)] hover:text-white hover:border-[var(--color-principal)] transition-colors duration-200';
 
@@ -8,7 +7,7 @@ export default function Plages() {
   const scroll = left => galleryRef.current?.scrollBy({ left, behavior: 'smooth' });
 
   return (
-    <MediaschoolLayout>
+    <>
       <h1 className="text-center text-2xl font-bold tracking-wide uppercase mb-6 text-[var(--color-principal)]">Les Plages</h1>
 
       {/* Mobile : empilé | Desktop (md+) : 2 colonnes */}
@@ -51,6 +50,6 @@ export default function Plages() {
           </div>
         </div>
       </div>
-    </MediaschoolLayout>
+    </>
   );
 }

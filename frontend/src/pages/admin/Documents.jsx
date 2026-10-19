@@ -1,19 +1,8 @@
 import { useState } from 'react';
-import AdminLayout from '../../layouts/AdminLayout.jsx';
-
-// ── Données initiales ───────────────────────────────────────────────────────
-const INITIAL_SPACES = [
-  'Administration',
-  'B1 Développement et BDD',
-  'B1 Système et réseaux',
-  'B2 SISR',
-  'B2 SLAM',
-  'B3 Cybersécurité',
-  'CEJM',
-  'Culture général et expression',
-  'Anglais',
-  'Mathématique',
-].map((name, i) => ({ id: i, name, docs: [{ id: 0, name: 'Doc.test' }] }));
+import DataState from '@/components/ui/DataState.jsx';
+import Modal from '@/components/ui/Modal.jsx';
+import { useAsync } from '@/hooks/useAsync.js';
+import { getEspaces } from '@/services/documents.js';
 
 let nextId = 1000;
 const newId = () => nextId++;
@@ -41,7 +30,7 @@ const ChevronIcon = ({ open }) => (
   </svg>
 );
 
-// ── Modale daisyUI générique ────────────────────────────────────────────────
+// ── Modale de saisie / confirmation ────────────────────────────────────────────────
 // Si `inputLabel` est fourni, la modale contient un champ texte et `onConfirm`
 // reçoit sa valeur (validation aussi avec Entrée).
 function DaisyModal({ title, children, inputLabel, initialValue = '', confirmLabel, danger = false, onConfirm, onClose }) {
@@ -49,38 +38,37 @@ function DaisyModal({ title, children, inputLabel, initialValue = '', confirmLab
   const confirm = () => onConfirm(value.trim());
 
   return (
-    <div className="modal modal-open">
-      <div className="modal-box max-w-sm">
-        <h3 className={`font-semibold text-lg ${inputLabel ? 'mb-4' : 'mb-2'}`}>{title}</h3>
-        {children}
-        {inputLabel && (
-          <input
-            autoFocus
-            type="text"
-            placeholder={inputLabel}
-            value={value}
-            onChange={e => setValue(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') confirm(); }}
-            className="input input-bordered w-full mb-4"
-          />
-        )}
-        <div className="modal-action">
-          <button onClick={onClose} className="btn btn-ghost">Annuler</button>
-          <button
-            onClick={confirm}
-            className={`btn text-white ${danger ? 'bg-[#EC6F6F] hover:bg-[#EC6F6F]/90' : 'bg-[#07A6A6] hover:bg-[#07A6A6]/90'}`}
-          >
-            {confirmLabel}
-          </button>
-        </div>
+    <Modal onClose={onClose} className="max-w-sm rounded-2xl p-6">
+      <h3 className={`font-semibold text-lg ${inputLabel ? 'mb-4' : 'mb-2'}`}>{title}</h3>
+      {children}
+      {inputLabel && (
+        <input
+          autoFocus
+          type="text"
+          placeholder={inputLabel}
+          value={value}
+          onChange={e => setValue(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') confirm(); }}
+          className="input input-bordered w-full mb-4"
+        />
+      )}
+      <div className="modal-action">
+        <button onClick={onClose} className="btn btn-ghost">Annuler</button>
+        <button
+          onClick={confirm}
+          className={`btn text-white ${danger ? 'bg-[#EC6F6F] hover:bg-[#EC6F6F]/90' : 'bg-[#07A6A6] hover:bg-[#07A6A6]/90'}`}
+        >
+          {confirmLabel}
+        </button>
       </div>
-      <div className="modal-backdrop" onClick={onClose} />
-    </div>
+    </Modal>
   );
 }
 
 export default function Documents() {
-  const [spaces, setSpaces] = useState(INITIAL_SPACES);
+  const espaces = useAsync(getEspaces);
+  const spaces = espaces.data ?? [];
+  const setSpaces = espaces.setData;
   const [openIds, setOpenIds] = useState(() => new Set());
   // modale courante : { type, spaceId?, doc? }
   const [modal, setModal] = useState(null);
@@ -101,7 +89,7 @@ export default function Documents() {
   }
 
   return (
-    <AdminLayout>
+    <>
       <main className="flex-1 overflow-y-auto p-6 bg-[#F5F5F5]">
         <h1 className="text-3xl font-bold mb-6 text-[#07A6A6]">Page Documents</h1>
 
@@ -118,7 +106,7 @@ export default function Documents() {
         </div>
 
         <section className="flex flex-col gap-4 bg-white p-6 rounded-lg shadow-md">
-          {spaces.map(space => {
+          <DataState state={espaces}>{() => spaces.map(space => {
             const isOpen = openIds.has(space.id);
             return (
               <div key={space.id} className="border border-base-300 rounded-lg overflow-hidden bg-base-100">
@@ -185,7 +173,7 @@ export default function Documents() {
                 )}
               </div>
             );
-          })}
+          })}</DataState>
         </section>
       </main>
 
@@ -265,6 +253,6 @@ export default function Documents() {
           </p>
         </DaisyModal>
       )}
-    </AdminLayout>
+    </>
   );
 }

@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import logo from '../assets/img/Logo_IRIS_SPACE.svg';
-import { BurgerButton, MobileMenu } from '../components/MobileMenu.jsx';
-import Footer from '../components/Footer.jsx';
+import { Link, Outlet } from 'react-router-dom';
+import logo from '@/assets/img/Logo_IRIS_SPACE.svg';
+import { BurgerButton, MobileMenu } from '@/components/layout/MobileMenu.jsx';
+import Footer from '@/components/layout/Footer.jsx';
 
 const MENU_LINKS = [
   { to: '/visiteur', label: 'Accueil' },
@@ -13,8 +13,8 @@ const MENU_LINKS = [
 
 const navLinkClass = 'text-xl font-medium hover:-translate-y-0.5 transition-transform duration-200';
 
-// Navbar + footer de l'espace visiteur. `children` = contenu entre les deux.
-export default function VisiteurLayout({ children }) {
+// Navbar + footer de l'espace visiteur. Les pages s'affichent dans <Outlet />.
+export default function VisiteurLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -44,7 +44,7 @@ export default function VisiteurLayout({ children }) {
 
       <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} links={MENU_LINKS} />
 
-      {children}
+      <Outlet />
 
       <Footer withMediaschoolLink />
     </div>

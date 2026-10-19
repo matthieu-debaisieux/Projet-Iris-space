@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import logo from '../assets/img/Logo_IRIS_SPACE.svg';
-import messagesIcon from '../assets/img/messages.svg';
-import { BurgerButton, MobileMenu } from '../components/MobileMenu.jsx';
-import MessageBadge from '../components/MessageBadge.jsx';
-import Footer from '../components/Footer.jsx';
+import { Link, Outlet } from 'react-router-dom';
+import logo from '@/assets/img/Logo_IRIS_SPACE.svg';
+import messagesIcon from '@/assets/img/messages.svg';
+import { BurgerButton, MobileMenu } from '@/components/layout/MobileMenu.jsx';
+import MessageBadge from '@/components/layout/MessageBadge.jsx';
+import Footer from '@/components/layout/Footer.jsx';
+import { WithDevPanel } from '@/components/layout/DevPanel.jsx';
+import { useAuth } from '@/context/AuthContext.jsx';
 
 const NAV_LINKS = [
   { to: '/prof/devoirs', label: 'Devoir' },
@@ -23,9 +25,10 @@ const MENU_LINKS = [
   { to: '/prof/profil', label: 'Profil' },
 ];
 
-// Navbar + footer de l'espace professeur. `children` = contenu entre les deux.
-export default function ProfLayout({ children }) {
+// Navbar + footer de l'espace professeur. Les pages s'affichent dans <Outlet />.
+export default function ProfLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { user } = useAuth();
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
@@ -36,7 +39,7 @@ export default function ProfLayout({ children }) {
           <div className="logo">
             <Link to="/"><img src={logo} alt="Logo" className="h-auto w-40 p-0 m-0" /></Link>
           </div>
-          <span className="text-white text-lg font-medium hidden sm:inline">NOM PRENOM</span>
+          <span className="text-white text-lg font-medium hidden sm:inline">{user?.nom}</span>
           <Link to="/prof/profil" className="shrink-0" aria-label="Profil">
             <div className="w-10 h-10 rounded-full bg-gray-300 hover:opacity-80 transition" />
           </Link>
@@ -72,7 +75,9 @@ export default function ProfLayout({ children }) {
 
       <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} links={MENU_LINKS} />
 
-      {children}
+      <WithDevPanel>
+        <Outlet />
+      </WithDevPanel>
 
       <Footer />
     </div>

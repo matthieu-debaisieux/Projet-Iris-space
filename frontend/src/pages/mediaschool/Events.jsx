@@ -1,10 +1,9 @@
-import MediaschoolLayout from '../../layouts/MediaschoolLayout.jsx';
 
 const MOIS = ['Septembre', 'Novembre', 'Décembre', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin'];
 
 export default function Events() {
   return (
-    <MediaschoolLayout>
+    <>
       <h1 className="text-center text-2xl font-bold tracking-wide uppercase mb-8 text-[var(--color-mediaschool)]">Les Events</h1>
 
       {/* Grille 3x3 des mois */}
@@ -18,6 +17,6 @@ export default function Events() {
           </a>
         ))}
       </div>
-    </MediaschoolLayout>
+    </>
   );
 }

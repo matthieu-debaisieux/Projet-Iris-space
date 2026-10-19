@@ -1,12 +1,11 @@
 import { useState } from 'react';
-import AdminLayout from '../../layouts/AdminLayout.jsx';
+import DataState from '@/components/ui/DataState.jsx';
+import Modal from '@/components/ui/Modal.jsx';
+import { useAsync } from '@/hooks/useAsync.js';
+import { getPlanning } from '@/services/planning.js';
 
-/* =========================================================
-   DONNÉES DE DÉMONSTRATION
-   À remplacer par un appel API / base de données réelle.
-   Structure : schedule[classe][jour] = tableau de cours
-   Chaque cours : { start, end, subject, intervenant, room }
-========================================================= */
+// Données : services/planning.js → schedule[classe][jour] = tableau de cours
+// Chaque cours : { start, end, subject, intervenant, room }
 const DAY_NAMES = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'];
 const MONTH_NAMES = [
   'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
@@ -47,53 +46,6 @@ function getColorForSubject(rawSubject) {
   }
   return subjectColors[subject];
 }
-
-const INITIAL_SCHEDULE = {
-  'Iris 1': {
-    Mercredi: [
-      { start: '09h00', end: '13h00', subject: 'Cours1', intervenant: 'Intervenant 1', room: 'Salle' },
-      { start: '14h00', end: '18h00', subject: 'Cours1', intervenant: 'Intervenant 1', room: 'Salle' },
-    ],
-    Jeudi: [
-      { start: '09h00', end: '10h30', subject: 'Cours5', intervenant: 'Intervenant 8', room: 'Salle' },
-      { start: '10h30', end: '12h00', subject: 'Cours3', intervenant: 'Intervenant 9', room: 'Salle' },
-      { start: '13h00', end: '16h00', subject: 'Cours4', intervenant: 'Intervenant 4', room: 'Salle' },
-      { start: '16h00', end: '18h00', subject: 'Cours6', intervenant: 'Intervenant 5', room: 'Salle' },
-    ],
-    Vendredi: [
-      { start: '09h00', end: '11h00', subject: 'Cours1', intervenant: 'Intervenant 2', room: 'Salle' },
-      { start: '11h00', end: '13h00', subject: 'Cours2', intervenant: 'Intervenant 6', room: 'Salle' },
-      { start: '14h00', end: '18h00', subject: 'Cours9', intervenant: 'Intervenant 3', room: 'Salle' },
-    ],
-  },
-  'Iris 2': {
-    Mercredi: [
-      { start: '09h00', end: '13h00', subject: 'Cours2', intervenant: 'Intervenant 6', room: 'Salle' },
-      { start: '14h00', end: '18h00', subject: 'Cours5', intervenant: 'Intervenant 8', room: 'Salle' },
-    ],
-    Jeudi: [
-      { start: '09h00', end: '10h30', subject: 'Cours1', intervenant: 'Intervenant 10', room: 'Salle' },
-      { start: '10h30', end: '12h00', subject: 'Cours3', intervenant: 'Intervenant 7', room: 'Salle' },
-      { start: '13h00', end: '18h00', subject: 'Cours1', intervenant: 'Intervenant 11', room: 'Salle' },
-    ],
-    Vendredi: [
-      { start: '09h00', end: '11h00', subject: 'Cours3', intervenant: 'Intervenant 9', room: 'Salle' },
-      { start: '11h00', end: '13h00', subject: 'Cours8', intervenant: 'Intervenant 3', room: 'Salle' },
-      { start: '14h00', end: '18h00', subject: 'Cours7', intervenant: 'Intervenant 4', room: 'Salle' },
-    ],
-  },
-};
-
-// Liste des salles, initialisée à partir des données existantes
-const INITIAL_ROOMS = Array.from(
-  new Set(
-    Object.values(INITIAL_SCHEDULE)
-      .flatMap(classData => Object.values(classData))
-      .flat()
-      .map(c => c.room.trim())
-      .filter(Boolean),
-  ),
-).sort();
 
 // Convertit "09h00" -> 9 (en heures décimales)
 function toDecimalHour(str) {
@@ -226,24 +178,22 @@ function TimetableGrid({ classData, monday, onEditCourse, onAddCourse }) {
 function NameModal({ title, label, placeholder, onConfirm, onClose }) {
   const [name, setName] = useState('');
   return (
-    <div className="flex fixed inset-0 z-[100] items-center justify-center bg-black/40" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="bg-white rounded-lg shadow-2xl p-6 w-full max-w-sm mx-4">
-        <h3 className="text-lg font-bold text-[var(--color-titre)] mb-4">{title}</h3>
-        <label className="text-xs font-medium text-gray-600">{label}</label>
-        <input
-          autoFocus
-          type="text"
-          placeholder={placeholder}
-          value={name}
-          onChange={e => setName(e.target.value)}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1 mb-4 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-        />
-        <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-gray-300 hover:bg-gray-50 transition">Annuler</button>
-          <button onClick={() => onConfirm(name.trim())} className="px-4 py-2 text-sm rounded-lg bg-amber-400 hover:bg-amber-500 text-white font-medium transition">Ajouter</button>
-        </div>
+    <Modal onClose={onClose} className="max-w-sm rounded-lg p-6">
+      <h3 className="text-lg font-bold text-[var(--color-titre)] mb-4">{title}</h3>
+      <label className="text-xs font-medium text-gray-600">{label}</label>
+      <input
+        autoFocus
+        type="text"
+        placeholder={placeholder}
+        value={name}
+        onChange={e => setName(e.target.value)}
+        className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1 mb-4 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+      />
+      <div className="flex justify-end gap-2">
+        <button onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-gray-300 hover:bg-gray-50 transition">Annuler</button>
+        <button onClick={() => onConfirm(name.trim())} className="px-4 py-2 text-sm rounded-lg bg-amber-400 hover:bg-amber-500 text-white font-medium transition">Ajouter</button>
       </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -280,69 +230,71 @@ function CourseModal({ className, editing, rooms, onSave, onDelete, onClose }) {
   }
 
   return (
-    <div className="flex fixed inset-0 z-[100] items-center justify-center bg-black/40" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="bg-white rounded-lg shadow-2xl p-6 w-full max-w-md mx-4">
-        <h3 className="text-lg font-bold text-[var(--color-titre)] mb-4">{course ? 'Modifier le cours' : 'Ajouter un cours'}</h3>
-        <p className="text-xs text-gray-400 mb-4">Classe : {className}</p>
+    <Modal onClose={onClose} className="max-w-md rounded-lg p-6">
+      <h3 className="text-lg font-bold text-[var(--color-titre)] mb-4">{course ? 'Modifier le cours' : 'Ajouter un cours'}</h3>
+      <p className="text-xs text-gray-400 mb-4">Classe : {className}</p>
 
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="col-span-2">
-            <label className="text-xs font-medium text-gray-600">Jour</label>
-            <select value={form.day} onChange={set('day')} className={inputClass}>
-              {DAY_NAMES.map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-gray-600">Début</label>
-            <select value={form.start} onChange={set('start')} className={inputClass}>
-              {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-gray-600">Fin</label>
-            <select value={form.end} onChange={set('end')} className={inputClass}>
-              {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-          </div>
-          <div className="col-span-2">
-            <label className="text-xs font-medium text-gray-600">Matière</label>
-            <input type="text" value={form.subject} onChange={set('subject')} placeholder="ex : Mathématiques" className={inputClass} />
-          </div>
-          <div className="col-span-2">
-            <label className="text-xs font-medium text-gray-600">Intervenant</label>
-            <input type="text" value={form.intervenant} onChange={set('intervenant')} placeholder="ex : Intervenant 1" className={inputClass} />
-          </div>
-          <div className="col-span-2">
-            <label className="text-xs font-medium text-gray-600">Salle</label>
-            <select value={form.room} onChange={set('room')} className={inputClass}>
-              {roomOptions.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
-          </div>
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="col-span-2">
+          <label className="text-xs font-medium text-gray-600">Jour</label>
+          <select value={form.day} onChange={set('day')} className={inputClass}>
+            {DAY_NAMES.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
         </div>
-
-        {error && <p className="text-xs text-red-600 mb-3">{error}</p>}
-
-        <div className="flex justify-between items-center">
-          {course && (
-            <button onClick={onDelete} className="px-4 py-2 text-sm rounded-lg border border-red-300 text-red-600 hover:bg-red-50 transition">
-              Supprimer
-            </button>
-          )}
-          <div className="flex gap-2 ml-auto">
-            <button onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-gray-300 hover:bg-gray-50 transition">Annuler</button>
-            <button onClick={save} className="px-4 py-2 text-sm rounded-lg bg-amber-400 hover:bg-amber-500 text-white font-medium transition">Enregistrer</button>
-          </div>
+        <div>
+          <label className="text-xs font-medium text-gray-600">Début</label>
+          <select value={form.start} onChange={set('start')} className={inputClass}>
+            {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs font-medium text-gray-600">Fin</label>
+          <select value={form.end} onChange={set('end')} className={inputClass}>
+            {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
+        <div className="col-span-2">
+          <label className="text-xs font-medium text-gray-600">Matière</label>
+          <input type="text" value={form.subject} onChange={set('subject')} placeholder="ex : Mathématiques" className={inputClass} />
+        </div>
+        <div className="col-span-2">
+          <label className="text-xs font-medium text-gray-600">Intervenant</label>
+          <input type="text" value={form.intervenant} onChange={set('intervenant')} placeholder="ex : Intervenant 1" className={inputClass} />
+        </div>
+        <div className="col-span-2">
+          <label className="text-xs font-medium text-gray-600">Salle</label>
+          <select value={form.room} onChange={set('room')} className={inputClass}>
+            {roomOptions.map(r => <option key={r} value={r}>{r}</option>)}
+          </select>
         </div>
       </div>
-    </div>
+
+      {error && <p className="text-xs text-red-600 mb-3">{error}</p>}
+
+      <div className="flex justify-between items-center">
+        {course && (
+          <button onClick={onDelete} className="px-4 py-2 text-sm rounded-lg border border-red-300 text-red-600 hover:bg-red-50 transition">
+            Supprimer
+          </button>
+        )}
+        <div className="flex gap-2 ml-auto">
+          <button onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-gray-300 hover:bg-gray-50 transition">Annuler</button>
+          <button onClick={save} className="px-4 py-2 text-sm rounded-lg bg-amber-400 hover:bg-amber-500 text-white font-medium transition">Enregistrer</button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 
 // ── Page ────────────────────────────────────────────────────────────────────
 export default function EmploiDuTemps() {
-  const [schedule, setSchedule] = useState(INITIAL_SCHEDULE);
-  const [rooms, setRooms] = useState(INITIAL_ROOMS);
-  const [selectedClass, setSelectedClass] = useState(Object.keys(INITIAL_SCHEDULE)[0] ?? '');
+  const planning = useAsync(getPlanning);
+  const schedule = planning.data?.classes ?? {};
+  const rooms = planning.data?.salles ?? [];
+  const setSchedule = update => planning.setData(p => ({ ...p, classes: update(p.classes) }));
+  const setRooms = update => planning.setData(p => ({ ...p, salles: update(p.salles) }));
+  const [chosenClass, setSelectedClass] = useState('');
+  const selectedClass = chosenClass || Object.keys(schedule)[0] || '';
   const [monday, setMonday] = useState(() => getMonday(new Date()));
   // modale courante : { type: 'class' | 'room' | 'course', editing? }
   const [modal, setModal] = useState(null);
@@ -400,7 +352,7 @@ export default function EmploiDuTemps() {
   }
 
   return (
-    <AdminLayout>
+    <>
       <div className="flex-1 overflow-y-auto p-6 bg-[var(--color-page)]">
         <div className="max-w-7xl mx-auto">
           {/* Titre + sélecteur de classe */}
@@ -464,12 +416,14 @@ export default function EmploiDuTemps() {
             </button>
           </div>
 
-          <TimetableGrid
-            classData={schedule[selectedClass] || {}}
-            monday={monday}
-            onEditCourse={(day, index) => openCourseModal({ day, index, course: schedule[selectedClass][day][index] })}
-            onAddCourse={(day, start) => openCourseModal({ day, start })}
-          />
+          <DataState state={planning}>{() => (
+            <TimetableGrid
+              classData={schedule[selectedClass] || {}}
+              monday={monday}
+              onEditCourse={(day, index) => openCourseModal({ day, index, course: schedule[selectedClass][day][index] })}
+              onAddCourse={(day, start) => openCourseModal({ day, start })}
+            />
+          )}</DataState>
         </div>
       </div>
 
@@ -489,6 +443,6 @@ export default function EmploiDuTemps() {
           onClose={closeModal}
         />
       )}
-    </AdminLayout>
+    </>
   );
 }

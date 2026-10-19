@@ -1,67 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { LS_CONVERSATIONS, loadJSON, saveJSON } from '../lib/storage.js';
-
-// ── Données initiales ───────────────────────────────────────────────────────
-const DEFAULT_CONVERSATIONS = [
-  {
-    id: 'sio-slam',
-    name: 'SIO SLAM',
-    group: true,
-    extra: '+6',
-    lastSeen: 'il y a 6 minutes',
-    messages: [
-      { from: 'Marie Lambert', text: 'Bonjour, est-ce que le rendu du projet est bien pour vendredi ?', sent: false },
-      { from: 'Lucas Martin',  text: "Oui c'est confirmé, vendredi 18h dernier délai.", sent: false },
-      { from: 'Jean Dupond',   text: 'Merci pour la précision !', sent: false },
-    ],
-  },
-  {
-    id: 'jean-dupond',
-    name: 'Jean Dupond',
-    group: false,
-    lastSeen: 'il y a 2 minutes',
-    messages: [
-      { from: 'Jean Dupond', text: "Bonjour, j'ai une question sur mon absence de lundi.", sent: false },
-    ],
-  },
-  {
-    id: 'marie-lambert',
-    name: 'Marie Lambert',
-    group: false,
-    lastSeen: 'il y a 1 heure',
-    messages: [
-      { from: 'Marie Lambert', text: 'Mon certificat médical a bien été reçu ?', sent: false },
-      { from: 'me',            text: 'Oui, tout est en ordre. Bonne journée !', sent: true },
-    ],
-  },
-  {
-    id: 'lucas-martin',
-    name: 'Lucas Martin',
-    group: false,
-    lastSeen: 'il y a 3 heures',
-    messages: [
-      { from: 'Lucas Martin', text: 'Pouvez-vous me transmettre mon emploi du temps ?', sent: false },
-    ],
-  },
-  {
-    id: 'sophie-bernard',
-    name: 'Sophie Bernard',
-    group: false,
-    lastSeen: 'hier',
-    messages: [
-      { from: 'Sophie Bernard', text: 'Merci pour votre retour rapide.', sent: false },
-    ],
-  },
-  {
-    id: 'direction',
-    name: 'Direction',
-    group: false,
-    lastSeen: 'il y a 5 minutes',
-    messages: [
-      { from: 'Direction', text: 'Réunion pédagogique reportée à jeudi 14h.', sent: false },
-    ],
-  },
-];
+import { DevTools } from '@/components/layout/DevPanel.jsx';
+import { useAuth } from '@/context/AuthContext.jsx';
+import { useAsync } from '@/hooks/useAsync.js';
+import { devAddConversation, devResetConversations, getConversations, sendMessage } from '@/services/conversations.js';
 
 const lastPreview = conv => conv.messages.length ? conv.messages[conv.messages.length - 1].text : 'Nouvelle conversation';
 
@@ -82,28 +23,28 @@ function loremSentence(min = 6, max = 16) {
 
 const loremName = () => `${rand(LOREM_FIRST)} ${rand(LOREM_LAST)}`;
 
-// ── État des conversations (persisté dans localStorage) ─────────────────────
+// ── État des conversations ──────────────────────────────────────────────────
 export function useConversations() {
-  const [conversations, setConversations] = useState(() => loadJSON(LS_CONVERSATIONS, DEFAULT_CONVERSATIONS));
-  const [activeId, setActiveId] = useState(() => conversations[0]?.id ?? null);
+  const { data: conversations = [], setData } = useAsync(getConversations);
+  const [selectedId, setSelectedId] = useState(null);
+  const activeId = selectedId ?? conversations[0]?.id ?? null;
 
-  function update(next) {
-    setConversations(next);
-    saveJSON(LS_CONVERSATIONS, next);
+  function appendLocal(id, message) {
+    setData(list => list.map(c => (c.id === id ? { ...c, messages: [...c.messages, message] } : c)));
   }
 
-  function addMessageTo(id, message) {
-    update(conversations.map(c => c.id === id ? { ...c, messages: [...c.messages, message] } : c));
+  async function post(id, message) {
+    appendLocal(id, await sendMessage(id, message));
   }
 
   return {
     conversations,
     activeId,
-    setActiveId,
+    setActiveId: setSelectedId,
     send(text) {
-      addMessageTo(activeId, { from: 'me', text, sent: true });
+      return post(activeId, { from: 'me', text, sent: true });
     },
-    // Actions du menu dev
+    // Actions du menu dev (mode mock)
     devAddContact() {
       const name = loremName();
       const conv = {
@@ -113,19 +54,18 @@ export function useConversations() {
         lastSeen: 'à l’instant',
         messages: [{ from: name, text: loremSentence(), sent: false }],
       };
-      update([...conversations, conv]);
-      setActiveId(conv.id);
+      devAddConversation(conv);
+      setData(list => [...list, conv]);
+      setSelectedId(conv.id);
     },
     devAddMessage() {
       const conv = conversations.find(c => c.id === activeId);
       if (!conv) return;
-      addMessageTo(conv.id, { from: conv.group ? loremName() : conv.name, text: loremSentence(), sent: false });
+      post(conv.id, { from: conv.group ? loremName() : conv.name, text: loremSentence(), sent: false });
     },
     devResetConv() {
-      localStorage.removeItem(LS_CONVERSATIONS);
-      const fresh = loadJSON(LS_CONVERSATIONS, DEFAULT_CONVERSATIONS);
-      setConversations(fresh);
-      setActiveId(fresh[0]?.id ?? null);
+      setData(devResetConversations());
+      setSelectedId(null);
     },
   };
 }
@@ -134,18 +74,19 @@ export function useConversations() {
 export function MessagerieDevTools({ chat }) {
   const btn = 'text-white rounded-lg px-3 py-2 text-left transition font-medium text-xs';
   return (
-    <>
+    <DevTools>
       <p className="text-gray-400 text-xs uppercase tracking-wider mt-3 mb-1">Messages (Lorem)</p>
       <button onClick={chat.devAddContact} className={`bg-blue-600 hover:bg-blue-700 ${btn}`}>+ Ajouter un contact</button>
       <button onClick={chat.devAddMessage} className={`bg-blue-600 hover:bg-blue-700 ${btn}`}>+ Ajouter un message</button>
       <button onClick={chat.devResetConv} className={`bg-gray-600 hover:bg-gray-700 ${btn}`}>Reset conversations</button>
-    </>
+    </DevTools>
   );
 }
 
 // ── Liste des conversations + panneau de discussion ─────────────────────────
 export default function Messagerie({ chat }) {
   const { conversations, activeId, setActiveId } = chat;
+  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [draft, setDraft] = useState('');
   const threadRef = useRef(null);
@@ -176,7 +117,7 @@ export default function Messagerie({ chat }) {
         {/* profil utilisateur courant */}
         <div className="flex flex-col items-center gap-2 px-6 pt-6">
           <div className="w-16 h-16 rounded-full bg-[var(--color-background)] shrink-0" />
-          <p className="text-white text-lg font-semibold tracking-wide">NOM PRENOM</p>
+          <p className="text-white text-lg font-semibold tracking-wide">{user?.nom}</p>
         </div>
 
         {/* barre de recherche */}

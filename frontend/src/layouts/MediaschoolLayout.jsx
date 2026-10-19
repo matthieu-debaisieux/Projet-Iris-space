@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import msLogo from '../assets/img/ms_logo_cmjn_blanc_1.png';
-import { BurgerButton, MobileMenu } from '../components/MobileMenu.jsx';
-import Footer from '../components/Footer.jsx';
+import { Link, Outlet } from 'react-router-dom';
+import msLogo from '@/assets/img/ms_logo_cmjn_blanc_1.png';
+import { BurgerButton, MobileMenu } from '@/components/layout/MobileMenu.jsx';
+import Footer from '@/components/layout/Footer.jsx';
 
 const MENU_LINKS = [{ to: '/mediaschool', label: 'Accueil' }];
 
 // Navbar + footer des pages "Bons plans" MediaSchool.
-export default function MediaschoolLayout({ children }) {
+export default function MediaschoolLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -46,7 +46,7 @@ export default function MediaschoolLayout({ children }) {
       />
 
       <main className="flex-1 overflow-y-auto p-6 md:p-10 bg-[var(--color-page)]">
-        {children}
+        <Outlet />
       </main>
 
       <Footer withMediaschoolLink />

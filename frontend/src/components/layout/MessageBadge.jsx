@@ -1,4 +1,4 @@
-import { useMessageCount } from '../lib/messageCount.jsx';
+import { useMessageCount } from '@/context/MessageCountContext.jsx';
 
 // Pastille rouge du nombre de messages non lus
 export default function MessageBadge({ className = 'right-3' }) {

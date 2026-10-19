@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import logo from '../assets/img/Logo_IRIS_SPACE.svg';
-import { BurgerButton, MobileMenu } from '../components/MobileMenu.jsx';
-import MessageBadge from '../components/MessageBadge.jsx';
-import Footer from '../components/Footer.jsx';
+import { Link, Outlet, useMatch } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext.jsx';
+import logo from '@/assets/img/Logo_IRIS_SPACE.svg';
+import { BurgerButton, MobileMenu } from '@/components/layout/MobileMenu.jsx';
+import MessageBadge from '@/components/layout/MessageBadge.jsx';
+import Footer from '@/components/layout/Footer.jsx';
 
 const NAV_LINKS = [
   { to: '/eleve/devoirs', label: 'Devoir' },
@@ -17,10 +18,12 @@ const MENU_LINKS = [...NAV_LINKS, { to: '/eleve/documents', label: 'Documents' }
 
 const navLinkClass = 'text-base font-medium hover:-translate-y-0.5 transition-transform duration-200';
 
-// Navbar + footer de l'espace élève. `children` = contenu entre les deux.
-// `simpleFooter` : footer sans le bouton "Page de MédiaSchool" (page Profil).
-export default function EleveLayout({ children, simpleFooter = false }) {
+// Navbar + footer de l'espace élève. Les pages s'affichent dans <Outlet />.
+export default function EleveLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { user } = useAuth();
+  // Page Profil : footer sans le bouton "Page de MédiaSchool"
+  const simpleFooter = useMatch('/eleve/profil') !== null;
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
@@ -33,7 +36,7 @@ export default function EleveLayout({ children, simpleFooter = false }) {
 
           <span className="text-white/30 text-xl font-light hidden md:inline">|</span>
 
-          <div className="title text-lg text-white tracking-wide font-medium hidden md:block">NOM PRENOM</div>
+          <div className="title text-lg text-white tracking-wide font-medium hidden md:block">{user?.nom}</div>
 
           {/* avatar */}
           <Link
@@ -85,7 +88,7 @@ export default function EleveLayout({ children, simpleFooter = false }) {
         linkClassName={navLinkClass}
       />
 
-      {children}
+      <Outlet />
 
       <Footer withMediaschoolLink={!simpleFooter} />
     </div>

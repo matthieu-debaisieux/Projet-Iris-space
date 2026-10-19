@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { LS_MESSAGES } from './storage.js';
+import { LS_MESSAGES } from '@/services/storage.js';
 
 // ── Compteur de messages non lus (badge de la navbar + panel DEV) ───────────
 const MessageCountContext = createContext(null);

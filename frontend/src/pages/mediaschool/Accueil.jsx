@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import MediaschoolLayout from '../../layouts/MediaschoolLayout.jsx';
 
 const CATEGORIES = [
   { to: '/mediaschool/plages', label: 'Les plages', placeholder: 'Exemple' },
@@ -9,7 +8,7 @@ const CATEGORIES = [
 
 export default function Accueil() {
   return (
-    <MediaschoolLayout>
+    <>
       <h1 className="text-center text-2xl font-bold tracking-wide uppercase mb-4 text-[var(--color-principal)]">
         Les Bons Plans de MediaSchool
       </h1>
@@ -36,6 +35,6 @@ export default function Accueil() {
           </Link>
         ))}
       </div>
-    </MediaschoolLayout>
+    </>
   );
 }

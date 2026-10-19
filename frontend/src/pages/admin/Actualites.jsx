@@ -1,15 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import '@tabler/icons-webfont/dist/tabler-icons.min.css';
-import AdminLayout from '../../layouts/AdminLayout.jsx';
-import { LS_ACTUALITES, loadJSON, saveJSON } from '../../lib/storage.js';
-
-// ── Données par défaut (si rien dans localStorage) ──────────────────────────
-const DEFAULT_ACTUALITES = [
-  { id: 0, titre: 'Actualité #0', date: '24 juin 2026', statut: 'Publié',    image: 'votre-image.jpg', contenu: "Contenu complet de l'actualité #0.", auteur: 'Admin' },
-  { id: 1, titre: 'Actualité #1', date: '20 juin 2026', statut: 'Brouillon', image: 'votre-image.jpg', contenu: "Contenu complet de l'actualité #1.", auteur: 'Admin' },
-  { id: 2, titre: 'Actualité #2', date: '15 juin 2026', statut: 'Archivé',   image: 'votre-image.jpg', contenu: "Contenu complet de l'actualité #2.", auteur: 'Admin' },
-  { id: 3, titre: 'Actualité #3', date: '10 juin 2026', statut: 'Publié',    image: 'votre-image.jpg', contenu: "Contenu complet de l'actualité #3.", auteur: 'Admin' },
-];
+import DataState from '@/components/ui/DataState.jsx';
+import Modal from '@/components/ui/Modal.jsx';
+import { useAsync } from '@/hooks/useAsync.js';
+import {
+  createActualite, deleteActualite, getActualites, STATUTS_ACTUALITE, updateActualite,
+} from '@/services/actualites.js';
 
 const STATUT_CLASSES = {
   'Publié':    'text-teal-700 bg-teal-50 border border-teal-200',
@@ -34,12 +30,9 @@ function lireImageBase64(file) {
 // ── Coque de modale (fond + boîte) ──────────────────────────────────────────
 function ModalShell({ onClose, maxWidth = 'max-w-lg', children }) {
   return (
-    <div className="flex fixed inset-0 z-[300] items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className={`relative bg-white rounded-2xl shadow-2xl w-full ${maxWidth} mx-4 z-10 overflow-hidden`}>
-        {children}
-      </div>
-    </div>
+    <Modal onClose={onClose} className={`${maxWidth} rounded-2xl overflow-hidden`}>
+      {children}
+    </Modal>
   );
 }
 
@@ -125,9 +118,7 @@ function ArticleForm({ actu, onSubmit, onClose }) {
           <div className="flex flex-col gap-1.5">
             <label className={labelClass}>Statut</label>
             <select value={statut} onChange={e => setStatut(e.target.value)} className={fieldClass(false)}>
-              <option value="Publié">Publié</option>
-              <option value="Brouillon">Brouillon</option>
-              <option value="Archivé">Archivé</option>
+              {STATUTS_ACTUALITE.map(st => <option key={st} value={st}>{st}</option>)}
             </select>
           </div>
           <div className="flex flex-col gap-1.5">
@@ -191,7 +182,7 @@ function DetailModal({ actu, onClose, onDelete, onEdit }) {
   return (
     <ModalShell onClose={onClose}>
       <div className="w-full h-48 bg-gray-300 overflow-hidden">
-        <img src={actu.image} alt="Image actualité" className="w-full h-full object-cover" />
+        <img src={actu.image || undefined} alt="Image actualité" className="w-full h-full object-cover" />
       </div>
       <div className="p-6 flex flex-col gap-4">
         <h3 className="text-xl font-semibold text-teal-700">{actu.titre}</h3>
@@ -290,36 +281,34 @@ function SearchModal({ actualites, onClose, onSelect }) {
 
 // ── Page ────────────────────────────────────────────────────────────────────
 export default function Actualites() {
-  const [actualites, setActualites] = useState(() => loadJSON(LS_ACTUALITES, DEFAULT_ACTUALITES, { seed: false }));
+  const actualites = useAsync(getActualites);
+  const liste = actualites.data ?? [];
   // modale courante : { type: 'detail' | 'modifier' | 'creer' | 'rechercher', id? }
   const [modal, setModal] = useState(null);
   const closeModal = () => setModal(null);
 
-  const courante = actualites.find(a => a.id === modal?.id);
+  const courante = liste.find(a => a.id === modal?.id);
 
-  function enregistrer(next) {
-    setActualites(next);
-    saveJSON(LS_ACTUALITES, next);
-  }
-
-  function creer(data) {
-    const id = actualites.length > 0 ? Math.max(...actualites.map(a => a.id)) + 1 : 0;
-    enregistrer([...actualites, { id, image: '', ...data }]);
+  async function creer(data) {
+    const actu = await createActualite(data);
+    actualites.setData(prev => [...prev, actu]);
     closeModal();
   }
 
-  function modifier(data) {
-    enregistrer(actualites.map(a => (a.id === modal.id ? { ...a, ...data } : a)));
+  async function modifier(data) {
+    const actu = await updateActualite(modal.id, data);
+    actualites.setData(prev => prev.map(a => (a.id === actu.id ? actu : a)));
     closeModal();
   }
 
-  function supprimer() {
-    enregistrer(actualites.filter(a => a.id !== modal.id));
+  async function supprimer() {
+    await deleteActualite(modal.id);
+    actualites.setData(prev => prev.filter(a => a.id !== modal.id));
     closeModal();
   }
 
   return (
-    <AdminLayout>
+    <>
       <div className="flex-1 overflow-y-auto p-6 bg-[var(--color-page)]">
         {/* Barre d'actions */}
         <div className="flex items-center justify-between mb-6">
@@ -341,41 +330,43 @@ export default function Actualites() {
         </div>
 
         {/* Grille */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          {actualites.map(actu => (
-            <div
-              key={actu.id}
-              className="bg-gray-200 rounded-3xl p-5 border border-black/[0.08] flex flex-col gap-4 hover:-translate-y-1 transition-transform duration-200"
-            >
-              <div className="flex items-center justify-between">
-                <span className="inline-flex items-center gap-1.5 bg-teal-600 text-white text-[11px] font-medium px-3 py-1 rounded-full uppercase tracking-wide">
-                  <Icon name="news" size={12} />
-                  Actualité
-                </span>
-                <span className="text-xs text-gray-500">{actu.date}</span>
-              </div>
-              <h2 className="text-lg font-semibold text-teal-700 leading-snug">{actu.titre}</h2>
-              <div className="flex gap-3 items-start">
-                <p className="flex-1 text-sm text-gray-600 leading-relaxed line-clamp-3">{actu.contenu}</p>
-                <div className="w-[100px] h-[80px] rounded-xl overflow-hidden flex-shrink-0 bg-gray-400">
-                  <img src={actu.image || undefined} alt="Actualité" className="w-full h-full object-cover" />
+        <DataState state={actualites}>{() => (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            {liste.map(actu => (
+              <div
+                key={actu.id}
+                className="bg-gray-200 rounded-3xl p-5 border border-black/[0.08] flex flex-col gap-4 hover:-translate-y-1 transition-transform duration-200"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="inline-flex items-center gap-1.5 bg-teal-600 text-white text-[11px] font-medium px-3 py-1 rounded-full uppercase tracking-wide">
+                    <Icon name="news" size={12} />
+                    Actualité
+                  </span>
+                  <span className="text-xs text-gray-500">{actu.date}</span>
+                </div>
+                <h2 className="text-lg font-semibold text-teal-700 leading-snug">{actu.titre}</h2>
+                <div className="flex gap-3 items-start">
+                  <p className="flex-1 text-sm text-gray-600 leading-relaxed line-clamp-3">{actu.contenu}</p>
+                  <div className="w-[100px] h-[80px] rounded-xl overflow-hidden flex-shrink-0 bg-gray-400">
+                    <img src={actu.image || undefined} alt="Actualité" className="w-full h-full object-cover" />
+                  </div>
+                </div>
+                <div className="border-t border-black/10 pt-3 flex items-center justify-between">
+                  <div className="flex flex-col gap-0.5">
+                    <span className={`text-[11px] px-2 py-0.5 rounded-full ${STATUT_CLASSES[actu.statut] ?? ''}`}>{actu.statut}</span>
+                    <span className="text-[11px] text-gray-400">Par {actu.auteur}</span>
+                  </div>
+                  <button
+                    onClick={() => setModal({ type: 'detail', id: actu.id })}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-teal-700 border border-teal-700 rounded-full px-3 py-1 hover:bg-teal-50 transition-colors"
+                  >
+                    + d'informations
+                  </button>
                 </div>
               </div>
-              <div className="border-t border-black/10 pt-3 flex items-center justify-between">
-                <div className="flex flex-col gap-0.5">
-                  <span className={`text-[11px] px-2 py-0.5 rounded-full ${STATUT_CLASSES[actu.statut] ?? ''}`}>{actu.statut}</span>
-                  <span className="text-[11px] text-gray-400">Par {actu.auteur}</span>
-                </div>
-                <button
-                  onClick={() => setModal({ type: 'detail', id: actu.id })}
-                  className="inline-flex items-center gap-1 text-xs font-medium text-teal-700 border border-teal-700 rounded-full px-3 py-1 hover:bg-teal-50 transition-colors"
-                >
-                  + d'informations
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}</DataState>
       </div>
 
       {modal?.type === 'creer' && <ArticleForm onSubmit={creer} onClose={closeModal} />}
@@ -389,8 +380,8 @@ export default function Actualites() {
         />
       )}
       {modal?.type === 'rechercher' && (
-        <SearchModal actualites={actualites} onClose={closeModal} onSelect={id => setModal({ type: 'detail', id })} />
+        <SearchModal actualites={liste} onClose={closeModal} onSelect={id => setModal({ type: 'detail', id })} />
       )}
-    </AdminLayout>
+    </>
   );
 }

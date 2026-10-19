@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react';
-import { LS_ACTUALITES, loadJSON } from '../lib/storage.js';
-import { useEscape } from '../lib/useEscape.js';
+import DataState from '@/components/ui/DataState.jsx';
+import { useAsync } from '@/hooks/useAsync.js';
+import { useEscape } from '@/hooks/useEscape.js';
+import { getActualitesPubliees } from '@/services/actualites.js';
 
 // ── Grille des actualités publiées (lecture seule : visiteur / élève) ───────
 export default function ActualitesPubliees({ className = '' }) {
@@ -8,45 +10,47 @@ export default function ActualitesPubliees({ className = '' }) {
   const close = useCallback(() => setSelected(null), []);
   useEscape(close, selected !== null);
 
-  const publies = loadJSON(LS_ACTUALITES, [], { seed: false }).filter(a => a.statut === 'Publié');
+  const actualites = useAsync(getActualitesPubliees);
 
   return (
     <>
-      <div className={`grid grid-cols-1 lg:grid-cols-3 gap-30 max-w-screen-xl mx-auto ${className}`}>
-        {publies.length === 0 ? (
-          <p className="col-span-full text-gray-400 text-lg text-center py-10">Aucune actualité publiée pour le moment.</p>
-        ) : (
-          publies.map(actu => (
-            <div
-              key={actu.id}
-              className="max-w-md bg-gray-200 rounded-3xl p-5 border border-black/[0.08] flex flex-col gap-4 hover:-translate-y-1 transition-transform duration-200"
-            >
-              <div className="flex items-center justify-between">
-                <span className="inline-flex items-center gap-1.5 bg-teal-600 text-white text-[11px] font-medium px-3 py-1 rounded-full uppercase tracking-wide">
-                  Actualité
-                </span>
-                <span className="text-xs text-gray-500">{actu.date}</span>
-              </div>
-              <h2 className="text-lg font-semibold text-teal-700 leading-snug">{actu.titre}</h2>
-              <div className="flex gap-3 items-start">
-                <p className="flex-1 text-sm text-gray-600 leading-relaxed line-clamp-3">{actu.contenu}</p>
-                <div className="w-[100px] h-[80px] rounded-xl overflow-hidden flex-shrink-0 bg-gray-400">
-                  <img src={actu.image} alt="Actualité" className="w-full h-full object-cover" />
+      <DataState state={actualites}>{publies => (
+        <div className={`grid grid-cols-1 lg:grid-cols-3 gap-30 max-w-screen-xl mx-auto ${className}`}>
+          {publies.length === 0 ? (
+            <p className="col-span-full text-gray-400 text-lg text-center py-10">Aucune actualité publiée pour le moment.</p>
+          ) : (
+            publies.map(actu => (
+              <div
+                key={actu.id}
+                className="max-w-md bg-gray-200 rounded-3xl p-5 border border-black/[0.08] flex flex-col gap-4 hover:-translate-y-1 transition-transform duration-200"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="inline-flex items-center gap-1.5 bg-teal-600 text-white text-[11px] font-medium px-3 py-1 rounded-full uppercase tracking-wide">
+                    Actualité
+                  </span>
+                  <span className="text-xs text-gray-500">{actu.date}</span>
+                </div>
+                <h2 className="text-lg font-semibold text-teal-700 leading-snug">{actu.titre}</h2>
+                <div className="flex gap-3 items-start">
+                  <p className="flex-1 text-sm text-gray-600 leading-relaxed line-clamp-3">{actu.contenu}</p>
+                  <div className="w-[100px] h-[80px] rounded-xl overflow-hidden flex-shrink-0 bg-gray-400">
+                    <img src={actu.image || undefined} alt="Actualité" className="w-full h-full object-cover" />
+                  </div>
+                </div>
+                <div className="border-t border-black/10 pt-3 flex items-center justify-between">
+                  <span className="text-[11px] text-gray-400">Par {actu.auteur}</span>
+                  <button
+                    onClick={() => setSelected(actu)}
+                    className="border border-teal-600 text-teal-600 text-sm font-medium rounded-full px-4 py-1.5 hover:bg-teal-600 hover:text-white transition-colors duration-200 cursor-pointer"
+                  >
+                    + d'informations
+                  </button>
                 </div>
               </div>
-              <div className="border-t border-black/10 pt-3 flex items-center justify-between">
-                <span className="text-[11px] text-gray-400">Par {actu.auteur}</span>
-                <button
-                  onClick={() => setSelected(actu)}
-                  className="border border-teal-600 text-teal-600 text-sm font-medium rounded-full px-4 py-1.5 hover:bg-teal-600 hover:text-white transition-colors duration-200 cursor-pointer"
-                >
-                  + d'informations
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
+            ))
+          )}
+        </div>
+      )}</DataState>
 
       <ActuModal actu={selected} onClose={close} />
     </>

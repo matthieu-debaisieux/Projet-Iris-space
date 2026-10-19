@@ -1,4 +1,4 @@
-import msLogo from '../assets/img/ms_logo_cmjn_blanc_1.png';
+import msLogo from '@/assets/img/ms_logo_cmjn_blanc_1.png';
 
 // `withMediaschoolLink` : variante des espaces visiteur / élève / MediaSchool
 // (libellé court + bouton "Page de MédiaSchool" à droite).
