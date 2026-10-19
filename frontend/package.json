@@ -1,0 +1,26 @@
+{
+  "name": "my-project",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.1",
+    "@vitejs/plugin-react": "^6.1.2",
+    "autoprefixer": "^10.4.20",
+    "daisyui": "^5.5.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^4.3.1",
+    "vite": "^8.0.12"
+  },
+  "dependencies": {
+    "@tabler/icons-webfont": "^3.49.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-router-dom": "^7.18.4"
+  }
+}
