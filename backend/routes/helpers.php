@@ -66,6 +66,12 @@ function requireRole(string ...$roles): callable
     };
 }
 
+// Middleware : n'importe quel utilisateur connecté, quel que soit son rôle
+function requireConnecte(): callable
+{
+    return requireRole('eleve', 'professeur', 'administrateur', 'direction');
+}
+
 // Id de l'utilisateur connecté (le middleware requireRole a déjà vérifié qu'il existe)
 function moi(): string
 {
@@ -250,6 +256,33 @@ function periode(array $query): array
     return [$du, $au];
 }
 
+// Mot de passe en clair : 8 caractères minimum, 72 octets maximum (limite de bcrypt).
+// Pas de trim : les espaces font partie du mot de passe.
+function motDePasse(array $data, string $cle): string
+{
+    $valeur = $data[$cle] ?? null;
+    if (!is_string($valeur) || $valeur === '') {
+        throw new ApiException("Le champ « $cle » est requis", 400);
+    }
+    if (strlen($valeur) < 8) {
+        throw new ApiException('Le mot de passe doit faire au moins 8 caractères', 400);
+    }
+    if (strlen($valeur) > 72) {
+        throw new ApiException('Le mot de passe est trop long (72 octets maximum)', 400);
+    }
+    return $valeur;
+}
+
+// URL http(s) ou chemin du site (/images/...) ; refuse javascript: et //hote
+function urlOuChemin(array $data, string $cle, bool $requis = false): ?string
+{
+    $valeur = texte($data, $cle, 2000, $requis);
+    if ($valeur !== null && !preg_match('#^(https?://\S+|/(?!/)\S*)$#', $valeur)) {
+        throw new ApiException("Le champ « $cle » doit être une URL http(s) ou un chemin commençant par /", 400);
+    }
+    return $valeur;
+}
+
 // ---------------------------------------------------------------------
 // BASE DE DONNÉES
 // ---------------------------------------------------------------------
@@ -273,6 +306,12 @@ function transaction(callable $fn): mixed
 function codeSql(PDOException $e): string
 {
     return (string) ($e->errorInfo[0] ?? $e->getCode());
+}
+
+// numeric PostgreSQL (renvoyé en texte par PDO) → float, ou null
+function decimal(mixed $valeur): ?float
+{
+    return $valeur === null ? null : (float) $valeur;
 }
 
 // ---------------------------------------------------------------------
@@ -321,4 +360,29 @@ function supprimerFichier(?string $url): void
     if (is_file($chemin)) {
         unlink($chemin);
     }
+}
+
+// ---------------------------------------------------------------------
+// E-MAILS ET ENVIRONNEMENT (réinitialisation du mot de passe)
+// ---------------------------------------------------------------------
+
+// Vrai seulement si APP_ENV vaut dev, development ou local (faux par défaut, donc sûr en production)
+function appEnDev(): bool
+{
+    return in_array(strtolower((string) getenv('APP_ENV')), ['dev', 'development', 'local'], true);
+}
+
+// Envoie le lien de réinitialisation. Aucune bibliothèque d'e-mail dans composer.json :
+// mail() ne marche que si le serveur a un MTA configuré. À remplacer par PHPMailer/SMTP.
+function envoyerEmailReinitialisation(string $email, string $lien): void
+{
+    if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+        return;
+    }
+    $sujet = '=?UTF-8?B?' . base64_encode('Réinitialisation de votre mot de passe') . '?=';
+    $message = "Bonjour,\n\n"
+        . "Pour choisir un nouveau mot de passe, ouvrez ce lien (valable 1 heure) :\n"
+        . $lien . "\n\n"
+        . "Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.\n";
+    @mail($email, $sujet, $message, 'Content-Type: text/plain; charset=UTF-8');
 }

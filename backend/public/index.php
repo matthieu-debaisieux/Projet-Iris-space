@@ -34,6 +34,14 @@ $app->group('/api', function ($group) {
     require __DIR__ . '/../routes/auth.php';
     require __DIR__ . '/../routes/visiteur.php';
 
+    // Routes Bonus (P3) : chacune pose elle-même son requireRole / requireConnecte
+    require __DIR__ . '/../routes/mot_de_passe.php';
+    require __DIR__ . '/../routes/notifications.php';
+    require __DIR__ . '/../routes/pages_publiques.php';
+    require __DIR__ . '/../routes/contacts_admin.php';
+    require __DIR__ . '/../routes/eleve_bonus.php';
+    require __DIR__ . '/../routes/prof_bonus.php';
+
     // Chaque espace n'est accessible qu'aux rôles indiqués (401 si non connecté, 403 sinon)
     $group->group('/admin', function ($group) {
         require __DIR__ . '/../routes/admin/documents.php';
