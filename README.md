@@ -38,6 +38,18 @@ frontend/src/
 └── assets/             fonts, images, style.css
 ```
 
+## Architecture du backend 
+```
+backend 
+├── database /    Iris_space -- PostgresSQL   
+│   ├── init_database.sql           
+├── public /              
+├── routes /      toutes les routes (database, eleve, admin, prof, visiteur)         
+├── src /         connexion a la db + API health    
+├── vendor /      
+├── Dockerfile    configuration API PHP Slim servie par Apache     
+├── ...
+```
 Règles :
 
 - **Une page n'accède jamais directement à `localStorage` ni à `fetch`** : elle appelle une
