@@ -7,7 +7,11 @@ import { getAbsences, STATUT_ABSENCE_LABEL } from '@/services/absences.js';
 // Page élève « Vie scolaire ».
 // Les données viennent de getAbsences() (aujourd'hui : données de test ; plus tard : base de données).
 // Seules les absences de l'élève connecté sont affichées (comparaison sur user.nom).
-// Les justifications envoyées restent en mémoire de la page : à brancher sur l'API plus tard.
+//import { useMemo, useState } from 'react';
+//import DataState from '@/components/ui/DataState.jsx';
+//import { useAsync } from '@/hooks/useAsync.js';
+//import { STATUT_ABSENCE_LABEL, justifierAbsence } from '@/services/absences.js'; 
+//Les justifications envoyées restent en mémoire de la page : à brancher sur l'API plus tard.
 
 const MOTIFS = ['Arrêt maladie', 'Rendez-vous médical', 'Problème de transport', 'Raison familiale', 'Autre'];
 
