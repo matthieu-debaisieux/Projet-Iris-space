@@ -28,8 +28,8 @@ export const RACCOURCIS = [
   {
     titre: 'Dernières ressources',
     lignes: [
-      { texte: '📄 Cours_SVT_chap4.pdf' },
-      { texte: '📄 Diaporama_Physique.pptx' },
+      { texte: '📄 Cours_CyberSécurité_chap4.pdf' },
+      { texte: '📄 Diaporama_CyberSécurité.pptx' },
       { texte: '🔗 Lien vidéo — Révisions Bac' },
     ],
   },
@@ -45,17 +45,17 @@ export const RACCOURCIS = [
     titre: 'Dernières notes',
     lignes: [
       { label: 'Maths', texte: '16/20' },
-      { label: 'Français', texte: '13/20' },
-      { label: 'SVT', texte: '15,5/20' },
+      { label: 'Culture Gestion et Expression', texte: '13/20' },
+      { label: 'CyberSécurité', texte: '15,5/20' },
     ],
   },
 ];
 
 export const NOTES = [
   { id: 1, note: '16/20',   matiere: 'Mathématiques',   prof: 'M. Martin',    date: '28/06/2028' },
-  { id: 2, note: '13/20',   matiere: 'Français',        prof: 'Mme. Dupont',  date: '25/06/2028' },
-  { id: 3, note: '15,5/20', matiere: 'SVT',             prof: 'M. Bernard',   date: '20/06/2028' },
-  { id: 4, note: '11/20',   matiere: 'Histoire-Géo',    prof: 'Mme. Robert',  date: '17/06/2028' },
+  { id: 2, note: '13/20',   matiere: 'Culture Gestion et Expression',        prof: 'Mme. Dupont',  date: '25/06/2028' },
+  { id: 3, note: '15,5/20', matiere: 'CyberSécurité',             prof: 'M. Bernard',   date: '20/06/2028' },
+  { id: 4, note: '11/20',   matiere: 'CEJM',    prof: 'Mme. Robert',  date: '17/06/2028' },
   { id: 5, note: '18/20',   matiere: 'Anglais',         prof: 'M. Jackson',   date: '12/06/2028' },
   { id: 6, note: '14/20',   matiere: 'Physique-Chimie', prof: 'Mme. Richard', date: '05/06/2028' },
 ];
