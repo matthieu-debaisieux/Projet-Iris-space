@@ -1,1 +1,3 @@
 vendor/
+# fichiers envoyés par les utilisateurs (documents, rendus, ressources)
+uploads/

@@ -54,3 +54,57 @@ $group->post('/auth/login', function (ServerRequestInterface $request, ResponseI
     $response->getBody()->write(json_encode(['user' => $user]));
     return $response->withHeader('Content-Type', 'application/json');
 });
+
+$group->post('/auth/logout', function (ServerRequestInterface $request, ResponseInterface $response) {
+    // 1. Vider la session côté serveur
+    $_SESSION = [];
+
+    // 2. Supprimer le cookie de session côté navigateur
+    if (ini_get('session.use_cookies')) {
+        $params = session_get_cookie_params();
+        setcookie(session_name(), '', [
+            'expires'  => time() - 42000,
+            'path'     => $params['path'],
+            'domain'   => $params['domain'],
+            'secure'   => $params['secure'],
+            'httponly' => $params['httponly'],
+            'samesite' => $params['samesite'],
+        ]);
+    }
+
+    // 3. Détruire la session (on répond 204 même si personne n'était connecté)
+    session_destroy();
+
+    return $response->withStatus(204);
+});
+
+$group->get('/auth/me', function (ServerRequestInterface $request, ResponseInterface $response) {
+    // 1. Pas de session → 401
+    if (empty($_SESSION['user_id'])) {
+        $response->getBody()->write(json_encode(['error' => 'Non connecté']));
+        return $response->withStatus(401)->withHeader('Content-Type', 'application/json');
+    }
+
+    // 2. Relire l'utilisateur en base (le compte a pu être modifié ou désactivé depuis la connexion)
+    $stmt = db()->prepare(
+        'SELECT id, identifiant, email, role, nom, prenom, photo_url, actif
+         FROM utilisateur
+         WHERE id = :id'
+    );
+    $stmt->execute(['id' => $_SESSION['user_id']]);
+    $user = $stmt->fetch();
+
+    // 3. Compte supprimé ou désactivé → on ferme la session et 401
+    if (!$user || !$user['actif']) {
+        $_SESSION = [];
+        session_destroy();
+        $response->getBody()->write(json_encode(['error' => 'Non connecté']));
+        return $response->withStatus(401)->withHeader('Content-Type', 'application/json');
+    }
+
+    // 4. Renvoyer l'utilisateur (même format que /auth/login, SANS le champ actif)
+    unset($user['actif']);
+
+    $response->getBody()->write(json_encode(['user' => $user]));
+    return $response->withHeader('Content-Type', 'application/json');
+});
