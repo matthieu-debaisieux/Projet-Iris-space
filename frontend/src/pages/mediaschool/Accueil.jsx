@@ -8,7 +8,7 @@ const CATEGORIES = [
 
 export default function Accueil() {
   return (
-    <>
+    <main className="flex-1 overflow-y-auto p-6 md:p-10 bg-[var(--color-page)]">
       <h1 className="text-center text-2xl font-bold tracking-wide uppercase mb-4 text-[var(--color-principal)]">
         Les Bons Plans de MediaSchool
       </h1>
@@ -35,6 +35,6 @@ export default function Accueil() {
           </Link>
         ))}
       </div>
-    </>
+    </main>
   );
 }

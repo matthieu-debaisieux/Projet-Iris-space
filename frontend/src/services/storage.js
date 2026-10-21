@@ -1,5 +1,5 @@
 // ── Clés localStorage ───────────────────────────────────────────────────────
-export const LS_SESSION       = 'iris_session';
+export const LS_SESSION       = 'iris_session_v2';
 export const LS_MESSAGES      = 'iris_messageCount';
 export const LS_ABSENCES      = 'iris_absences_v2';
 export const LS_COURS         = 'iris_cours';

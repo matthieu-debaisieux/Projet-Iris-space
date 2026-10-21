@@ -7,7 +7,7 @@ export default function Plages() {
   const scroll = left => galleryRef.current?.scrollBy({ left, behavior: 'smooth' });
 
   return (
-    <>
+    <main className="flex-1 overflow-y-auto p-6 md:p-10 bg-[var(--color-page)]">
       <h1 className="text-center text-2xl font-bold tracking-wide uppercase mb-6 text-[var(--color-principal)]">Les Plages</h1>
 
       {/* Mobile : empilé | Desktop (md+) : 2 colonnes */}
@@ -50,6 +50,6 @@ export default function Plages() {
           </div>
         </div>
       </div>
-    </>
+    </main>
   );
 }

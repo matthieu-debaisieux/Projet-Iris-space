@@ -3,7 +3,7 @@ const MOIS = ['Septembre', 'Novembre', 'Décembre', 'Janvier', 'Février', 'Mars
 
 export default function Events() {
   return (
-    <>
+    <main className="flex-1 overflow-y-auto p-6 md:p-10 bg-[var(--color-page)]">
       <h1 className="text-center text-2xl font-bold tracking-wide uppercase mb-8 text-[var(--color-mediaschool)]">Les Events</h1>
 
       {/* Grille 3x3 des mois */}
@@ -17,6 +17,6 @@ export default function Events() {
           </a>
         ))}
       </div>
-    </>
+    </main>
   );
 }

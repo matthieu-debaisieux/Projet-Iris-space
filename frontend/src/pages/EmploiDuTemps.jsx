@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import DataState from '@/components/ui/DataState.jsx';
 import Modal from '@/components/ui/Modal.jsx';
+import { useAuth } from '@/context/AuthContext.jsx';
 import { useAsync } from '@/hooks/useAsync.js';
 import { getPlanning } from '@/services/planning.js';
 
@@ -128,7 +129,7 @@ function TimetableGrid({ classData, monday, onEditCourse, onAddCourse }) {
             className={`border-r ${isLastCol ? 'border-r-0' : ''} border-gray-800 p-0 cursor-pointer group`}
             style={{ gridColumn, gridRow: `${gridRow} / span ${span}` }}
             title="Cliquer pour modifier ce cours"
-            onClick={() => onEditCourse(day, index)}
+            onClick={() => onEditCourse?.(day, index)}
           >
             <div className={`h-full w-full ${getColorForSubject(course.subject)} border-l-4 px-2 py-1 flex flex-col justify-center overflow-hidden group-hover:brightness-95 transition`}>
               <p className="text-xs font-bold leading-tight truncate">{course.subject}</p>
@@ -150,7 +151,7 @@ function TimetableGrid({ classData, monday, onEditCourse, onAddCourse }) {
           className={`border-r border-gray-800 bg-gray-100 hover:bg-amber-50 cursor-pointer transition${isLastCol ? ' border-r-0' : ''}${isLastRow ? '' : ' border-b'}`}
           style={{ height: ROW_HEIGHT, gridColumn, gridRow }}
           title="Cliquer pour ajouter un cours"
-          onClick={() => onAddCourse(day, hourLabelForHour(currentHour))}
+          onClick={() => onAddCourse?.(day, hourLabelForHour(currentHour))}
         />,
       );
     });
@@ -287,7 +288,10 @@ function CourseModal({ className, editing, rooms, onSave, onDelete, onClose }) {
 }
 
 // ── Page ────────────────────────────────────────────────────────────────────
+// Consultation pour tous ; modification avec le droit `emploi_du_temps_gerer`
 export default function EmploiDuTemps() {
+  const { can } = useAuth();
+  const gerer = can('emploi_du_temps_gerer');
   const planning = useAsync(getPlanning);
   const schedule = planning.data?.classes ?? {};
   const rooms = planning.data?.salles ?? [];
@@ -372,7 +376,7 @@ export default function EmploiDuTemps() {
           </div>
 
           {/* Boutons de gestion */}
-          <div className="flex flex-wrap items-center gap-2 mb-6">
+          {gerer && <div className="flex flex-wrap items-center gap-2 mb-6">
             <button
               onClick={() => setModal({ type: 'class' })}
               className="flex items-center gap-1 px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white hover:bg-gray-50 shadow-sm transition"
@@ -391,7 +395,7 @@ export default function EmploiDuTemps() {
             >
               <span className="text-base leading-none">+</span> Ajouter un cours
             </button>
-          </div>
+          </div>}
 
           {/* Navigation semaine */}
           <div className="flex items-center justify-center gap-3 mb-6">
@@ -420,8 +424,8 @@ export default function EmploiDuTemps() {
             <TimetableGrid
               classData={schedule[selectedClass] || {}}
               monday={monday}
-              onEditCourse={(day, index) => openCourseModal({ day, index, course: schedule[selectedClass][day][index] })}
-              onAddCourse={(day, start) => openCourseModal({ day, start })}
+              onEditCourse={gerer ? (day, index) => openCourseModal({ day, index, course: schedule[selectedClass][day][index] }) : undefined}
+              onAddCourse={gerer ? (day, start) => openCourseModal({ day, start }) : undefined}
             />
           )}</DataState>
         </div>

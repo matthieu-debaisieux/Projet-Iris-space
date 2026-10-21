@@ -2,13 +2,6 @@ import { createContext, useContext, useState } from 'react';
 import * as authService from '@/services/auth.js';
 import { LS_SESSION, loadJSON, saveJSON } from '@/services/storage.js';
 
-// Page d'accueil de chaque rôle
-export const HOME_BY_ROLE = {
-  admin: '/admin',
-  prof:  '/prof',
-  eleve: '/eleve',
-};
-
 // ── Utilisateur connecté (null si déconnecté) ───────────────────────────────
 const AuthContext = createContext(null);
 
@@ -28,7 +21,10 @@ export function AuthProvider({ children }) {
     setUser(null);
   }
 
-  return <AuthContext.Provider value={{ user, login, logout }}>{children}</AuthContext.Provider>;
+  // Vrai si l'utilisateur possède le droit (toujours faux si déconnecté)
+  const can = droit => user?.droits?.includes(droit) ?? false;
+
+  return <AuthContext.Provider value={{ user, login, logout, can }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

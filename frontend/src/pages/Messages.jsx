@@ -24,7 +24,7 @@ function loremSentence(min = 6, max = 16) {
 const loremName = () => `${rand(LOREM_FIRST)} ${rand(LOREM_LAST)}`;
 
 // ── État des conversations ──────────────────────────────────────────────────
-export function useConversations() {
+function useConversations() {
   const { data: conversations = [], setData } = useAsync(getConversations);
   const [selectedId, setSelectedId] = useState(null);
   const activeId = selectedId ?? conversations[0]?.id ?? null;
@@ -71,7 +71,7 @@ export function useConversations() {
 }
 
 // ── Boutons propres à la messagerie dans le panel DEV ───────────────────────
-export function MessagerieDevTools({ chat }) {
+function MessagerieDevTools({ chat }) {
   const btn = 'text-white rounded-lg px-3 py-2 text-left transition font-medium text-xs';
   return (
     <DevTools>
@@ -84,7 +84,7 @@ export function MessagerieDevTools({ chat }) {
 }
 
 // ── Liste des conversations + panneau de discussion ─────────────────────────
-export default function Messagerie({ chat }) {
+function Messagerie({ chat }) {
   const { conversations, activeId, setActiveId } = chat;
   const { user } = useAuth();
   const [search, setSearch] = useState('');
@@ -217,5 +217,17 @@ export default function Messagerie({ chat }) {
         </form>
       </div>
     </>
+  );
+}
+
+// ── Page ────────────────────────────────────────────────────────────────────
+export default function Messages() {
+  const chat = useConversations();
+
+  return (
+    <div className="flex flex-1 overflow-hidden">
+      <Messagerie chat={chat} />
+      <MessagerieDevTools chat={chat} />
+    </div>
   );
 }

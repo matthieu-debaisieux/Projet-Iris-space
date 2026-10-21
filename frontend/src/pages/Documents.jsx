@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import DataState from '@/components/ui/DataState.jsx';
 import Modal from '@/components/ui/Modal.jsx';
+import { useAuth } from '@/context/AuthContext.jsx';
 import { useAsync } from '@/hooks/useAsync.js';
 import { getEspaces } from '@/services/documents.js';
 
@@ -65,7 +66,10 @@ function DaisyModal({ title, children, inputLabel, initialValue = '', confirmLab
   );
 }
 
+// Consultation pour tous ; ajout / renommage / suppression avec le droit `documents_gerer`
 export default function Documents() {
+  const { can } = useAuth();
+  const gerer = can('documents_gerer');
   const espaces = useAsync(getEspaces);
   const spaces = espaces.data ?? [];
   const setSpaces = espaces.setData;
@@ -93,7 +97,7 @@ export default function Documents() {
       <main className="flex-1 overflow-y-auto p-6 bg-[#F5F5F5]">
         <h1 className="text-3xl font-bold mb-6 text-[#07A6A6]">Page Documents</h1>
 
-        <div className="flex gap-5 flex-wrap mb-4">
+        {gerer && <div className="flex gap-5 flex-wrap mb-4">
           <button
             onClick={() => setModal({ type: 'space' })}
             className="inline-flex items-center gap-2 bg-[#E8735A] text-white font-semibold text-base px-5 py-2.5 rounded-full hover:brightness-90 transition"
@@ -103,7 +107,7 @@ export default function Documents() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
             </svg>
           </button>
-        </div>
+        </div>}
 
         <section className="flex flex-col gap-4 bg-white p-6 rounded-lg shadow-md">
           <DataState state={espaces}>{() => spaces.map(space => {
@@ -119,7 +123,7 @@ export default function Documents() {
                     <span className="shrink-0 text-gray-400"><ChevronIcon open={isOpen} /></span>
                     <span className="font-semibold truncate">{space.name}</span>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
+                  {gerer && <div className="flex items-center gap-1 shrink-0">
                     <button
                       type="button"
                       onClick={e => { e.stopPropagation(); setModal({ type: 'rename', spaceId: space.id }); }}
@@ -135,7 +139,7 @@ export default function Documents() {
                     >
                       <TrashIcon />
                     </button>
-                  </div>
+                  </div>}
                 </div>
 
                 {/* corps */}
@@ -148,27 +152,27 @@ export default function Documents() {
                             <FolderIcon />
                             <span>{doc.name}</span>
                           </span>
-                          <button
+                          {gerer && <button
                             type="button"
                             title="Supprimer ce document"
                             onClick={() => setModal({ type: 'delete-doc', spaceId: space.id, doc })}
                             className="text-gray-400 hover:text-[#EC6F6F] transition-colors"
                           >
                             <TrashIcon />
-                          </button>
+                          </button>}
                         </div>
                       ))}
                     </div>
                     {space.docs.length === 0 && (
                       <p className="text-gray-400 italic text-xs py-1">Aucun document dans cet espace.</p>
                     )}
-                    <button
+                    {gerer && <button
                       type="button"
                       onClick={() => setModal({ type: 'doc', spaceId: space.id })}
                       className="btn btn-xs bg-[#07A6A6] hover:bg-[#07A6A6]/90 text-white font-bold self-start mt-3"
                     >
                       + Ajouter un document
-                    </button>
+                    </button>}
                   </div>
                 )}
               </div>

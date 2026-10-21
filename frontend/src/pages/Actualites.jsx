@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import '@tabler/icons-webfont/dist/tabler-icons.min.css';
 import DataState from '@/components/ui/DataState.jsx';
 import Modal from '@/components/ui/Modal.jsx';
+import { useAuth } from '@/context/AuthContext.jsx';
 import { useAsync } from '@/hooks/useAsync.js';
 import {
-  createActualite, deleteActualite, getActualites, STATUTS_ACTUALITE, updateActualite,
+  createActualite, deleteActualite, getActualites, getActualitesPubliees, STATUTS_ACTUALITE, updateActualite,
 } from '@/services/actualites.js';
 
 const STATUT_CLASSES = {
@@ -178,7 +179,7 @@ function ArticleForm({ actu, onSubmit, onClose }) {
 }
 
 // ── Modale détail ───────────────────────────────────────────────────────────
-function DetailModal({ actu, onClose, onDelete, onEdit }) {
+function DetailModal({ actu, gerer, onClose, onDelete, onEdit }) {
   return (
     <ModalShell onClose={onClose}>
       <div className="w-full h-48 bg-gray-300 overflow-hidden">
@@ -200,20 +201,22 @@ function DetailModal({ actu, onClose, onDelete, onEdit }) {
           </span>
         </div>
         <p className="text-sm text-gray-600 leading-relaxed">{actu.contenu}</p>
-        <div className="flex justify-between gap-2 pt-2 border-t border-black/10">
-          <button onClick={onDelete} className="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-red-500 rounded-full px-4 py-1.5 hover:bg-red-600 transition-colors">
+        <div className={`flex ${gerer ? 'justify-between' : 'justify-end'} gap-2 pt-2 border-t border-black/10`}>
+          {gerer && <button onClick={onDelete} className="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-red-500 rounded-full px-4 py-1.5 hover:bg-red-600 transition-colors">
             <Icon name="trash" size={14} />
             Supprimer
-          </button>
+          </button>}
           <div className="flex gap-2">
             <button onClick={onClose} className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 border border-gray-300 rounded-full px-4 py-1.5 hover:bg-gray-100 transition-colors">
               <Icon name="x" size={14} />
               Fermer
             </button>
-            <button onClick={onEdit} className="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-teal-600 rounded-full px-4 py-1.5 hover:bg-teal-700 transition-colors">
-              <Icon name="edit" size={14} />
-              Modifier
-            </button>
+            {gerer && (
+              <button onClick={onEdit} className="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-teal-600 rounded-full px-4 py-1.5 hover:bg-teal-700 transition-colors">
+                <Icon name="edit" size={14} />
+                Modifier
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -280,8 +283,12 @@ function SearchModal({ actualites, onClose, onSelect }) {
 }
 
 // ── Page ────────────────────────────────────────────────────────────────────
+// Tout le monde (même un visiteur non connecté) voit les actualités publiées ;
+// avec le droit `actualites_gerer` on voit aussi les brouillons et on peut éditer.
 export default function Actualites() {
-  const actualites = useAsync(getActualites);
+  const { can } = useAuth();
+  const gerer = can('actualites_gerer');
+  const actualites = useAsync(gerer ? getActualites : getActualitesPubliees, [gerer]);
   const liste = actualites.data ?? [];
   // modale courante : { type: 'detail' | 'modifier' | 'creer' | 'rechercher', id? }
   const [modal, setModal] = useState(null);
@@ -311,15 +318,15 @@ export default function Actualites() {
     <>
       <div className="flex-1 overflow-y-auto p-6 bg-[var(--color-page)]">
         {/* Barre d'actions */}
-        <div className="flex items-center justify-between mb-6">
-          <button
+        <div className={`flex items-center ${gerer ? 'justify-between' : 'justify-end'} mb-6`}>
+          {gerer && <button
             onClick={() => setModal({ type: 'creer' })}
             className="inline-flex items-center gap-2 bg-[#E8735A] text-white font-semibold text-base px-5 py-2.5 rounded-full hover:brightness-90 transition"
           >
             <Icon name="news" size={18} />
             Créer un article
             <Icon name="plus" size={18} />
-          </button>
+          </button>}
           <button
             onClick={() => setModal({ type: 'rechercher' })}
             className="inline-flex items-center gap-2 bg-[#F0B429] text-white font-semibold text-base px-5 py-2.5 rounded-full hover:brightness-90 transition"
@@ -374,6 +381,7 @@ export default function Actualites() {
       {modal?.type === 'detail' && courante && (
         <DetailModal
           actu={courante}
+          gerer={gerer}
           onClose={closeModal}
           onDelete={supprimer}
           onEdit={() => setModal({ type: 'modifier', id: courante.id })}

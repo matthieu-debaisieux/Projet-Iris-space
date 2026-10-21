@@ -24,14 +24,13 @@ Les espaces `/visiteur` et `/mediaschool` sont publics.
 ```
 frontend/src/
 ├── main.jsx            point d'entrée (Router + providers)
-├── App.jsx             toutes les routes, imbriquées par espace
-├── routes/             RequireRole : protège un espace selon le rôle connecté
-├── layouts/            navbar + footer de chaque espace, pages rendues dans <Outlet />
-├── pages/              une page par route (admin/, prof/, eleve/, visiteur/, mediaschool/)
+├── App.jsx             toutes les routes
+├── Layout.jsx          cadre de toutes les pages : Navbar + (menu latéral) + page + Footer
+├── routes/             navigation.js (pages du menu + droit requis), RequireDroit (garde de route)
+├── pages/              un fichier par page, le même pour tous les utilisateurs (+ mediaschool/)
 ├── components/
-│   ├── layout/         Footer, MobileMenu, MessageBadge, DevPanel
-│   ├── ui/             Modal, DataState (chargement / erreur)
-│   └── …               composants partagés (Messagerie, ActualitesPubliees)
+│   ├── layout/         Navbar, Footer, MobileMenu, MessageBadge, DevPanel
+│   └── ui/             Modal, DataState (chargement / erreur)
 ├── context/            AuthContext (session), MessageCountContext
 ├── hooks/              useAsync (charger des données), useEscape
 ├── services/           SEUL endroit qui accède aux données (API ou mocks)
@@ -44,9 +43,13 @@ Règles :
 - **Une page n'accède jamais directement à `localStorage` ni à `fetch`** : elle appelle une
   fonction de `services/` via `useAsync`.
 - Imports avec l'alias `@/` (= `src/`), par ex. `import Modal from '@/components/ui/Modal.jsx'`.
-- Une nouvelle page = un fichier dans `pages/<espace>/` + une ligne dans `App.jsx`.
-- Le panel DEV est affiché par les layouts admin et prof ; une page y ajoute ses boutons
-  avec `<DevTools>…</DevTools>` (voir `components/Messagerie.jsx`).
+- **Pas de page par type d'utilisateur** : une URL unique par fonctionnalité, et ce qui s'affiche
+  dépend des droits de l'utilisateur (`user.droits`, renvoyés par le back depuis la base).
+  On ne teste jamais `user.role` : dans la page, `const { can } = useAuth();` puis
+  `{can('documents_gerer') && <button>…</button>}`. Liste des droits : `mocks/users.js`.
+- Une nouvelle page du menu = un fichier dans `pages/` + une ligne dans `routes/navigation.js`.
+- Le panel DEV est affiché si l'utilisateur a le droit `outils_dev` ; une page y ajoute ses boutons
+  avec `<DevTools>…</DevTools>` (voir `pages/Messages.jsx`).
 
 ## Brancher le back
 
@@ -83,4 +86,5 @@ Routes attendues par le front :
 | GET     | `/api/eleve/profil`                | `getProfil`              |
 
 Le format des données renvoyées est celui des fichiers de `frontend/src/mocks/`.
-`POST /api/auth/login` renvoie `{ id, identifiant, role, nom }` avec `role` ∈ `admin | prof | eleve`.
+`POST /api/auth/login` renvoie `{ id, identifiant, role, nom, droits }` où `droits` est la liste
+des codes de droits de l'utilisateur (voir `frontend/src/mocks/users.js` pour la liste utilisée).
