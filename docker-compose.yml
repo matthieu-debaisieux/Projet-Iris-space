@@ -13,6 +13,8 @@ services:
   api:
     build: ./backend
     container_name: iris-api
+    volumes:
+      - ./backend:/var/www/html
     environment:
       DB_HOST: db
       DB_PORT: 5432
