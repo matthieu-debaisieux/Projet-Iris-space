@@ -8,6 +8,8 @@ use Slim\Factory\AppFactory;
 
 require __DIR__ . '/../vendor/autoload.php';
 
+session_start();
+
 $app = AppFactory::create();
 
 $app->addBodyParsingMiddleware();
@@ -18,6 +20,7 @@ $app->addErrorMiddleware(true, true, true);
 // Toutes les routes sont préfixées par /api (comme les appels du front)
 $app->group('/api', function ($group) {
     require __DIR__ . '/../routes/Controller/HealthController.php';
+    require __DIR__ . '/../routes/auth.php';
 });
 
 
