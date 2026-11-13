@@ -1,6 +1,6 @@
 import Devoirs from '@/pages/Devoirs.jsx';
 import Notes from '@/pages/Notes.jsx';
-import Absences from '@/pages/Absences.jsx';
+import VieScolaire from '@/pages/VieScolaire.jsx';
 import Actualites from '@/pages/Actualites.jsx';
 import EmploiDuTemps from '@/pages/EmploiDuTemps.jsx';
 import Documents from '@/pages/Documents.jsx';
@@ -10,7 +10,7 @@ import Documents from '@/pages/Documents.jsx';
 export const NAV_LINKS = [
   { path: 'devoirs',         label: 'Devoirs',         droit: 'devoirs',         Page: Devoirs },
   { path: 'notes',           label: 'Notes',           droit: 'notes',           Page: Notes },
-  { path: 'absences',        label: 'Vie scolaire',    droit: 'absences',        Page: Absences },
+  { path: 'absences',        label: 'Vie scolaire',    droit: 'absences',        Page: VieScolaire },
   { path: 'actualites',      label: 'Actualité',       droit: 'actualites',      Page: Actualites },
   { path: 'emploi-du-temps', label: 'Emploi du temps', droit: 'emploi_du_temps', Page: EmploiDuTemps },
   { path: 'documents',       label: 'Documents',       droit: 'documents',       Page: Documents },
