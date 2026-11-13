@@ -9,6 +9,7 @@ import Actualites from '@/pages/Actualites.jsx';
 import Messages from '@/pages/Messages.jsx';
 import Profil from '@/pages/Profil.jsx';
 import APropos from '@/pages/APropos.jsx';
+import Contact from '@/pages/Contact.jsx';
 import MentionsLegales from '@/pages/MentionsLegales.jsx';
 
 import MediaschoolAccueil from '@/pages/mediaschool/Accueil.jsx';
@@ -27,6 +28,7 @@ export default function App() {
         {/* Public */}
         <Route path="/visiteur" element={<Actualites />} />
         <Route path="/visiteur/a-propos" element={<APropos />} />
+        <Route path="/visiteur/contact" element={<Contact />} />
         <Route path="/mentions-legales" element={<MentionsLegales />} />
 
         {/* Connecté */}
