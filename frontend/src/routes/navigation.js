@@ -19,7 +19,7 @@ export const NAV_LINKS = [
 // Liens quand personne n'est connecté
 export const PUBLIC_LINKS = [
   { to: '/visiteur/a-propos', label: 'À propos' },
-  { to: '#', label: 'Contact' },
+  { to: '/visiteur/contact', label: 'Contact' },
   { to: '/visiteur', label: 'Actualité' },
   { to: '/', label: 'Se connecter' },
 ];
