@@ -10,6 +10,8 @@ import Messages from '@/pages/Messages.jsx';
 import Profil from '@/pages/Profil.jsx';
 import APropos from '@/pages/APropos.jsx';
 import MentionsLegales from '@/pages/MentionsLegales.jsx';
+import PolitiqueConfidentialite from '@/pages/PolitiqueConfidentialite.jsx';
+import CGU from '@/pages/CGU.jsx';
 
 import MediaschoolAccueil from '@/pages/mediaschool/Accueil.jsx';
 import Plages from '@/pages/mediaschool/Plages.jsx';
@@ -28,6 +30,8 @@ export default function App() {
         <Route path="/visiteur" element={<Actualites />} />
         <Route path="/visiteur/a-propos" element={<APropos />} />
         <Route path="/mentions-legales" element={<MentionsLegales />} />
+        <Route path="/politique-de-confidentialite" element={<PolitiqueConfidentialite />} />
+        <Route path="/cgu" element={<CGU />} />
 
         {/* Connecté */}
         <Route element={<RequireDroit><Outlet /></RequireDroit>}>
