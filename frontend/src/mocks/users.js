@@ -19,5 +19,5 @@ const DROITS_ELEVE = [
 export const USERS = [
   { id: 1, identifiant: 'admin', motDePasse: 'admin', role: 'admin', nom: 'Administration', droits: DROITS_ADMIN },
   { id: 2, identifiant: 'prof',  motDePasse: 'prof',  role: 'prof',  nom: 'NOM PRENOM',     droits: DROITS_PROF },
-  { id: 3, identifiant: 'eleve', motDePasse: 'eleve', role: 'eleve', nom: 'John Doe',       droits: DROITS_ELEVE },
+  { id: 3, identifiant: 'eleve', motDePasse: 'eleve', role: 'eleve', nom: 'John Doe',       droits: DROITS_ELEVE, classe: 'Iris 1' },
 ];
