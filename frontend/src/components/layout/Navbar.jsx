@@ -44,7 +44,7 @@ export default function Navbar({ links, menuLinks, mediaschool = false }) {
         {/* navigation desktop */}
         <nav className="hidden md:flex items-center gap-8">
           {links.map(link => (
-            <NavLink key={link.label} to={link.to} className={navLinkClass}>{link.label}</NavLink>
+            <NavLink key={link.label} to={link.to} end className={navLinkClass}>{link.label}</NavLink>
           ))}
         </nav>
 
