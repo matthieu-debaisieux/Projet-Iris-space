@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import msLogo from '@/assets/img/ms_logo_cmjn_blanc_1.png';
 
 // `withMediaschoolLink` : variante des espaces visiteur / élève / MediaSchool
@@ -8,7 +9,7 @@ export default function Footer({ withMediaschoolLink = false }) {
   return (
     <footer className={`flex ${withMediaschoolLink ? 'justify-between items-center px-4' : 'justify-start'} p-2 bg-[#5D5C60] shrink-0`}>
       <div className="text-white text-sm flex items-center">
-        <button className={btn}>Mentions légales</button>
+        <Link to="/mentions-legales" className={btn}>Mentions légales</Link>
         <span className="self-stretch w-px bg-white mx-3" />
         <button className={btn}>{withMediaschoolLink ? 'Confidentialité' : 'Politique de confidentialité'}</button>
         <span className="self-stretch w-px bg-white mx-3" />
