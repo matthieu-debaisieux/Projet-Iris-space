@@ -31,19 +31,14 @@ function champsUtilisateur(array $data): array
     ];
 }
 
-function motDePasse(array $data, bool $requis): ?string
+// Hash du champ « mot_de_passe » (null s'il est absent et facultatif)
+function hashMotDePasse(array $data, bool $requis): ?string
 {
     $motDePasse = $data['mot_de_passe'] ?? null;
-    if ($motDePasse === null || $motDePasse === '') {
-        if ($requis) {
-            throw new ApiException('Le champ « mot_de_passe » est requis', 400);
-        }
+    if (($motDePasse === null || $motDePasse === '') && !$requis) {
         return null;
     }
-    if (!is_string($motDePasse) || mb_strlen($motDePasse) < 8) {
-        throw new ApiException('Le mot de passe doit faire au moins 8 caractères', 400);
-    }
-    return password_hash($motDePasse, PASSWORD_DEFAULT);
+    return password_hash(motDePasse($data, 'mot_de_passe'), PASSWORD_DEFAULT);
 }
 
 // Erreurs SQL attendues lors d'une création / modification de compte
@@ -94,7 +89,7 @@ $group->post('/utilisateurs', function (ServerRequestInterface $request, Respons
     $data = corps($request);
     $champs = champsUtilisateur($data);
     $champs['role'] = choix($data, 'role', ROLES) ?? throw new ApiException('Le champ « role » est requis', 400);
-    $champs['mot_de_passe_hash'] = motDePasse($data, true);
+    $champs['mot_de_passe_hash'] = hashMotDePasse($data, true);
     $classeId = entier($data, 'classe_id');
     $numeroEtudiant = texte($data, 'numero_etudiant', 30);
 
@@ -132,7 +127,7 @@ $group->post('/utilisateurs', function (ServerRequestInterface $request, Respons
 $group->put('/utilisateurs/{id:' . UUID . '}', function (ServerRequestInterface $request, ResponseInterface $response, array $args) {
     $data = corps($request);
     $champs = champsUtilisateur($data);
-    $hash = motDePasse($data, false);
+    $hash = hashMotDePasse($data, false);
     $classeId = entier($data, 'classe_id');
     $numeroEtudiant = texte($data, 'numero_etudiant', 30);
 
