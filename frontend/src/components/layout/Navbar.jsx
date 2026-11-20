@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext.jsx';
+import { useProfilPhoto } from '@/hooks/useProfilPhoto.js';
 import logo from '@/assets/img/Logo_IRIS_SPACE.svg';
 import msLogo from '@/assets/img/ms_logo_cmjn_blanc_1.png';
 import { BurgerButton, MobileMenu } from '@/components/layout/MobileMenu.jsx';
@@ -11,6 +12,9 @@ const navLinkBase = 'text-base font-medium hover:-translate-y-0.5 transition-tra
 const navLinkClass = ({ isActive }) =>
   `${navLinkBase} ${isActive ? 'text-[#F8B005] font-semibold' : 'text-white'}`;
 
+// "John Doe" → "JD"
+const initiales = nom => (nom ?? '').split(' ').filter(Boolean).slice(0, 2).map(m => m[0]).join('').toUpperCase();
+
 // Barre du haut, la même partout.
 //   links     : liens affichés dans la barre (desktop)
 //   menuLinks : liens du menu burger (mobile)
@@ -18,12 +22,13 @@ const navLinkClass = ({ isActive }) =>
 export default function Navbar({ links, menuLinks, mediaschool = false }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { user, can } = useAuth();
+  const { photo } = useProfilPhoto();
   const bg = mediaschool ? 'bg-[var(--color-mediaschool)]' : 'bg-[var(--color-principal)]';
 
   return (
     <>
       <header className={`flex justify-between items-center ${bg} sticky top-0 z-50 shrink-0 px-4 py-2 gap-4`}>
-        {/* logo (retour à l'accueil) + nom + avatar */}
+        {/* logo (retour à l'accueil) + nom + photo de profil */}
         <div className="flex items-center gap-4">
           <Link
             to={user ? '/accueil' : '/'}
@@ -37,14 +42,24 @@ export default function Navbar({ links, menuLinks, mediaschool = false }) {
           <div className="title text-lg text-white tracking-wide font-medium hidden md:block">{user?.nom ?? 'VISITEUR'}</div>
 
           {user && (
-            <Link to="/profil" aria-label="Profil" className="w-9 h-9 rounded-full bg-gray-200 shrink-0 hover:opacity-80 transition" />
+            <NavLink
+              to="/profil"
+              aria-label="Mon profil"
+              className={({ isActive }) =>
+                `w-9 h-9 rounded-full shrink-0 overflow-hidden flex items-center justify-center bg-[#F8B005] text-[#001257] text-xs font-bold hover:opacity-80 transition ring-2 ${isActive ? 'ring-[#F8B005]' : 'ring-white/30'}`
+              }
+            >
+              {photo
+                ? <img src={photo} alt="" className="h-full w-full object-cover" />
+                : initiales(user.nom) || '?'}
+            </NavLink>
           )}
         </div>
 
         {/* navigation desktop */}
         <nav className="hidden md:flex items-center gap-8">
           {links.map(link => (
-            <NavLink key={link.label} to={link.to} end className={navLinkClass}>{link.label}</NavLink>
+            <NavLink key={link.label} to={link.to} className={navLinkClass}>{link.label}</NavLink>
           ))}
         </nav>
 
