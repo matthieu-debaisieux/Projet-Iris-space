@@ -30,12 +30,15 @@ $group->post('/auth/login', function (ServerRequestInterface $request, ResponseI
 
     // 4. Si pas trouvé OU mauvais mot de passe → 401 (même message : on ne révèle pas si le compte existe)
     if (!$user || !password_verify($motDePasse, $user['mot_de_passe_hash'])) {
+        // Journal des connexions (RGPD) : le motif précis n'est pas renvoyé au client, seulement noté
+        journaliserConnexion($request, trim($identifiant), $user['id'] ?? null, $user ? 'mot_de_passe_incorrect' : 'identifiant_inconnu');
         $response->getBody()->write(json_encode(['error' => 'Identifiant ou mot de passe incorrect']));
         return $response->withStatus(401)->withHeader('Content-Type', 'application/json');
     }
 
     // 5. Si le compte n'est pas actif → 403
     if (!$user['actif']) {
+        journaliserConnexion($request, trim($identifiant), $user['id'], 'compte_desactive');
         $response->getBody()->write(json_encode(['error' => 'Ce compte est désactivé']));
         return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
     }
@@ -47,6 +50,8 @@ $group->post('/auth/login', function (ServerRequestInterface $request, ResponseI
 
     $stmt = db()->prepare('UPDATE utilisateur SET derniere_connexion = now() WHERE id = :id');
     $stmt->execute(['id' => $user['id']]);
+
+    journaliserConnexion($request, trim($identifiant), $user['id'], null);
 
     // 7. Renvoyer l'utilisateur (SANS le hash ni le champ actif)
     unset($user['mot_de_passe_hash'], $user['actif']);

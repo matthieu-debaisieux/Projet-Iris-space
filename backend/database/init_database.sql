@@ -57,6 +57,22 @@ CREATE TABLE reinitialisation_mdp (
   created_at     timestamptz NOT NULL DEFAULT now()
 );
 
+-- Journal des connexions (RGPD) : une ligne par tentative de connexion, réussie ou non.
+-- Conservé 12 mois puis purgé par backend/scripts/purger_journal_connexions.php.
+-- Pour une base existante : backend/database/migrations/2026-11-27_sec04_journal_connexion.sql
+CREATE TABLE journal_connexion (
+  id             bigserial PRIMARY KEY,
+  utilisateur_id uuid REFERENCES utilisateur(id) ON DELETE CASCADE, -- null si l'identifiant saisi n'existe pas
+  identifiant    varchar(254) NOT NULL,                              -- identifiant ou e-mail saisi
+  reussie        boolean NOT NULL,
+  motif          varchar(30) CHECK (motif IN ('identifiant_inconnu', 'mot_de_passe_incorrect', 'compte_desactive')),
+  ip             inet,
+  user_agent     varchar(200),                                       -- tronqué
+  created_at     timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_journal_connexion_date ON journal_connexion(created_at);
+CREATE INDEX idx_journal_connexion_user ON journal_connexion(utilisateur_id, created_at DESC);
+
 -- ---------------------------------------------------------------------
 -- STRUCTURE DE L'ÉCOLE
 -- ---------------------------------------------------------------------
