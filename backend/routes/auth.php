@@ -48,8 +48,9 @@ $group->post('/auth/login', function (ServerRequestInterface $request, ResponseI
     $stmt = db()->prepare('UPDATE utilisateur SET derniere_connexion = now() WHERE id = :id');
     $stmt->execute(['id' => $user['id']]);
 
-    // 7. Renvoyer l'utilisateur (SANS le hash ni le champ actif)
+    // 7. Renvoyer l'utilisateur (SANS le hash ni le champ actif), avec ses droits
     unset($user['mot_de_passe_hash'], $user['actif']);
+    $user['droits'] = droitsPourRole($user['role']);
 
     $response->getBody()->write(json_encode(['user' => $user]));
     return $response->withHeader('Content-Type', 'application/json');
@@ -102,8 +103,9 @@ $group->get('/auth/me', function (ServerRequestInterface $request, ResponseInter
         return $response->withStatus(401)->withHeader('Content-Type', 'application/json');
     }
 
-    // 4. Renvoyer l'utilisateur (même format que /auth/login, SANS le champ actif)
+    // 4. Renvoyer l'utilisateur (même format que /auth/login, SANS le champ actif), avec ses droits
     unset($user['actif']);
+    $user['droits'] = droitsPourRole($user['role']);
 
     $response->getBody()->write(json_encode(['user' => $user]));
     return $response->withHeader('Content-Type', 'application/json');

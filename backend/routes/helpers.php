@@ -62,6 +62,8 @@ function requireRole(string ...$roles): callable
             throw new ApiException('Accès refusé', 403);
         }
 
+        $_SESSION['role'] = $user['role'];
+
         return $handler->handle($request);
     };
 }
@@ -76,6 +78,50 @@ function requireConnecte(): callable
 function moi(): string
 {
     return $_SESSION['user_id'];
+}
+
+// Droits associés à chaque rôle, alignés sur frontend/src/mocks/users.js
+function droitsPourRole(string $role): array
+{
+    $droits = match ($role) {
+        'administrateur', 'direction' => [
+            'menu_lateral',
+            'tableau_de_bord',
+            'absences',
+            'actualites',
+            'actualites_gerer',
+            'emploi_du_temps',
+            'emploi_du_temps_gerer',
+            'documents',
+            'documents_gerer',
+            'messagerie',
+        ],
+        'professeur' => [
+            'journee',
+            'devoirs',
+            'notes',
+            'actualites',
+            'emploi_du_temps',
+            'messagerie',
+        ],
+        'eleve' => [
+            'journee',
+            'devoirs',
+            'notes',
+            'absences',
+            'actualites',
+            'emploi_du_temps',
+            'documents',
+            'messagerie',
+        ],
+        default => [],
+    };
+
+    if (appEnDev() && in_array($role, ['administrateur', 'direction', 'professeur'], true)) {
+        $droits[] = 'outils_dev';
+    }
+
+    return $droits;
 }
 
 // ---------------------------------------------------------------------
