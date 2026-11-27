@@ -16,6 +16,7 @@ Ce document est l'**unique contrat d'API** entre le front-end et le back-end : t
 
 Les sections marquées **(fait)** plus bas sont aussi codées :
 - fichiers (`/uploads`, `/documents/{id}/telecharger`) ;
+- admin absences et vie scolaire ;
 - admin documents ;
 - admin comptes et programme ;
 - élève (dont « Mes documents ») ;
@@ -30,7 +31,7 @@ Les sections marquées **(fait)** plus bas sont aussi codées :
 - Les routes communes n'ont pas de préfixe : auth, actualités, messagerie.
 - Les routes propres à un espace vont sous `/api/admin`, `/api/prof` et `/api/eleve`. Chaque groupe est protégé par le middleware `requireRole()` de [helpers.php](routes/helpers.php) : 401 si personne n'est connecté, 403 si le rôle ne correspond pas.
 - Côté élève, l'id vient de la session et jamais de l'URL, pour qu'un élève ne puisse pas lire les notes d'un autre.
-- Un fichier de routes par espace : [admin/documents.php](routes/admin/documents.php), [admin/utilisateurs.php](routes/admin/utilisateurs.php), [admin/programme.php](routes/admin/programme.php), [eleve.php](routes/eleve.php), [prof.php](routes/prof.php), [visiteur.php](routes/visiteur.php), [rgpd.php](routes/rgpd.php) et [admin/rgpd.php](routes/admin/rgpd.php). Les actualités, partagées entre plusieurs rôles, ont leur propre fichier sans préfixe : [actualites.php](routes/actualites.php). Ils sont branchés dans [index.php](public/index.php).
+- Un fichier de routes par espace : [admin/absences.php](routes/admin/absences.php), [admin/documents.php](routes/admin/documents.php), [admin/utilisateurs.php](routes/admin/utilisateurs.php), [admin/programme.php](routes/admin/programme.php), [eleve.php](routes/eleve.php), [prof.php](routes/prof.php), [visiteur.php](routes/visiteur.php), [rgpd.php](routes/rgpd.php) et [admin/rgpd.php](routes/admin/rgpd.php). Les actualités, partagées entre plusieurs rôles, ont leur propre fichier sans préfixe : [actualites.php](routes/actualites.php). Ils sont branchés dans [index.php](public/index.php).
 
 ## Conventions de l'API (pour le front)
 
@@ -130,13 +131,28 @@ Réponse : `{ "actualite": {...} }` pour `POST` et `PUT`, `{ "actualites": [...]
 | GET | `/api/messages/non-lus` | Pastille rouge des navbars (aujourd'hui un compteur en localStorage) | P1 |
 | GET | `/api/utilisateurs?recherche=` | Trouver à qui écrire | P1 |
 
-## Admin : tableau de bord et absences
+## Admin : tableau de bord et absences (fait)
+
+Toutes les routes ci-dessous sont dans [admin/absences.php](routes/admin/absences.php) (rôles `administrateur`, `direction`, `dev`).
+
+Comportement :
+- Le statut exposé (`statut`) est calculé depuis `justifie` et `justificatif_url` : `justifie` si `justifie = true`, `en_attente` si un justificatif a été déposé (`justificatif_url` non nul) et `justifie = false`, sinon `non_justifie`.
+- `GET /api/admin/absences` : sans paramètre, renvoie les absences et retards du jour (`date` = aujourd'hui). Avec `?statut=en_attente` sans `date`, renvoie les absences à traiter tous jours confondus (300 max). Réponse : `{ date, statut, resume, absences }`.
+- `GET /api/admin/absences/cours?eleve_id=&date=` : liste les cours de la classe de l'élève ce jour-là (avec `deja_saisie`), pour le menu « Cours » lors de la saisie.
+- `POST /api/admin/absences` : saisit une absence ou un retard (`eleve_id` obligatoire, `type` = `"absence"` ou `"retard"`, `cours_id`, `date_absence`, `duree_heures`, `minutes_retard` entre 1 et 480 pour un retard, `libelle`, `motif`, `justifie`). `saisi_par` vaut le compte connecté (`moi()`). Si `cours_id` est fourni, le jour, le libellé (matière) et la durée (pour une absence) sont repris du cours si omis, et un doublon sur le même élève/cours répond 409. La date ne peut pas être dans le futur (400). Réponse 201 : `{ absence }`.
+- `PATCH /api/admin/absences/{id}` : modifie `justifie` (booléen), `motif` (texte ou `null`) et/ou `supprimer_justificatif` (`true` pour refuser et effacer le fichier). Réponse : `{ absence }`.
+- `POST /api/admin/absences/{id}/justificatif` : formulaire multipart (`fichier` obligatoire, `motif` facultatif) pour joindre un justificatif côté administration. Réponse : `{ absence }`.
+- `GET /api/admin/absences/{id}/justificatif` : télécharge ou affiche le justificatif de l'absence (404 si absent).
+- `DELETE /api/admin/absences/{id}` : supprime l'absence et son éventuel justificatif (204).
 
 | Méthode | Route | Sert à | P |
 |---|---|---|---|
-| GET | `/api/admin/absences?date=` | « Absences aujourd'hui » du Dashboard et de la page Absences (vue `v_absences_du_jour`) | P1 |
-| POST | `/api/admin/absences` | Saisir une absence ou un retard (pas encore de formulaire) | P2 |
-| PATCH · DELETE | `/api/admin/absences/{id}` | Justifier (`justifie`, `motif`) / supprimer | P2 |
+| GET | `/api/admin/absences?date=&statut=` | « Absences aujourd'hui » du Dashboard et liste de la page Vie scolaire | P1 |
+| GET | `/api/admin/absences/cours?eleve_id=&date=` | Cours de la classe de l'élève pour le formulaire de saisie | P2 |
+| POST | `/api/admin/absences` | Saisir une absence ou un retard (`saisi_par = moi()`) | P2 |
+| PATCH | `/api/admin/absences/{id}` | Justifier (`justifie`, `motif`) ou refuser un justificatif (`supprimer_justificatif`) | P2 |
+| POST · GET | `/api/admin/absences/{id}/justificatif` | Joindre / consulter le justificatif | P2 |
+| DELETE | `/api/admin/absences/{id}` | Supprimer une absence ou un retard | P2 |
 
 ## Admin : emploi du temps
 
@@ -467,7 +483,7 @@ Table issue de l'ancien README du front : les appels de gauche doivent tous êtr
 | `POST /api/actualites` | `createActualite` | `POST /api/admin/actualites` | À faire (`ACT-01`, `ACT-03`) |
 | `PUT /api/actualites/:id` | `updateActualite` | `PUT /api/admin/actualites/{id}` | À faire (`ACT-01`, `ACT-03`) |
 | `DELETE /api/actualites/:id` | `deleteActualite` | `DELETE /api/admin/actualites/{id}` | À faire (`ACT-01`, `ACT-03`) |
-| `GET /api/absences?date=today` | `getAbsences` | `GET /api/admin/absences?date=` (admin) · `GET /api/eleve/absences` (élève) | Bonus après J3 (`VSC-01`) / élève fait |
+| `GET /api/absences?date=today` | `getAbsences` | `GET /api/admin/absences?date=` (admin) · `GET /api/eleve/absences` (élève) | Fait (`VSC-01`) / élève fait |
 | `GET /api/planning` | `getPlanning` | `GET /api/admin/cours?classe_id=&du=&au=` · `GET /api/eleve/emploi-du-temps?du=&au=` · `GET /api/prof/emploi-du-temps?du=&au=` | Élève/prof faits ; admin à faire (`EDT-01`, `EDT-02`) |
 | `GET /api/planning/aujourdhui` | `getCoursDuJour` | `GET /api/admin/cours?du=&au=` (date du jour) | À faire (`EDT-01`, `ACC-02`) |
 | `GET /api/espaces` | `getEspaces` | `GET /api/admin/espaces` (gestion) · `GET /api/eleve/documents` (élève) | Fait (`DOC-02`, `DOC-04`) |

@@ -72,6 +72,7 @@ $app->group('/api', function ($group) {
 
     // Chaque espace n'est accessible qu'aux rôles indiqués (401 si non connecté, 403 sinon)
     $group->group('/admin', function ($group) {
+        require __DIR__ . '/../routes/admin/absences.php';
         require __DIR__ . '/../routes/admin/documents.php';
         require __DIR__ . '/../routes/admin/utilisateurs.php';
         require __DIR__ . '/../routes/admin/rgpd.php';
