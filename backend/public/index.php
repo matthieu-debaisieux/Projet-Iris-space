@@ -8,6 +8,7 @@ use Slim\Factory\AppFactory;
 
 require __DIR__ . '/../vendor/autoload.php';
 require __DIR__ . '/../routes/helpers.php';
+require __DIR__ . '/../routes/notifications_service.php';
 
 // « aujourd'hui » et les dates sans fuseau (ex. 2026-10-30T18:00) sont en heure de Paris
 date_default_timezone_set('Europe/Paris');

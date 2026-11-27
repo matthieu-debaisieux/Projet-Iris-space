@@ -20,6 +20,7 @@ Les sections marquées **(fait)** plus bas sont aussi codées :
 - professeur ;
 - visiteur ;
 - actualités ;
+- notifications ;
 - RGPD (journal des connexions, export et suppression des données).
 
 ## Organisation
@@ -242,6 +243,111 @@ Toutes les pages front sont encore vides, sauf Messages. Comportement des routes
 
 Les actualités publiques sont dans la section Actualités.
 
+## Notifications (fait)
+
+Routes dans [notifications.php](routes/notifications.php) (protégées par `requireConnecte()` : un utilisateur ne lit et ne modifie que ses propres notifications) et service d'envoi dans [notifications_service.php](routes/notifications_service.php) (chargé dans [index.php](public/index.php)).
+
+| Méthode | Route | Droits | Sert à | P |
+|---|---|---|---|---|
+| GET | `/api/notifications?limit=&non_lues=` | Connecté | Mes notifications (plus récentes d'abord ; `limit` de 1 à 100, 20 par défaut ; `non_lues=true` pour filtrer) | P1 |
+| PATCH | `/api/notifications/{id}/lue` | Connecté | Marquer une notification comme lue (sans effet si déjà lue ; 404 si inconnue ou d'un autre compte) | P1 |
+| POST | `/api/notifications/tout-lire` | Connecté | Marquer toutes mes notifications non lues comme lues | P1 |
+
+Réponses :
+- `GET /api/notifications` : `{ "notifications": [{ "id", "type", "titre", "lien", "lue_at", "lue", "created_at" }], "non_lues": 3 }` (`non_lues` est le compteur total des non lues, indépendant de `limit`).
+- `PATCH /api/notifications/{id}/lue` : `{ "notification": { "id", "type", "titre", "lien", "lue_at", "created_at" } }`.
+- `POST /api/notifications/tout-lire` : `{ "marquees": 3 }`.
+
+### Service d'envoi (`notifications_service.php`)
+
+Types autorisés (`TYPES_NOTIFICATION`, enum SQL `type_notification`) : `systeme`, `actualite`, `absence`, `note`, `devoir`, `message`.
+
+Fonctions disponibles :
+- `notifier(array $destinataires, string $type, string $titre, ?string $lien = null, array|string|null $exclure = null): int`
+- `notifierUtilisateurs(array $ids, string $type, string $titre, ?string $lien = null, array|string|null $exclure = null): int`
+- `notifierClasse(int $classeId, string $type, string $titre, ?string $lien = null, array|string|null $exclure = null): int`
+- `notifierConversation(string $conversationId, string $type, string $titre, ?string $lien = null, array|string|null $exclure = null): int`
+- `notifierCours(string $coursId, string $type, string $titre, ?string $lien = null, array|string|null $exclure = null): int`
+- `notifierTous(string $type, string $titre, ?string $lien = null, array|string|null $exclure = null): int`
+
+Comportement :
+- Les doublons, UUID invalides, comptes désactivés/supprimés et les ids passés dans `$exclure` (en général `moi()`) sont ignorés ; le titre est tronqué à 200 caractères.
+- Toujours appeler **après** l'écriture principale (hors transaction ou après `commit`, même si `notifier()` pose un `SAVEPOINT` en cas de transaction active) : les erreurs SQL éventuelles sont journalisées (`error_log`) sans bloquer l'action de l'utilisateur.
+- **Déjà branché :** publication d'une actualité dans [actualites.php](routes/actualites.php) (`POST /api/actualites` si `statut === 'publie'`, et `PUT /api/actualites/{id}` uniquement au passage de `brouillon` à `publie`) via `notifierTous('actualite', 'Nouvelle actualité : ' . $titre, '/actualites', moi())`.
+
+### Appels à ajouter ailleurs
+
+1. **Nouveau message** (`POST /api/conversations/{id}/messages`, route messagerie à créer) — après l'insertion du message :
+
+```php
+notifierConversation(
+    $args['id'],
+    'message',
+    'Nouveau message de ' . trim($expediteur['prenom'] . ' ' . $expediteur['nom']),
+    '/messages',
+    moi()
+);
+```
+
+2. **Nouvelle note** (`PUT /api/prof/evaluations/{id}/notes` dans [prof.php](routes/prof.php)) — après `transaction(...)` :
+
+```php
+$elevesNotifies = array_column(
+    array_filter($lignes, fn (array $l) => $l['valeur'] !== null || $l['absent'] === 'true' || $l['commentaire'] !== null),
+    'eleve'
+);
+if ($elevesNotifies !== []) {
+    $eval = lireEvaluation($args['id']);
+    notifierUtilisateurs(
+        $elevesNotifies,
+        'note',
+        'Nouvelle note en ' . $eval['matiere'] . ' : ' . $eval['titre'],
+        '/notes',
+        moi()
+    );
+}
+```
+
+3. **Nouveau devoir** (`POST /api/prof/devoirs` dans [prof.php](routes/prof.php)) — après l'insertion du devoir :
+
+```php
+$devoir = lireDevoir($stmt->fetchColumn());
+notifierClasse(
+    (int) $devoir['classe_id'],
+    'devoir',
+    'Nouveau devoir en ' . $devoir['matiere'] . ' : ' . $devoir['titre'],
+    '/devoirs',
+    moi()
+);
+return json($response, ['devoir' => $devoir], 201);
+```
+
+4. **Cours annulé ou déplacé** (`PUT /api/admin/cours/{id}` et `DELETE /api/admin/cours/{id}`, routes emploi du temps à créer) — après `UPDATE` (si `annule` passe à `true` ou si `debut`/`fin`/`salle_id` changent), ou **avant** `DELETE` :
+
+```php
+$libelle = $annule ? 'Cours annulé : ' : 'Cours déplacé : ';
+notifierCours(
+    $args['id'],
+    'systeme',
+    $libelle . $matiereNom . ' (' . date('d/m H:i', strtotime($debut)) . ')',
+    '/emploi-du-temps',
+    moi()
+);
+```
+
+5. **Nouvelle absence** (`POST /api/admin/absences`, route absences à créer) — après `INSERT INTO absence` :
+
+```php
+$libelle = $type === 'retard' ? 'Retard enregistré le ' : 'Absence enregistrée le ';
+notifierUtilisateurs(
+    [$eleveId],
+    'absence',
+    $libelle . date('d/m/Y', strtotime($dateAbsence)),
+    '/absences',
+    moi()
+);
+```
+
 ## RGPD (fait)
 
 ### Durées de conservation
@@ -333,7 +439,6 @@ Ces routes ne sont pas nécessaires pour que le site tourne :
 - **Prof :** `PATCH /api/prof/devoirs/{id}/eleves/{eleveId}` pour corriger un devoir (note, appréciation)
 - **Textes publics** (« À propos », mentions légales) : `GET /api/pages/{slug}`, `PUT /api/admin/pages/{slug}` (table `page_publique`)
 - **Demandes de contact côté admin :** `GET /api/admin/contacts`, `PATCH /api/admin/contacts/{id}`
-- **Notifications** (table prête, aucune interface) : `GET /api/notifications`, `PATCH /api/notifications/{id}/lue`, `POST /api/notifications/tout-lire`
 
 Les pages MediaSchool n'ont aucune table en base : leur contenu reste statique tant qu'on n'en crée pas.
 
