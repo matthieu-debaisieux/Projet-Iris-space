@@ -14,6 +14,29 @@ export class ApiError extends Error {
   }
 }
 
+// ── Fonctions dont la partie serveur n'existe pas encore ────────────────────
+// En mode API, un service qui n'a pas (encore) de route côté back ne l'appelle pas : il lève cette
+// erreur. DataState et les pages l'affichent comme un message neutre (pas comme une panne).
+export function erreurNonDisponible(message) {
+  const erreur = new Error(message);
+  erreur.nonDisponible = true;
+  return erreur;
+}
+
+export const estNonDisponible = erreur => erreur?.nonDisponible === true;
+
+// Texte de l'erreur s'il peut s'afficher tel quel à l'utilisateur, sinon null :
+//   - fonction « non disponible » (message écrit pour l'utilisateur)
+//   - réponse du back au format { error: "…" } (message en français)
+// Les autres erreurs (réseau, « GET /x → 404 », bug de code) restent techniques et ne s'affichent pas.
+export function messageLisible(erreur) {
+  if (estNonDisponible(erreur)) return erreur.message;
+  if (erreur instanceof ApiError && typeof erreur.data?.error === 'string' && erreur.data.error.trim() !== '') {
+    return erreur.data.error;
+  }
+  return null;
+}
+
 let onUnauthorized = null;
 
 export function setUnauthorizedHandler(handler) {

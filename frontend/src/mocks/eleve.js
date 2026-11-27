@@ -51,6 +51,24 @@ export const RACCOURCIS = [
   },
 ];
 
+// Blocs de l'accueil d'un professeur (mêmes champs que RACCOURCIS)
+export const RACCOURCIS_PROF = [
+  {
+    titre: 'Mes prochains devoirs',
+    lignes: [
+      { label: 'Anglais · Iris 2', texte: 'Présentation orale : une entreprise du numérique · 0/22 faits', badge: { ton: 'attente', texte: 'Pour le 10/12' } },
+      { label: 'Cybersécurité · Iris 1', texte: 'Contrôle : pare-feu et VPN · 3/24 faits', badge: { ton: 'attente', texte: 'Pour le 15/12' } },
+    ],
+  },
+  {
+    titre: 'Mes évaluations',
+    lignes: [
+      { label: 'Mathématiques · Iris 1', texte: 'Contrôle n°2 · 24 notes saisies', badge: { ton: 'ok', texte: 'Moy. 12,4/20' } },
+      { label: 'Cybersécurité · Iris 2', texte: 'TP réseau · 0 note saisie', badge: { ton: 'alerte', texte: 'À noter' } },
+    ],
+  },
+];
+
 // Une ligne par matière (moyenne de l'élève sur 20) :
 //   note           → moyenne de l'élève dans la matière, sur 20
 //   moyenneClasse  → moyenne de la classe dans la matière, sur 20

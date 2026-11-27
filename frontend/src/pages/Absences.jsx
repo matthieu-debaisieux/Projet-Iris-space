@@ -2,11 +2,13 @@ import { useState } from 'react';
 import DataState from '@/components/ui/DataState.jsx';
 import { useAuth } from '@/context/AuthContext.jsx';
 import { useAsync } from '@/hooks/useAsync.js';
-import { getAbsences, STATUT_ABSENCE_LABEL } from '@/services/absences.js';
+import { getAbsencesDuJour, getAbsencesEleve, STATUT_ABSENCE_LABEL } from '@/services/absences.js';
 
-// Page élève « Vie scolaire ».
-// Les données viennent de getAbsences() (aujourd'hui : données de test ; plus tard : base de données).
-// Seules les absences de l'élève connecté sont affichées (comparaison sur user.nom).
+// Page « Vie scolaire », une seule URL pour tous : ce qui s'affiche dépend des droits.
+//   - droit `tableau_de_bord` (administration) : absences du jour de l'établissement, sans route côté back
+//     pour l'instant (tâche bonus VSC-01) : en mode API, message « pas encore disponible »
+//   - sinon (élève) : ses absences et retards. Les données viennent de getAbsencesEleve() : GET /eleve/absences
+//     en mode API (le back ne renvoie que celles de l'élève connecté), données de test en mode mocks.
 //import { useMemo, useState } from 'react';
 //import DataState from '@/components/ui/DataState.jsx';
 //import { useAsync } from '@/hooks/useAsync.js';
@@ -42,15 +44,61 @@ const versLigne = a => ({
 });
 
 export default function VieScolaire() {
+  const { can } = useAuth();
+  return can('tableau_de_bord') ? <VieScolaireEtablissement /> : <VieScolaireEleve />;
+}
+
+// ── Administration : absences du jour de tout l'établissement ───────────────
+function VieScolaireEtablissement() {
+  const absences = useAsync(getAbsencesDuJour);
+
+  return (
+    <div className="flex-1 overflow-y-auto bg-[var(--color-page)]">
+      <div className="mx-auto w-full max-w-[1200px] px-6 py-8 flex flex-col gap-6">
+        <h1 className="text-3xl font-bold text-[#001257]">Vie scolaire</h1>
+        <section className={card}>
+          <h2 className="text-base font-bold text-[#001257] mb-4">Absences aujourd&apos;hui</h2>
+          <DataState state={absences}>{rows => (rows.length ? (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[480px] border-separate border-spacing-0 text-sm">
+                <thead>
+                  <tr>
+                    <th className={th}>Élève</th>
+                    <th className={th}>Classe</th>
+                    <th className={th}>Heure</th>
+                    <th className={th}>Statut</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map(row => (
+                    <tr key={row.id}>
+                      <td className={`${td} font-bold text-[#001257]`}>{row.eleve}</td>
+                      <td className={td}>{row.classe}</td>
+                      <td className={`${td} text-[#6B7185]`}>{row.heureDebut} – {row.heureFin}</td>
+                      <td className={td}>{STATUT_ABSENCE_LABEL[row.statut] ?? row.statut}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="py-8 text-center text-sm text-[#6B7185]">Aucune absence aujourd&apos;hui.</p>
+          ))}</DataState>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+// ── Élève : mes absences et retards ─────────────────────────────────────────
+function VieScolaireEleve() {
   const { user } = useAuth();
-  const absences = useAsync(getAbsences);
+  const absences = useAsync(() => getAbsencesEleve(user), [user?.id, user?.nom]);
 
   return (
     <div className="flex-1 overflow-y-auto bg-[var(--color-page)]">
       <div className="mx-auto w-full max-w-[1200px] px-6 py-8">
-        <DataState state={absences}>{liste => (
-          <Contenu liste={user?.nom ? liste.filter(a => a.eleve === user.nom) : liste} />
-        )}</DataState>
+        <DataState state={absences}>{liste => <Contenu liste={liste} />}</DataState>
       </div>
     </div>
   );
