@@ -4,9 +4,13 @@ import Modal from '@/components/ui/Modal.jsx';
 import { useAuth } from '@/context/AuthContext.jsx';
 import { useAsync } from '@/hooks/useAsync.js';
 import {
+  EXTENSIONS_FICHIER,
+  MOTIF_MAX,
   STATUT_ABSENCE_LABEL,
+  TAILLE_MAX_FICHIER,
   createAbsenceAdmin,
   deleteAbsenceAdmin,
+  envoyerJustificatifEleve,
   getAbsencesAdmin,
   getAbsencesEleve,
   getCoursElevePourAbsence,
@@ -20,7 +24,8 @@ import { USE_MOCKS, messageLisible } from '@/services/api.js';
 // Page « Vie scolaire », une seule URL pour tous : ce qui s'affiche dépend des droits.
 //   - droit `tableau_de_bord` (administration) : gestion des absences et retards de l'établissement
 //     (liste filtrable par date/statut, saisie, appel par classe, justification et suppression)
-//   - sinon (élève) : ses absences et retards via getAbsencesEleve() (GET /eleve/absences en mode API).
+//   - sinon (élève) : ses absences et retards via getAbsencesEleve() (GET /eleve/absences en mode API), et le
+//     formulaire d'envoi d'un justificatif pour l'une d'elles (POST /eleve/absences/{id}/justificatif).
 
 const MOTIFS = ['Arrêt maladie', 'Rendez-vous médical', 'Problème de transport', 'Raison familiale', 'Autre'];
 
@@ -44,7 +49,6 @@ const aujourdhui = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 const formatFr = iso => iso.split('-').reverse().join('/');
-const nbJours = (debut, fin) => Math.round((Date.parse(fin) - Date.parse(debut)) / 86400000) + 1;
 const norm = s => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const heureTexte = horodatage => horodatage.replace(/^\d{4}-\d{2}-\d{2}[T ](\d{2}):(\d{2}).*$/, '$1h$2');
 
@@ -1084,36 +1088,30 @@ function VieScolaireEleve() {
   const { user } = useAuth();
   const absences = useAsync(() => getAbsencesEleve(user), [user?.id, user?.nom]);
 
+  // Après l'envoi d'un justificatif : la ligne passe « en attente » sans recharger la liste
+  const justificatifEnvoye = (id, { statut, motif }) => {
+    absences.setData(liste => liste.map(a => (String(a.id) === String(id) ? { ...a, statut, motif } : a)));
+  };
+
   return (
     <div className="flex-1 overflow-y-auto bg-[var(--color-page)]">
       <div className="mx-auto w-full max-w-[1200px] px-6 py-8">
-        <DataState state={absences}>{liste => <Contenu liste={liste} />}</DataState>
+        <DataState state={absences}>
+          {liste => <Contenu liste={liste} onJustificatifEnvoye={justificatifEnvoye} />}
+        </DataState>
       </div>
     </div>
   );
 }
 
-function Contenu({ liste }) {
-  const [envois, setEnvois] = useState([]); // justifications envoyées depuis le formulaire
-  const lignes = [...envois, ...liste.map(versLigne)];
-
-  const ajouter = ({ debut, fin, raison }) => {
-    // Plus tard : envoyer à l'API, puis recharger la liste.
-    const jours = nbJours(debut, fin);
-    setEnvois(e => [{
-      id: `envoi-${Date.now()}`,
-      date: debut === fin ? formatFr(debut) : `${formatFr(debut)} → ${formatFr(fin)}`,
-      duree: jours === 1 ? '1 jour' : `${jours} jours`,
-      type: 'Absence',
-      motif: raison,
-      statut: 'en_attente',
-    }, ...e]);
-  };
+function Contenu({ liste, onJustificatifEnvoye }) {
+  const lignes = liste.map(versLigne);
+  const aJustifier = lignes.filter(l => l.statut === 'non_justifie');
 
   const nb = {
     absences: lignes.filter(l => l.type === 'Absence').length,
     retards: lignes.filter(l => l.type === 'Retard').length,
-    aJustifier: lignes.filter(l => l.statut === 'non_justifie').length,
+    aJustifier: aJustifier.length,
   };
 
   return (
@@ -1161,7 +1159,7 @@ function Contenu({ liste }) {
           </div>
         </section>
 
-        <Formulaire onEnvoyer={ajouter} />
+        <Formulaire absences={aJustifier} onEnvoye={onJustificatifEnvoye} />
       </div>
     </div>
   );
@@ -1174,65 +1172,124 @@ const Compteur = ({ nom, valeur }) => (
   </div>
 );
 
-// ── Formulaire de justification (date de début + date de fin) ───────────────
-function Formulaire({ onEnvoyer }) {
-  const [debut, setDebut] = useState(aujourdhui);
-  const [fin, setFin] = useState(aujourdhui);
+// ── Formulaire de justification : une absence ou un retard + un fichier justificatif ───────────────
+// En mode API, envoie le fichier à POST /eleve/absences/{id}/justificatif ; l'absence passe « en attente »
+// jusqu'à sa validation par l'administration. Seules les absences « non justifiées » sont proposées.
+const EXTENSIONS_ACCEPTEES = EXTENSIONS_FICHIER.map(e => `.${e}`).join(',');
+
+function Formulaire({ absences, onEnvoye }) {
+  const [absenceId, setAbsenceId] = useState('');
   const [raison, setRaison] = useState('');
+  const [commentaire, setCommentaire] = useState('');
+  const [fichier, setFichier] = useState(null);
+  const [cleFichier, setCleFichier] = useState(0); // change pour vider le champ fichier
+  const [envoi, setEnvoi] = useState(false);
   const [message, setMessage] = useState(null); // { ok, texte }
 
-  const changerDebut = v => {
-    setDebut(v);
-    if (fin < v) setFin(v);
+  // L'absence choisie disparaît de la liste une fois justifiée
+  const choix = absences.some(a => String(a.id) === absenceId) ? absenceId : '';
+
+  const choisirFichier = e => {
+    setFichier(e.target.files[0] ?? null);
+    setMessage(null);
   };
 
-  const envoyer = e => {
+  const envoyer = async e => {
     e.preventDefault();
-    if (!debut || !fin || fin < debut) return setMessage({ ok: false, texte: 'La date de fin doit être après la date de début.' });
-    if (!raison) return setMessage({ ok: false, texte: 'Choisissez un motif.' });
+    if (envoi) return;
+    const absence = absences.find(a => String(a.id) === choix);
+    if (!absence) return setMessage({ ok: false, texte: "Choisissez l'absence ou le retard à justifier." });
+    if (!fichier) return setMessage({ ok: false, texte: 'Joignez le justificatif.' });
+    const extension = fichier.name.includes('.') ? fichier.name.split('.').pop().toLowerCase() : '';
+    if (!EXTENSIONS_FICHIER.includes(extension)) return setMessage({ ok: false, texte: 'Type de fichier non autorisé.' });
+    if (fichier.size > TAILLE_MAX_FICHIER) return setMessage({ ok: false, texte: 'Fichier trop volumineux (10 Mo maximum).' });
+    const motif = [raison, commentaire.trim()].filter(Boolean).join(' – ');
+    if (motif.length > MOTIF_MAX) return setMessage({ ok: false, texte: 'Le commentaire est trop long.' });
 
-    onEnvoyer({ debut, fin, raison });
-    setRaison('');
-    e.target.reset(); // vide le fichier et le commentaire
-    setMessage({ ok: true, texte: 'Justification envoyée. Elle est en attente de validation.' });
+    setEnvoi(true);
+    setMessage(null);
+    try {
+      const resultat = await envoyerJustificatifEleve(absence.id, { fichier, motif });
+      onEnvoye(absence.id, resultat);
+      setAbsenceId('');
+      setRaison('');
+      setCommentaire('');
+      setFichier(null);
+      setCleFichier(c => c + 1);
+      setMessage({ ok: true, texte: 'Justification envoyée. Elle est en attente de validation.' });
+    } catch (err) {
+      setMessage({ ok: false, texte: messageLisible(err) || err?.message || "Impossible d'envoyer la justification." });
+    } finally {
+      setEnvoi(false);
+    }
   };
 
   return (
     <section className={card}>
       <h2 className="text-base font-bold text-[#001257] mb-5">Justifier une absence</h2>
 
+      {absences.length === 0 && (
+        <p className="mb-4 text-xs text-[#6B7185]">Aucune absence ni aucun retard à justifier pour le moment.</p>
+      )}
+
       <form onSubmit={envoyer} className="flex flex-col gap-4">
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label htmlFor="debut" className={label}>Début</label>
-            <input id="debut" type="date" value={debut} max={fin} onChange={e => changerDebut(e.target.value)} className={champ} />
-          </div>
-          <div>
-            <label htmlFor="fin" className={label}>Fin</label>
-            <input id="fin" type="date" value={fin} min={debut} onChange={e => setFin(e.target.value)} className={champ} />
-          </div>
+        <div>
+          <label htmlFor="absence-a-justifier" className={label}>Absence ou retard</label>
+          <select
+            id="absence-a-justifier"
+            value={choix}
+            onChange={e => setAbsenceId(e.target.value)}
+            disabled={absences.length === 0 || envoi}
+            className={champ}
+          >
+            <option value="" disabled>Choisir l&apos;absence à justifier</option>
+            {absences.map(a => (
+              <option key={a.id} value={String(a.id)}>{a.date} · {a.type} · {a.duree}</option>
+            ))}
+          </select>
         </div>
 
         <div>
-          <label htmlFor="raison" className={label}>Raison</label>
-          <select id="raison" value={raison} onChange={e => setRaison(e.target.value)} className={champ}>
-            <option value="" disabled>Choisir un motif</option>
+          <label htmlFor="raison" className={label}>Raison (facultatif)</label>
+          <select id="raison" value={raison} onChange={e => setRaison(e.target.value)} disabled={envoi} className={champ}>
+            <option value="">Aucune raison précisée</option>
             {MOTIFS.map(m => <option key={m}>{m}</option>)}
           </select>
         </div>
 
         <div>
-          <label htmlFor="fichier" className={label}>Justificatif (PDF)</label>
-          <input id="fichier" type="file" accept="application/pdf" className={champ} />
+          <label htmlFor="fichier" className={label}>Justificatif (PDF ou image, 10 Mo maximum)</label>
+          <input
+            key={cleFichier}
+            id="fichier"
+            type="file"
+            accept={EXTENSIONS_ACCEPTEES}
+            onChange={choisirFichier}
+            disabled={envoi}
+            className={champ}
+          />
         </div>
 
         <div>
-          <label htmlFor="commentaire" className={label}>Commentaire</label>
-          <input id="commentaire" type="text" placeholder="Précisions éventuelles" className={champ} />
+          <label htmlFor="commentaire" className={label}>Commentaire (facultatif)</label>
+          <input
+            id="commentaire"
+            type="text"
+            maxLength={500}
+            value={commentaire}
+            onChange={e => setCommentaire(e.target.value)}
+            disabled={envoi}
+            placeholder="Précisions éventuelles"
+            className={champ}
+          />
         </div>
 
-        <button type="submit" className="rounded-lg bg-[#EC6F6F] px-4 py-3 text-sm font-bold text-[#001257] hover:opacity-90 transition">
-          Envoyer la justification
+        <button
+          type="submit"
+          disabled={envoi || absences.length === 0}
+          className="rounded-lg bg-[#EC6F6F] px-4 py-3 text-sm font-bold text-[#001257] hover:opacity-90 disabled:opacity-50 transition"
+        >
+          {envoi ? 'Envoi en cours…' : 'Envoyer la justification'}
         </button>
 
         {message && (

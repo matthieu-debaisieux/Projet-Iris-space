@@ -7,19 +7,23 @@ import { useMessageCount } from '@/context/MessageCountContext.jsx';
 import { useAsync } from '@/hooks/useAsync.js';
 import { messageLisible, USE_MOCKS } from '@/services/api.js';
 import {
+  aPieceJointeMock,
   apercuConversation,
   createConversation,
   devAddConversation,
   devResetConversations,
+  erreurPiecesJointes,
   formatDateMessage,
   getConversations,
   getMessages,
+  getPieceJointeUrl,
   libelleRole,
   marquerConversationLue,
   nomConversation,
   nomPersonne,
   searchDestinataires,
   sendMessage,
+  telechargerPieceJointeMock,
 } from '@/services/conversations.js';
 import { nomComplet } from '@/services/utilisateur.js';
 
@@ -34,6 +38,55 @@ const initiales = nom =>
     .map(m => m[0])
     .join('')
     .toUpperCase() || '?';
+
+const tailleFichier = octets => (octets >= 1024 * 1024
+  ? `${(octets / (1024 * 1024)).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} Mo`
+  : `${Math.max(1, Math.round(octets / 1024))} Ko`);
+
+const IconePieceJointe = ({ className = 'h-4 w-4' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+  </svg>
+);
+
+// Pièces jointes d'un message : liens de téléchargement (réservés aux participants de la conversation).
+// En mode mocks, seuls les fichiers envoyés pendant la session peuvent être retéléchargés.
+function PiecesJointes({ pieces, moi }) {
+  if (!pieces?.length) return null;
+  const style = `inline-flex items-center gap-2 max-w-xs rounded-xl px-3 py-2 text-sm font-medium transition ${
+    moi ? 'bg-white/15 text-white hover:bg-white/25' : 'bg-white text-[var(--color-principal)] hover:bg-gray-50 border border-gray-200'
+  }`;
+  const contenu = piece => (
+    <>
+      <IconePieceJointe className="h-4 w-4 shrink-0" />
+      <span className="truncate">{piece.nom}</span>
+    </>
+  );
+
+  return (
+    <ul className={`flex flex-col gap-1.5 ${moi ? 'items-end' : 'items-start'}`} aria-label="Pièces jointes">
+      {pieces.map(piece => (
+        <li key={piece.id} className="max-w-full">
+          {USE_MOCKS ? (
+            <button
+              type="button"
+              onClick={() => telechargerPieceJointeMock(piece.id)}
+              disabled={!aPieceJointeMock(piece.id)}
+              title={aPieceJointeMock(piece.id) ? 'Télécharger' : 'Fichier de démonstration (non conservé)'}
+              className={`${style} disabled:opacity-60 disabled:cursor-default`}
+            >
+              {contenu(piece)}
+            </button>
+          ) : (
+            <a href={getPieceJointeUrl(piece.id)} target="_blank" rel="noopener noreferrer" className={style}>
+              {contenu(piece)}
+            </a>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 // ── Générateur Lorem ipsum (panel DEV en mode mocks uniquement) ───────────────
 const LOREM_WORDS = (
@@ -415,12 +468,12 @@ function useConversations() {
     }
   }
 
-  async function send(contenu) {
+  async function send(contenu, fichiers = []) {
     if (!activeId || sending) return false;
     setSending(true);
     setSendError(null);
     try {
-      const msg = await sendMessage(activeId, contenu);
+      const msg = await sendMessage(activeId, { text: contenu, fichiers });
       setMessages(courants => (courants.some(m => m.id === msg.id) ? courants : [...courants, msg]));
       setData(list => {
         const apercu = {
@@ -428,6 +481,7 @@ function useConversations() {
           contenu: msg.contenu.slice(0, 200),
           expediteur_id: msg.expediteur_id,
           envoye_at: msg.envoye_at,
+          nb_pieces_jointes: msg.pieces_jointes?.length ?? 0,
         };
         const cible = list.find(c => c.id === activeId);
         if (!cible) return list;
@@ -533,10 +587,13 @@ function Messagerie({ chat }) {
   const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [draft, setDraft] = useState('');
+  const [fichiers, setFichiers] = useState([]); // pièces jointes choisies, pas encore envoyées
+  const [erreurFichiers, setErreurFichiers] = useState(null);
   const [nouvelleOuverte, setNouvelleOuverte] = useState(false);
   const [mobilePane, setMobilePane] = useState('list');
   const threadRef = useRef(null);
   const inputRef = useRef(null);
+  const fichiersRef = useRef(null);
   const prevLastMsgIdRef = useRef(null);
 
   const query = search.trim().toLowerCase();
@@ -560,13 +617,36 @@ function Messagerie({ chat }) {
     setMobilePane('thread');
   }
 
+  // Les pièces jointes choisies appartiennent à la conversation ouverte : on ne les emmène pas dans une autre
+  useEffect(() => {
+    setFichiers([]);
+    setErreurFichiers(null);
+  }, [activeId]);
+
+  function choisirFichiers(e) {
+    const choisis = [...e.target.files];
+    e.target.value = ''; // permet de rechoisir le même fichier après l'avoir retiré
+    if (!choisis.length) return;
+    const suite = [...fichiers, ...choisis];
+    const erreur = erreurPiecesJointes(suite);
+    setErreurFichiers(erreur);
+    if (!erreur) setFichiers(suite);
+  }
+
+  function retirerFichier(index) {
+    setFichiers(courants => courants.filter((_, i) => i !== index));
+    setErreurFichiers(null);
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     const text = draft.trim();
-    if (!text || !active || sending) return;
-    const ok = await send(text);
+    if ((!text && fichiers.length === 0) || !active || sending) return;
+    const ok = await send(text, fichiers);
     if (ok) {
       setDraft('');
+      setFichiers([]);
+      setErreurFichiers(null);
       inputRef.current?.focus();
     }
   }
@@ -747,9 +827,12 @@ function Messagerie({ chat }) {
 
                   return estMoi ? (
                     <div key={msg.id} className="flex flex-col items-end gap-1">
-                      <div className="bg-[var(--color-principal)] text-white rounded-2xl rounded-br-md px-5 py-3.5 max-w-md break-words whitespace-pre-wrap">
-                        {msg.contenu}
-                      </div>
+                      {msg.contenu && (
+                        <div className="bg-[var(--color-principal)] text-white rounded-2xl rounded-br-md px-5 py-3.5 max-w-md break-words whitespace-pre-wrap">
+                          {msg.contenu}
+                        </div>
+                      )}
+                      <PiecesJointes pieces={msg.pieces_jointes} moi />
                       {heure && <span className="text-[11px] text-gray-400 pr-1">{heure}</span>}
                     </div>
                   ) : (
@@ -761,9 +844,12 @@ function Messagerie({ chat }) {
                         <span className="text-[10px] text-gray-400 tracking-wide max-w-[80px] truncate">{expediteur}</span>
                       </div>
                       <div className="flex flex-col items-start gap-1">
-                        <div className="bg-[var(--color-background)] rounded-2xl rounded-bl-md px-5 py-3.5 text-gray-800 break-words whitespace-pre-wrap">
-                          {msg.contenu}
-                        </div>
+                        {msg.contenu && (
+                          <div className="bg-[var(--color-background)] rounded-2xl rounded-bl-md px-5 py-3.5 text-gray-800 break-words whitespace-pre-wrap">
+                            {msg.contenu}
+                          </div>
+                        )}
+                        <PiecesJointes pieces={msg.pieces_jointes} />
                         {heure && <span className="text-[11px] text-gray-400 pl-1">{heure}</span>}
                       </div>
                     </div>
@@ -772,14 +858,56 @@ function Messagerie({ chat }) {
               )}
             </div>
 
-            {sendError && (
+            {(sendError || erreurFichiers) && (
               <p role="alert" className="mx-6 mb-2 text-sm text-red-600 bg-red-50 rounded-xl px-4 py-2">
-                {sendError}
+                {sendError || erreurFichiers}
               </p>
             )}
 
-            {/* barre de saisie (sans pièces jointes) */}
+            {fichiers.length > 0 && (
+              <ul className="mx-6 mb-1 flex flex-wrap gap-2" aria-label="Pièces jointes à envoyer">
+                {fichiers.map((fichier, i) => (
+                  <li
+                    key={`${fichier.name}-${i}`}
+                    className="inline-flex items-center gap-2 max-w-xs rounded-full bg-[var(--color-background)] pl-3 pr-1.5 py-1 text-sm text-gray-700"
+                  >
+                    <IconePieceJointe className="h-4 w-4 shrink-0 text-gray-500" />
+                    <span className="truncate">{fichier.name}</span>
+                    <span className="text-xs text-gray-400 shrink-0">{tailleFichier(fichier.size)}</span>
+                    <button
+                      type="button"
+                      onClick={() => retirerFichier(i)}
+                      disabled={sending}
+                      aria-label={`Retirer ${fichier.name}`}
+                      className="w-6 h-6 shrink-0 rounded-full text-gray-500 hover:bg-gray-200 disabled:opacity-50"
+                    >
+                      ×
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {/* barre de saisie : texte et pièces jointes */}
             <form onSubmit={handleSubmit} className="flex items-center gap-4 px-6 py-4 shrink-0 border-t border-gray-100">
+              <input
+                ref={fichiersRef}
+                type="file"
+                multiple
+                hidden
+                data-testid="fichiers-message"
+                onChange={choisirFichiers}
+              />
+              <button
+                type="button"
+                onClick={() => fichiersRef.current?.click()}
+                disabled={sending}
+                aria-label="Joindre un fichier"
+                title="Joindre un fichier"
+                className="w-12 h-12 shrink-0 rounded-full bg-[var(--color-background)] text-[var(--color-principal)] flex items-center justify-center hover:opacity-80 disabled:opacity-50 transition"
+              >
+                <IconePieceJointe className="h-6 w-6" />
+              </button>
               <input
                 ref={inputRef}
                 type="text"
@@ -793,7 +921,7 @@ function Messagerie({ chat }) {
               <button
                 type="submit"
                 aria-label="Envoyer"
-                disabled={sending || !draft.trim()}
+                disabled={sending || (!draft.trim() && fichiers.length === 0)}
                 className="w-14 h-14 shrink-0 rounded-full bg-[var(--color-button)] text-white flex items-center justify-center hover:opacity-90 disabled:opacity-50 transition"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">

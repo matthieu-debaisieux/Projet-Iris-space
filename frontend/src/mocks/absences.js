@@ -5,4 +5,6 @@ export const ABSENCES = [
   { id: 3, eleve: 'Marie Lefèvre',   classe: 'BTS 2ème Année', heureDebut: '08:00', heureFin: '12:00', statut: 'non_justifie', notes: '',                           responsable: 'M. Antoine Lefèvre',  tel: '07 11 22 33 44', email: 'antoine.lefevre@email.fr' },
   { id: 4, eleve: 'Karim Benali',    classe: 'BTS 1ère Année', heureDebut: '13:00', heureFin: '17:00', statut: 'en_attente',   notes: 'Convocation reçue.',         responsable: 'Mme Nadia Benali',    tel: '06 55 44 33 22', email: 'nadia.benali@email.fr' },
   { id: 5, eleve: 'Sophie Marchand', classe: 'BTS 3ème Année', heureDebut: '09:00', heureFin: '18:00', statut: 'justifie',     notes: '',                           responsable: 'M. Julien Marchand',  tel: '07 88 99 00 11', email: 'julien.marchand@email.fr' },
+  { id: 6, eleve: 'John Doe',        classe: 'BTS 1ère Année', date_absence: '2026-11-24', heureDebut: '09:00', heureFin: '12:00', statut: 'non_justifie', notes: '',                       responsable: 'M. Richard Doe',      tel: '06 10 20 30 40', email: 'richard.doe@email.fr' },
+  { id: 7, eleve: 'John Doe',        classe: 'BTS 1ère Année', date_absence: '2026-11-17', type: 'retard', minutes_retard: 10,                 statut: 'justifie',     notes: 'Problème de transport.', responsable: 'M. Richard Doe',      tel: '06 10 20 30 40', email: 'richard.doe@email.fr' },
 ];

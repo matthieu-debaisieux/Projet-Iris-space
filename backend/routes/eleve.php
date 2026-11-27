@@ -210,16 +210,23 @@ $group->get('/ressources', function (ServerRequestInterface $request, ResponseIn
 });
 
 // Absences et retards, avec un résumé pour le bloc « Vie scolaire ».
+// statut = justifie | en_attente (justificatif envoyé, pas encore validé) | non_justifie ; le fichier lui-même
+// reste interne (justificatif_envoye le signale). Pour en envoyer un : POST /absences/{id}/justificatif (eleve_bonus.php).
 // ponctualite = % des cours passés de la classe sans absence ni retard (null s'il n'y a eu aucun cours)
 $group->get('/absences', function (ServerRequestInterface $request, ResponseInterface $response) {
     $stmt = db()->prepare(
-        'SELECT a.id, a.type, a.date_absence, a.duree_heures, a.minutes_retard, a.libelle,
-                a.justifie, a.motif, a.cours_id, co.debut AS cours_debut, co.fin AS cours_fin, m.nom AS matiere
+        "SELECT a.id, a.type, a.date_absence, a.duree_heures, a.minutes_retard, a.libelle,
+                a.justifie, a.motif,
+                CASE WHEN a.justifie THEN 'justifie'
+                     WHEN a.justificatif_url IS NOT NULL THEN 'en_attente'
+                     ELSE 'non_justifie' END AS statut,
+                a.justificatif_url IS NOT NULL AS justificatif_envoye,
+                a.cours_id, co.debut AS cours_debut, co.fin AS cours_fin, m.nom AS matiere
          FROM absence a
          LEFT JOIN cours co  ON co.id = a.cours_id
          LEFT JOIN matiere m ON m.id = co.matiere_id
          WHERE a.eleve_id = :id
-         ORDER BY a.date_absence DESC, co.debut DESC'
+         ORDER BY a.date_absence DESC, co.debut DESC"
     );
     $stmt->execute(['id' => moi()]);
     $absences = $stmt->fetchAll();

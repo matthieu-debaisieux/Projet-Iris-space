@@ -297,8 +297,8 @@ export async function deleteAbsenceAdmin(id) {
 
 // Absence ou retard du back (GET /eleve/absences) → ligne du tableau de la page Vie scolaire
 //   { id, date, duree, type: 'Absence' | 'Retard', motif, statut }
-// Le back ne connaît que « justifié » ou non : le statut « en attente » n'existe que pour les justifications
-// envoyées depuis le formulaire de la page.
+// statut : « justifie », « en_attente » (justificatif envoyé, pas encore validé) ou « non_justifie »,
+// calculé par le back (à défaut : d'après `justifie`).
 export function versLigneAbsence(a) {
   const retard = a.type === 'retard';
   let duree = '—';
@@ -312,7 +312,7 @@ export function versLigneAbsence(a) {
     duree,
     type: retard ? 'Retard' : 'Absence',
     motif: a.motif || a.libelle || a.matiere || '',
-    statut: a.justifie ? 'justifie' : 'non_justifie',
+    statut: a.statut ?? (a.justifie ? 'justifie' : 'non_justifie'),
   };
 }
 
@@ -322,6 +322,39 @@ export function versLigneAbsence(a) {
 export async function getAbsencesEleve(user) {
   if (!USE_MOCKS) return (await api.get('/eleve/absences')).absences.map(versLigneAbsence);
 
+  const nomComplet = [user?.prenom, user?.nom].filter(Boolean).join(' ');
+  return loadJSON(LS_ABSENCES, ABSENCES)
+    .filter(a => !nomComplet || a.eleve === nomComplet)
+    .map(versAbsenceMock)
+    .map(a => ({ id: a.id, date: a.date, duree: a.duree, type: a.typeLabel, motif: a.motif, statut: a.statut }));
+}
+
+// Règles des fichiers du back (helpers.php), reprises pour valider avant l'envoi
+export { EXTENSIONS_FICHIER, TAILLE_MAX_FICHIER } from './devoirs.js';
+export const MOTIF_MAX = 2000;
+
+// Envoie un justificatif pour une de MES absences (POST /eleve/absences/{id}/justificatif, formulaire multipart) :
+// l'absence passe « en attente » jusqu'à la validation par l'administration.
+// Renvoie { statut, motif } de l'absence après l'envoi. 404 si l'absence n'est pas la mienne, 409 si elle est déjà justifiée.
+export async function envoyerJustificatifEleve(id, { fichier, motif }) {
+  const motifPropre = motif?.trim() ?? '';
+  if (!USE_MOCKS) {
+    const formData = new FormData();
+    formData.append('fichier', fichier);
+    if (motifPropre) formData.append('motif', motifPropre);
+    const data = await api.post(`/eleve/absences/${encodeURIComponent(id)}/justificatif`, formData);
+    return { statut: data.absence.statut, motif: data.absence.motif ?? '' };
+  }
+
   const liste = loadJSON(LS_ABSENCES, ABSENCES);
-  return user?.nom ? liste.filter(a => a.eleve === user.nom) : liste;
+  const cible = liste.find(item => String(item.id) === String(id));
+  if (!cible) throw Object.assign(new Error('Absence introuvable'), { status: 404 });
+  if (cible.statut === 'justifie') throw Object.assign(new Error('Cette absence est déjà justifiée'), { status: 409 });
+  const nouveauMotif = motifPropre || cible.motif || cible.notes || '';
+  saveJSON(LS_ABSENCES, liste.map(item => (
+    String(item.id) === String(id)
+      ? { ...item, statut: 'en_attente', justificatif_envoye: true, motif: nouveauMotif, notes: nouveauMotif }
+      : item
+  )));
+  return { statut: 'en_attente', motif: nouveauMotif };
 }
