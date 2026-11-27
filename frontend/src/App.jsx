@@ -4,6 +4,8 @@ import { NAV_LINKS } from '@/routes/navigation.js';
 import Layout from '@/Layout.jsx';
 
 import Login from '@/pages/Login.jsx';
+import MotDePasseOublie from '@/pages/MotDePasseOublie.jsx';
+import ReinitialiserMotDePasse from '@/pages/ReinitialiserMotDePasse.jsx';
 import Accueil from '@/pages/Accueil.jsx';
 import Actualites from '@/pages/Actualites.jsx';
 import Messages from '@/pages/Messages.jsx';
@@ -23,8 +25,10 @@ import Events from '@/pages/mediaschool/Events.jsx';
 export default function App() {
   return (
     <Routes>
-      {/* Connexion : page seule, sans navbar ni footer */}
+      {/* Connexion et réinitialisation de mot de passe : pages seules, sans navbar ni footer */}
       <Route path="/" element={<Login />} />
+      <Route path="/mot-de-passe-oublie" element={<MotDePasseOublie />} />
+      <Route path="/reinitialiser-mot-de-passe" element={<ReinitialiserMotDePasse />} />
 
       <Route element={<Layout />}>
         {/* Public */}

@@ -50,6 +50,8 @@ $errorMiddleware->setErrorHandler(ApiException::class, function (Request $reques
 // Toutes les routes sont préfixées par /api (comme les appels du front)
 $app->group('/api', function ($group) {
     require __DIR__ . '/../routes/Controller/HealthController.php';
+    require __DIR__ . '/../routes/emails.php';
+    require __DIR__ . '/../routes/securite_connexion.php';
     require __DIR__ . '/../routes/auth.php';
     require __DIR__ . '/../routes/fichiers.php';
     require __DIR__ . '/../routes/profil_photo.php';

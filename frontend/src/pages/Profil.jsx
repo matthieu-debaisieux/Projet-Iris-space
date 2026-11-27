@@ -8,6 +8,12 @@ import { useProfilPhoto } from '@/hooks/useProfilPhoto.js';
 import { USE_MOCKS } from '@/services/api.js';
 import { updateProfil } from '@/services/eleve.js';
 import { getMonProfil } from '@/services/profil.js';
+import {
+  changerMotDePasse,
+  confirmerDoubleAuthentification,
+  desactiverDoubleAuthentification,
+  preparerDoubleAuthentification,
+} from '@/services/auth.js';
 
 const card = 'bg-white rounded-2xl border border-[#E1E5EE] p-6';
 const btnPrincipal = 'inline-flex items-center justify-center gap-2 rounded-lg bg-[#EC6F6F] px-4 py-2.5 text-sm font-bold text-[#001257] hover:opacity-90 transition';
@@ -158,120 +164,131 @@ export default function Profil() {
                   </div>
                 </aside>
 
-                {/* ── Colonne droite : informations adaptées au rôle (lecture seule) ── */}
-                <form className={card} onSubmit={e => coordonnees.enregistrer(e, p)} noValidate>
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                      <h2 className="text-base font-bold text-[#001257]">Informations personnelles</h2>
-                      <p className="mt-1 mb-5 text-xs text-[#6B7185]">
-                        {modifiable
-                          ? 'Vous pouvez modifier votre email, votre téléphone et votre adresse. Pour toute autre correction, contactez le service scolarité.'
-                          : 'Ces informations ne sont pas modifiables ici. Pour une correction, contactez le service scolarité.'}
-                      </p>
-                    </div>
-                    {modifiable && !coordonnees.edition && (
-                      <button type="button" onClick={() => coordonnees.modifier(p)} className={btnSecondaire}>
-                        <Icone d={ICONES.crayon} size={16} /> Modifier mes informations
-                      </button>
-                    )}
-                  </div>
-
-                  {coordonnees.succes && !coordonnees.edition && (
-                    <p role="status" className="mb-5 rounded-lg bg-[#E3F5EC] px-4 py-3 text-sm font-semibold text-[#1E7F55]">
-                      Vos informations ont bien été enregistrées.
-                    </p>
-                  )}
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-                    {p.civilite && <Champ id="civilite" label="Civilité" value={p.civilite} />}
-                    <Champ id="nom" label="Nom" value={p.nom} />
-                    <Champ id="prenom" label="Prénom" value={p.prenom} />
-                    <Champ id="identifiant" label="Identifiant" value={p.identifiant} />
-                    <Champ id="email" label="Email" type="email" autoComplete="email" maxLength={254}
-                      value={coordonnees.edition ? coordonnees.form.email : p.email}
-                      onChange={coordonnees.edition ? coordonnees.saisir('email') : undefined} />
-                    <Champ id="telephone" label="Téléphone" type="tel" autoComplete="tel" maxLength={30}
-                      value={coordonnees.edition ? coordonnees.form.telephone : p.telephone}
-                      onChange={coordonnees.edition ? coordonnees.saisir('telephone') : undefined} />
-                    <Champ id="age" label="Âge" value={age} placeholder="—" />
-                    <Champ id="naissance" label="Date de naissance" value={dateFormatee} />
-                    <Champ id="lieu-naissance" label="Lieu de naissance" value={p.lieu_naissance ?? p.lieuNaissance} />
-                    <Champ id="pays-naissance" label="Pays de naissance" value={p.pays_naissance ?? p.paysNaissance} />
-                    <Champ id="nationalite" label="Nationalité" value={p.nationalite} />
-                    {(p.adresse || modifiable) && (
-                      <Champ id="adresse" label="Adresse" multiligne className="sm:col-span-2" autoComplete="street-address" maxLength={500}
-                        value={coordonnees.edition ? coordonnees.form.adresse : p.adresse}
-                        onChange={coordonnees.edition ? coordonnees.saisir('adresse') : undefined} />
-                    )}
-
-                    {estEleve && (
-                      <>
-                        <Champ id="classe" label="Classe" value={p.classe} />
-                        <Champ id="annee-scolaire" label="Année scolaire" value={anneeScolaire} />
-                        {p.numero_etudiant && (
-                          <Champ id="numero-etudiant" label="Numéro étudiant" value={p.numero_etudiant} />
-                        )}
-                      </>
-                    )}
-
-                    {estAdmin && (
-                      <>
-                        <Champ id="role-label" label="Fonction" value={ROLE_LABELS[role] ?? role} />
-                        <Champ
-                          id="derniere-connexion"
-                          label="Dernière connexion"
-                          value={formaterDateHeure(p.derniere_connexion)}
-                          placeholder="Première connexion"
-                        />
-                      </>
-                    )}
-                  </div>
-
-                  {estProf && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-6 pt-6 border-t border-[#E1E5EE]">
+                {/* ── Colonne droite : informations + sécurité du compte ── */}
+                <div className="flex flex-col gap-6">
+                  <form className={card} onSubmit={e => coordonnees.enregistrer(e, p)} noValidate>
+                    <div className="flex flex-wrap items-start justify-between gap-2">
                       <div>
-                        <p className="mb-2 text-xs font-semibold text-[#6B7185]">Matières enseignées</p>
-                        {Array.isArray(p.matieres) && p.matieres.length > 0 ? (
-                          <div className="flex flex-wrap gap-2">
-                            {p.matieres.map(m => (
-                              <span key={m.id ?? m.nom} className="rounded-full bg-[#EEF1F7] px-3 py-1 text-xs font-medium text-[#001257]">
-                                {m.nom}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-xs text-[#6B7185]">Aucune matière rattachée.</p>
-                        )}
+                        <h2 className="text-base font-bold text-[#001257]">Informations personnelles</h2>
+                        <p className="mt-1 mb-5 text-xs text-[#6B7185]">
+                          {modifiable
+                            ? 'Vous pouvez modifier votre email, votre téléphone et votre adresse. Pour toute autre correction, contactez le service scolarité.'
+                            : 'Ces informations ne sont pas modifiables ici. Pour une correction, contactez le service scolarité.'}
+                        </p>
                       </div>
-                      <div>
-                        <p className="mb-2 text-xs font-semibold text-[#6B7185]">Classes</p>
-                        {Array.isArray(p.classes) && p.classes.length > 0 ? (
-                          <div className="flex flex-wrap gap-2">
-                            {p.classes.map(c => (
-                              <span key={c.id ?? c.nom} className="rounded-full bg-[#EEF1F7] px-3 py-1 text-xs font-medium text-[#001257]">
-                                {c.nom}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-xs text-[#6B7185]">Aucun cours planifié pour le moment.</p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {coordonnees.edition && (
-                    <div className="mt-6 flex flex-col gap-3 border-t border-[#E1E5EE] pt-5">
-                      {coordonnees.erreur && <p role="alert" className="text-xs font-medium text-[#B23A3A]">{coordonnees.erreur}</p>}
-                      <div className="flex flex-wrap justify-end gap-2">
-                        <button type="button" onClick={coordonnees.annuler} disabled={coordonnees.enCours} className={`${btnSecondaire} disabled:opacity-60`}>Annuler</button>
-                        <button type="submit" disabled={coordonnees.enCours} className={`${btnPrincipal} disabled:opacity-60`}>
-                          {coordonnees.enCours ? 'Enregistrement…' : 'Enregistrer'}
+                      {modifiable && !coordonnees.edition && (
+                        <button type="button" onClick={() => coordonnees.modifier(p)} className={btnSecondaire}>
+                          <Icone d={ICONES.crayon} size={16} /> Modifier mes informations
                         </button>
-                      </div>
+                      )}
                     </div>
+
+                    {coordonnees.succes && !coordonnees.edition && (
+                      <p role="status" className="mb-5 rounded-lg bg-[#E3F5EC] px-4 py-3 text-sm font-semibold text-[#1E7F55]">
+                        Vos informations ont bien été enregistrées.
+                      </p>
+                    )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                      {p.civilite && <Champ id="civilite" label="Civilité" value={p.civilite} />}
+                      <Champ id="nom" label="Nom" value={p.nom} />
+                      <Champ id="prenom" label="Prénom" value={p.prenom} />
+                      <Champ id="identifiant" label="Identifiant" value={p.identifiant} />
+                      <Champ id="email" label="Email" type="email" autoComplete="email" maxLength={254}
+                        value={coordonnees.edition ? coordonnees.form.email : p.email}
+                        onChange={coordonnees.edition ? coordonnees.saisir('email') : undefined} />
+                      <Champ id="telephone" label="Téléphone" type="tel" autoComplete="tel" maxLength={30}
+                        value={coordonnees.edition ? coordonnees.form.telephone : p.telephone}
+                        onChange={coordonnees.edition ? coordonnees.saisir('telephone') : undefined} />
+                      <Champ id="age" label="Âge" value={age} placeholder="—" />
+                      <Champ id="naissance" label="Date de naissance" value={dateFormatee} />
+                      <Champ id="lieu-naissance" label="Lieu de naissance" value={p.lieu_naissance ?? p.lieuNaissance} />
+                      <Champ id="pays-naissance" label="Pays de naissance" value={p.pays_naissance ?? p.paysNaissance} />
+                      <Champ id="nationalite" label="Nationalité" value={p.nationalite} />
+                      {(p.adresse || modifiable) && (
+                        <Champ id="adresse" label="Adresse" multiligne className="sm:col-span-2" autoComplete="street-address" maxLength={500}
+                          value={coordonnees.edition ? coordonnees.form.adresse : p.adresse}
+                          onChange={coordonnees.edition ? coordonnees.saisir('adresse') : undefined} />
+                      )}
+
+                      {estEleve && (
+                        <>
+                          <Champ id="classe" label="Classe" value={p.classe} />
+                          <Champ id="annee-scolaire" label="Année scolaire" value={anneeScolaire} />
+                          {p.numero_etudiant && (
+                            <Champ id="numero-etudiant" label="Numéro étudiant" value={p.numero_etudiant} />
+                          )}
+                        </>
+                      )}
+
+                      {estAdmin && (
+                        <>
+                          <Champ id="role-label" label="Fonction" value={ROLE_LABELS[role] ?? role} />
+                          <Champ
+                            id="derniere-connexion"
+                            label="Dernière connexion"
+                            value={formaterDateHeure(p.derniere_connexion)}
+                            placeholder="Première connexion"
+                          />
+                        </>
+                      )}
+                    </div>
+
+                    {estProf && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-6 pt-6 border-t border-[#E1E5EE]">
+                        <div>
+                          <p className="mb-2 text-xs font-semibold text-[#6B7185]">Matières enseignées</p>
+                          {Array.isArray(p.matieres) && p.matieres.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                              {p.matieres.map(m => (
+                                <span key={m.id ?? m.nom} className="rounded-full bg-[#EEF1F7] px-3 py-1 text-xs font-medium text-[#001257]">
+                                  {m.nom}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-[#6B7185]">Aucune matière rattachée.</p>
+                          )}
+                        </div>
+                        <div>
+                          <p className="mb-2 text-xs font-semibold text-[#6B7185]">Classes</p>
+                          {Array.isArray(p.classes) && p.classes.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                              {p.classes.map(c => (
+                                <span key={c.id ?? c.nom} className="rounded-full bg-[#EEF1F7] px-3 py-1 text-xs font-medium text-[#001257]">
+                                  {c.nom}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-[#6B7185]">Aucun cours planifié pour le moment.</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {coordonnees.edition && (
+                      <div className="mt-6 flex flex-col gap-3 border-t border-[#E1E5EE] pt-5">
+                        {coordonnees.erreur && <p role="alert" className="text-xs font-medium text-[#B23A3A]">{coordonnees.erreur}</p>}
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <button type="button" onClick={coordonnees.annuler} disabled={coordonnees.enCours} className={`${btnSecondaire} disabled:opacity-60`}>Annuler</button>
+                          <button type="submit" disabled={coordonnees.enCours} className={`${btnPrincipal} disabled:opacity-60`}>
+                            {coordonnees.enCours ? 'Enregistrement…' : 'Enregistrer'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </form>
+
+                  <SecuriteMotDePasse />
+
+                  {can('double_authentification') && (
+                    <DoubleAuthentification
+                      actif={Boolean(p.totp_actif)}
+                      onChange={actif => profil.setData(ancien => ({ ...ancien, totp_actif: actif }))}
+                    />
                   )}
-                </form>
+                </div>
               </div>
             );
           }}</DataState>
@@ -425,5 +442,298 @@ function PhotoProfil({ prenom, nom }) {
       <p className="text-xs text-[#6B7185]">PNG, JPG ou WebP · {USE_MOCKS ? '5' : '2'} Mo maximum</p>
       {erreur && <p role="alert" className="text-xs font-medium text-[#B23A3A]">{erreur}</p>}
     </div>
+  );
+}
+
+// ── Changement de mot de passe (CPT-06) ─────────────────────────────────────
+function SecuriteMotDePasse() {
+  const [ancien, setAncien] = useState('');
+  const [nouveau, setNouveau] = useState('');
+  const [confirmation, setConfirmation] = useState('');
+  const [erreur, setErreur] = useState('');
+  const [succes, setSucces] = useState('');
+  const [enCours, setEnCours] = useState(false);
+
+  async function enregistrer(e) {
+    e.preventDefault();
+    setErreur('');
+    setSucces('');
+
+    if (!ancien) {
+      setErreur("L'ancien mot de passe est obligatoire.");
+      return;
+    }
+    if (nouveau.length < 8 || !/\p{L}/u.test(nouveau) || !/\d/.test(nouveau)) {
+      setErreur('Le nouveau mot de passe doit contenir au moins 8 caractères, une lettre et un chiffre.');
+      return;
+    }
+    if (nouveau === ancien) {
+      setErreur("Le nouveau mot de passe doit être différent de l'ancien.");
+      return;
+    }
+    if (nouveau !== confirmation) {
+      setErreur('La confirmation ne correspond pas au nouveau mot de passe.');
+      return;
+    }
+
+    setEnCours(true);
+    try {
+      const res = await changerMotDePasse(ancien, nouveau);
+      setSucces(res?.message || 'Mot de passe modifié.');
+      setAncien('');
+      setNouveau('');
+      setConfirmation('');
+    } catch (err) {
+      setErreur(err?.message || 'Impossible de modifier le mot de passe.');
+    } finally {
+      setEnCours(false);
+    }
+  }
+
+  return (
+    <form className={card} onSubmit={enregistrer} noValidate>
+      <h2 className="text-base font-bold text-[#001257]">Mot de passe</h2>
+      <p className="mt-1 mb-5 text-xs text-[#6B7185]">
+        Au moins 8 caractères, dont une lettre et un chiffre.
+      </p>
+
+      {succes && (
+        <p role="status" className="mb-4 rounded-lg bg-[#E3F5EC] px-4 py-3 text-sm font-semibold text-[#1E7F55]">
+          {succes}
+        </p>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+        <Champ
+          id="mdp-ancien"
+          label="Ancien mot de passe"
+          type="password"
+          autoComplete="current-password"
+          placeholder="••••••••"
+          className="sm:col-span-2"
+          value={ancien}
+          onChange={e => setAncien(e.target.value)}
+        />
+        <Champ
+          id="mdp-nouveau"
+          label="Nouveau mot de passe"
+          type="password"
+          autoComplete="new-password"
+          placeholder="••••••••"
+          value={nouveau}
+          onChange={e => setNouveau(e.target.value)}
+        />
+        <Champ
+          id="mdp-confirmation"
+          label="Confirmer le nouveau mot de passe"
+          type="password"
+          autoComplete="new-password"
+          placeholder="••••••••"
+          value={confirmation}
+          onChange={e => setConfirmation(e.target.value)}
+        />
+      </div>
+
+      {erreur && <p role="alert" className="mt-4 text-xs font-medium text-[#B23A3A]">{erreur}</p>}
+
+      <div className="mt-5 flex justify-end">
+        <button type="submit" disabled={enCours} className={`${btnPrincipal} disabled:opacity-60`}>
+          {enCours ? 'Modification…' : 'Changer le mot de passe'}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+// ── Double authentification TOTP (SEC-03) ───────────────────────────────────
+function DoubleAuthentification({ actif, onChange }) {
+  const [config, setConfig] = useState(null); // { secret, otpauth_url }
+  const [code, setCode] = useState('');
+  const [desactivationOuverte, setDesactivationOuverte] = useState(false);
+  const [motDePasse, setMotDePasse] = useState('');
+  const [copie, setCopie] = useState('');
+  const [erreur, setErreur] = useState('');
+  const [succes, setSucces] = useState('');
+  const [enCours, setEnCours] = useState(false);
+
+  async function demarrerActivation() {
+    setErreur('');
+    setSucces('');
+    setEnCours(true);
+    try {
+      const data = await preparerDoubleAuthentification();
+      setConfig(data);
+      setCode('');
+    } catch (err) {
+      setErreur(err?.message || 'Impossible de préparer la double authentification.');
+    } finally {
+      setEnCours(false);
+    }
+  }
+
+  async function confirmerActivation(e) {
+    e.preventDefault();
+    setErreur('');
+    setSucces('');
+    const propre = code.replace(/\s+/g, '');
+    if (!/^\d{6}$/.test(propre)) {
+      setErreur('Saisissez le code à 6 chiffres généré par votre application.');
+      return;
+    }
+
+    setEnCours(true);
+    try {
+      const res = await confirmerDoubleAuthentification(propre);
+      setConfig(null);
+      setCode('');
+      setSucces(res?.message || 'Double authentification activée.');
+      onChange(true);
+    } catch (err) {
+      setErreur(err?.message || 'Code incorrect.');
+    } finally {
+      setEnCours(false);
+    }
+  }
+
+  async function confirmerDesactivation(e) {
+    e.preventDefault();
+    setErreur('');
+    setSucces('');
+    if (!motDePasse) {
+      setErreur('Saisissez votre mot de passe pour désactiver la double authentification.');
+      return;
+    }
+
+    setEnCours(true);
+    try {
+      const res = await desactiverDoubleAuthentification(motDePasse);
+      setDesactivationOuverte(false);
+      setMotDePasse('');
+      setSucces(res?.message || 'Double authentification désactivée.');
+      onChange(false);
+    } catch (err) {
+      setErreur(err?.message || 'Impossible de désactiver la double authentification.');
+    } finally {
+      setEnCours(false);
+    }
+  }
+
+  function copierTexte(cle, valeur) {
+    if (!navigator.clipboard?.writeText) return;
+    navigator.clipboard.writeText(valeur).then(() => {
+      setCopie(cle);
+      setTimeout(() => setCopie(c => (c === cle ? '' : c)), 2000);
+    }).catch(() => {});
+  }
+
+  const cleFormatee = config?.secret ? config.secret.replace(/(.{4})/g, '$1 ').trim() : '';
+
+  return (
+    <section className={card}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 className="text-base font-bold text-[#001257]">Double authentification (2FA)</h2>
+          <p className="mt-1 text-xs text-[#6B7185]">
+            Protégez votre compte avec un code temporaire (Google Authenticator, FreeOTP…).
+          </p>
+        </div>
+        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${actif ? 'bg-[#E3F5EC] text-[#1E7F55]' : 'bg-[#EEF1F7] text-[#6B7185]'}`}>
+          {actif ? 'Activée' : 'Désactivée'}
+        </span>
+      </div>
+
+      {succes && (
+        <p role="status" className="mt-4 rounded-lg bg-[#E3F5EC] px-4 py-3 text-sm font-semibold text-[#1E7F55]">
+          {succes}
+        </p>
+      )}
+      {erreur && <p role="alert" className="mt-4 text-xs font-medium text-[#B23A3A]">{erreur}</p>}
+
+      {!actif && !config && (
+        <div className="mt-5 flex justify-end">
+          <button type="button" onClick={demarrerActivation} disabled={enCours} className={`${btnPrincipal} disabled:opacity-60`}>
+            {enCours ? 'Préparation…' : 'Activer la double authentification'}
+          </button>
+        </div>
+      )}
+
+      {!actif && config && (
+        <form onSubmit={confirmerActivation} noValidate className="mt-5 flex flex-col gap-4 border-t border-[#E1E5EE] pt-5">
+          <p className="text-xs text-[#1A1D2E]">
+            Ajoutez ce compte dans votre application d&apos;authentification avec la clé secrète ou le lien ci-dessous, puis saisissez le code à 6 chiffres pour confirmer.
+          </p>
+
+          <div className="rounded-xl bg-[#F7F8FB] border border-[#E1E5EE] p-3 flex flex-col gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-semibold text-[#6B7185]">Clé secrète (Base32)</span>
+              <button type="button" onClick={() => copierTexte('secret', config.secret)} className="text-xs font-semibold text-[#001257] underline">
+                {copie === 'secret' ? 'Copié' : 'Copier la clé'}
+              </button>
+            </div>
+            <code className="break-all font-mono text-sm font-semibold text-[#001257]">{cleFormatee}</code>
+          </div>
+
+          <div className="rounded-xl bg-[#F7F8FB] border border-[#E1E5EE] p-3 flex flex-col gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-semibold text-[#6B7185]">URL otpauth://</span>
+              <button type="button" onClick={() => copierTexte('url', config.otpauth_url)} className="text-xs font-semibold text-[#001257] underline">
+                {copie === 'url' ? 'Copié' : 'Copier le lien'}
+              </button>
+            </div>
+            <code className="break-all font-mono text-xs text-[#1A1D2E]">{config.otpauth_url}</code>
+          </div>
+
+          <Champ
+            id="totp-confirmation"
+            label="Code de confirmation à 6 chiffres"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={10}
+            placeholder="000000"
+            value={code}
+            onChange={e => setCode(e.target.value)}
+          />
+
+          <div className="flex flex-wrap justify-end gap-2">
+            <button type="button" onClick={() => { setConfig(null); setErreur(''); }} disabled={enCours} className={`${btnSecondaire} disabled:opacity-60`}>
+              Annuler
+            </button>
+            <button type="submit" disabled={enCours} className={`${btnPrincipal} disabled:opacity-60`}>
+              {enCours ? 'Activation…' : "Confirmer l'activation"}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {actif && !desactivationOuverte && (
+        <div className="mt-5 flex justify-end">
+          <button type="button" onClick={() => { setDesactivationOuverte(true); setErreur(''); setSucces(''); }} className={btnSecondaire}>
+            Désactiver la double authentification
+          </button>
+        </div>
+      )}
+
+      {actif && desactivationOuverte && (
+        <form onSubmit={confirmerDesactivation} noValidate className="mt-5 flex flex-col gap-4 border-t border-[#E1E5EE] pt-5">
+          <Champ
+            id="totp-desactiver-mdp"
+            label="Mot de passe actuel"
+            type="password"
+            autoComplete="current-password"
+            placeholder="••••••••"
+            value={motDePasse}
+            onChange={e => setMotDePasse(e.target.value)}
+          />
+          <div className="flex flex-wrap justify-end gap-2">
+            <button type="button" onClick={() => { setDesactivationOuverte(false); setMotDePasse(''); setErreur(''); }} disabled={enCours} className={`${btnSecondaire} disabled:opacity-60`}>
+              Annuler
+            </button>
+            <button type="submit" disabled={enCours} className={`${btnPrincipal} disabled:opacity-60`}>
+              {enCours ? 'Désactivation…' : 'Confirmer la désactivation'}
+            </button>
+          </div>
+        </form>
+      )}
+    </section>
   );
 }

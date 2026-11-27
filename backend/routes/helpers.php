@@ -102,6 +102,7 @@ function droitsPourRole(string $role): array
             'programme_gerer',
             'classe_voir',
             'classe_voir_tout',
+            'double_authentification',
         ],
         'administrateur', 'direction' => [
             'menu_lateral',
@@ -119,6 +120,7 @@ function droitsPourRole(string $role): array
             'programme_gerer',
             'classe_voir',
             'classe_voir_tout',
+            'double_authentification',
         ],
         'professeur' => [
             'journee',
@@ -135,6 +137,7 @@ function droitsPourRole(string $role): array
             'notifications',
             'classe_voir',
             'classe_voir_ses_classes',
+            'double_authentification',
         ],
         'eleve' => [
             'journee',
@@ -636,26 +639,11 @@ function purgerJournalConnexions(bool $simulation = false): int
 }
 
 // ---------------------------------------------------------------------
-// E-MAILS ET ENVIRONNEMENT (réinitialisation du mot de passe)
+// ENVIRONNEMENT (les e-mails sont gérés dans routes/emails.php)
 // ---------------------------------------------------------------------
 
 // Vrai seulement si APP_ENV vaut dev, development ou local (faux par défaut, donc sûr en production)
 function appEnDev(): bool
 {
     return in_array(strtolower((string) getenv('APP_ENV')), ['dev', 'development', 'local'], true);
-}
-
-// Envoie le lien de réinitialisation. Aucune bibliothèque d'e-mail dans composer.json :
-// mail() ne marche que si le serveur a un MTA configuré. À remplacer par PHPMailer/SMTP.
-function envoyerEmailReinitialisation(string $email, string $lien): void
-{
-    if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
-        return;
-    }
-    $sujet = '=?UTF-8?B?' . base64_encode('Réinitialisation de votre mot de passe') . '?=';
-    $message = "Bonjour,\n\n"
-        . "Pour choisir un nouveau mot de passe, ouvrez ce lien (valable 1 heure) :\n"
-        . $lien . "\n\n"
-        . "Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.\n";
-    @mail($email, $sujet, $message, 'Content-Type: text/plain; charset=UTF-8');
 }
