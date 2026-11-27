@@ -16,8 +16,15 @@ const DROITS_ELEVE = [
   'journee', 'devoirs', 'notes', 'absences', 'actualites', 'emploi_du_temps', 'documents', 'messagerie',
 ];
 
+// Forme alignée sur l'utilisateur renvoyé par le back (routes/auth.php) :
+// { id, identifiant, email, role, nom, prenom, photo_url }, avec les rôles de l'enum SQL
+// `role_utilisateur` : 'administrateur', 'direction', 'professeur', 'eleve'.
+// En plus, pour le front seulement : `droits` (voir plus haut) et `motDePasse`
+// (connexion mock, retiré par services/auth.js avant de renvoyer l'utilisateur).
+// Le back donne à `direction` les mêmes accès qu'à `administrateur` (middleware requireRole).
 export const USERS = [
-  { id: 1, identifiant: 'admin', motDePasse: 'admin', role: 'admin', nom: 'Administration', droits: DROITS_ADMIN },
-  { id: 2, identifiant: 'prof',  motDePasse: 'prof',  role: 'prof',  nom: 'NOM PRENOM',     droits: DROITS_PROF },
-  { id: 3, identifiant: 'eleve', motDePasse: 'eleve', role: 'eleve', nom: 'John Doe',       droits: DROITS_ELEVE, classe: 'Iris 1' },
+  { id: '1', identifiant: 'admin',     motDePasse: 'admin',     email: 'admin@iris-space.fr',     role: 'administrateur', nom: 'Administration', prenom: '',       photo_url: null, droits: DROITS_ADMIN },
+  { id: '2', identifiant: 'direction', motDePasse: 'direction', email: 'direction@iris-space.fr', role: 'direction',      nom: 'Direction',      prenom: '',       photo_url: null, droits: DROITS_ADMIN },
+  { id: '3', identifiant: 'prof',      motDePasse: 'prof',      email: 'prof@iris-space.fr',      role: 'professeur',     nom: 'NOM',            prenom: 'PRENOM', photo_url: null, droits: DROITS_PROF },
+  { id: '4', identifiant: 'eleve',     motDePasse: 'eleve',     email: 'eleve@iris-space.fr',     role: 'eleve',          nom: 'Doe',            prenom: 'John',   photo_url: null, droits: DROITS_ELEVE },
 ];

@@ -39,7 +39,7 @@ export default function Navbar({ links, menuLinks, mediaschool = false }) {
           </Link>
 
           <span className="text-white/30 text-xl font-light hidden md:inline">|</span>
-          <div className="title text-lg text-white tracking-wide font-medium hidden md:block">{user?.nom ?? 'VISITEUR'}</div>
+          <div className="title text-lg text-white tracking-wide font-medium hidden md:block">{nomComplet(user) || 'VISITEUR'}</div>
 
           {user && (
             <NavLink

@@ -51,6 +51,11 @@ export const RACCOURCIS = [
   },
 ];
 
+// Une ligne par matière (moyenne de l'élève sur 20) :
+//   note           → moyenne de l'élève dans la matière, sur 20
+//   moyenneClasse  → moyenne de la classe dans la matière, sur 20
+//   appreciation   → commentaire du professeur (facultatif)
+//   court          → libellé court pour la pastille de filtre (facultatif)
 export const NOTES = [
   { id: 1, note: '16/20',   matiere: 'Mathématiques',   prof: 'M. Martin',    date: '28/06/2028' },
   { id: 2, note: '13/20',   matiere: 'Culture Gestion et Expression',        prof: 'Mme. Dupont',  date: '25/06/2028' },
