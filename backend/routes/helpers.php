@@ -18,6 +18,7 @@ const EXTENSIONS_AUTORISEES = [
     'doc', 'docx', 'odt', 'xls', 'xlsx', 'ods', 'ppt', 'pptx', 'odp',
     'jpg', 'jpeg', 'png', 'gif', 'webp',
 ];
+const EXTENSIONS_IMAGES = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
 
 // Erreur renvoyée au front en JSON { "error": message }, avec le code HTTP en 2e argument :
 // throw new ApiException('Devoir introuvable', 404);
@@ -365,8 +366,8 @@ function decimal(mixed $valeur): ?float
 // ---------------------------------------------------------------------
 
 // Enregistre le fichier envoyé dans le champ multipart « fichier ».
-// Renvoie ['nom' => nom d'origine, 'url' => chemin relatif à uploads/, 'taille' => octets].
-function enregistrerFichier(ServerRequestInterface $request, string $sousDossier): array
+// Renvoie ['nom' => nom d'origine, 'url' => chemin relatif à uploads/, 'taille' => octets, 'mime' => type MIME].
+function enregistrerFichier(ServerRequestInterface $request, string $sousDossier, ?array $extensionsAutorisees = null): array
 {
     $fichier = $request->getUploadedFiles()['fichier'] ?? null;
     if (!$fichier instanceof UploadedFileInterface || $fichier->getError() === UPLOAD_ERR_NO_FILE) {
@@ -380,9 +381,10 @@ function enregistrerFichier(ServerRequestInterface $request, string $sousDossier
         throw new ApiException("Échec de l'envoi du fichier", 400);
     }
 
+    $autorisees = $extensionsAutorisees ?? EXTENSIONS_AUTORISEES;
     $nom = mb_substr(basename($fichier->getClientFilename() ?? 'fichier'), 0, 255);
     $extension = strtolower(pathinfo($nom, PATHINFO_EXTENSION));
-    if (!in_array($extension, EXTENSIONS_AUTORISEES, true)) {
+    if (!in_array($extension, $autorisees, true)) {
         throw new ApiException('Type de fichier non autorisé', 400);
     }
 
@@ -392,9 +394,121 @@ function enregistrerFichier(ServerRequestInterface $request, string $sousDossier
         mkdir($dossier, 0775, true);
     }
     $url = $sousDossier . '/' . bin2hex(random_bytes(16)) . '.' . $extension;
-    $fichier->moveTo(DOSSIER_FICHIERS . '/' . $url);
+    $cheminDisque = DOSSIER_FICHIERS . '/' . $url;
+    $fichier->moveTo($cheminDisque);
 
-    return ['nom' => $nom, 'url' => $url, 'taille' => $fichier->getSize()];
+    $mime = detecterMimeFichier($cheminDisque, $extension);
+    $mimesInterdits = [
+        'text/html',
+        'application/xhtml+xml',
+        'text/x-php',
+        'application/x-php',
+        'application/x-httpd-php',
+        'image/svg+xml',
+    ];
+    if (in_array($mime, $mimesInterdits, true)) {
+        supprimerFichier($url);
+        throw new ApiException('Contenu du fichier non autorisé', 400);
+    }
+    if ($extensionsAutorisees === EXTENSIONS_IMAGES && !str_starts_with($mime, 'image/')) {
+        supprimerFichier($url);
+        throw new ApiException('Le fichier doit être une image valide', 400);
+    }
+
+    return ['nom' => $nom, 'url' => $url, 'taille' => $fichier->getSize(), 'mime' => $mime];
+}
+
+function detecterMimeFichier(string $chemin, string $extension = ''): string
+{
+    $mime = '';
+    if (class_exists(finfo::class)) {
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $detected = $finfo->file($chemin);
+        if (is_string($detected)) {
+            $mime = strtolower(trim(explode(';', $detected)[0]));
+        }
+    } elseif (function_exists('mime_content_type')) {
+        $detected = @mime_content_type($chemin);
+        if (is_string($detected)) {
+            $mime = strtolower(trim(explode(';', $detected)[0]));
+        }
+    }
+
+    if ($mime !== '' && $mime !== 'application/octet-stream') {
+        return $mime;
+    }
+
+    return match (strtolower($extension)) {
+        'pdf'  => 'application/pdf',
+        'txt'  => 'text/plain',
+        'csv'  => 'text/csv',
+        'zip'  => 'application/zip',
+        'doc'  => 'application/msword',
+        'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'odt'  => 'application/vnd.oasis.opendocument.text',
+        'xls'  => 'application/vnd.ms-excel',
+        'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'ods'  => 'application/vnd.oasis.opendocument.spreadsheet',
+        'ppt'  => 'application/vnd.ms-powerpoint',
+        'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'odp'  => 'application/vnd.oasis.opendocument.presentation',
+        'jpg', 'jpeg' => 'image/jpeg',
+        'png'  => 'image/png',
+        'gif'  => 'image/gif',
+        'webp' => 'image/webp',
+        default => 'application/octet-stream',
+    };
+}
+
+function envoyerFichier(
+    ResponseInterface $response,
+    string $urlRelative,
+    string $nomTelechargement,
+    bool $inline = false,
+    string $cacheControl = 'private, no-store'
+): ResponseInterface {
+    if ($urlRelative === '' || str_contains($urlRelative, '..') || str_contains($urlRelative, "\0") || str_starts_with($urlRelative, '/')) {
+        throw new ApiException('Fichier introuvable', 404);
+    }
+
+    $baseReelle = realpath(DOSSIER_FICHIERS);
+    $cheminReel = $baseReelle !== false ? realpath($baseReelle . DIRECTORY_SEPARATOR . $urlRelative) : false;
+    if ($baseReelle === false || $cheminReel === false || !is_file($cheminReel)
+        || !str_starts_with($cheminReel, $baseReelle . DIRECTORY_SEPARATOR)) {
+        throw new ApiException('Fichier introuvable', 404);
+    }
+
+    $extension = strtolower(pathinfo($cheminReel, PATHINFO_EXTENSION));
+    $mime = detecterMimeFichier($cheminReel, $extension);
+
+    $nomPropre = preg_replace('/[\r\n"\/\\\\]+/', '_', trim($nomTelechargement)) ?? '';
+    if ($nomPropre === '') {
+        $nomPropre = basename($cheminReel);
+    }
+    if ($extension !== '' && strtolower(pathinfo($nomPropre, PATHINFO_EXTENSION)) !== $extension) {
+        $nomPropre .= '.' . $extension;
+    }
+    $nomAscii = preg_replace('/[^\x20-\x7E]/', '_', $nomPropre) ?: ('fichier' . ($extension !== '' ? '.' . $extension : ''));
+
+    $disposition = ($inline && (str_starts_with($mime, 'image/') || $mime === 'application/pdf'))
+        ? 'inline'
+        : 'attachment';
+
+    $stream = fopen($cheminReel, 'rb');
+    if ($stream === false) {
+        throw new ApiException('Fichier introuvable', 404);
+    }
+
+    return $response
+        ->withBody(new \Slim\Psr7\Stream($stream))
+        ->withHeader('Content-Type', $mime)
+        ->withHeader('Content-Length', (string) filesize($cheminReel))
+        ->withHeader(
+            'Content-Disposition',
+            $disposition . '; filename="' . $nomAscii . '"; filename*=UTF-8\'\'' . rawurlencode($nomPropre)
+        )
+        ->withHeader('X-Content-Type-Options', 'nosniff')
+        ->withHeader('Cache-Control', $cacheControl);
 }
 
 function supprimerFichier(?string $url): void

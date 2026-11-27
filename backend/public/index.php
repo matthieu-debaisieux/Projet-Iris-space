@@ -50,6 +50,7 @@ $errorMiddleware->setErrorHandler(ApiException::class, function (Request $reques
 $app->group('/api', function ($group) {
     require __DIR__ . '/../routes/Controller/HealthController.php';
     require __DIR__ . '/../routes/auth.php';
+    require __DIR__ . '/../routes/fichiers.php';
     require __DIR__ . '/../routes/visiteur.php';
 
     // Routes Bonus (P3) : chacune pose elle-même son requireRole / requireConnecte
