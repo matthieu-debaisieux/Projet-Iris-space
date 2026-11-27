@@ -24,18 +24,22 @@ export const INFOS = {
     localisation: null,       // pays où sont stockées les données, ex : France
   },
   contactDonnees: null,       // e-mail du référent / DPO pour les demandes RGPD
+  // Adresse du règlement intérieur : lien externe, ou PDF déposé dans
+  // frontend/public/ (ex : '/reglement-interieur.pdf' pour public/reglement-interieur.pdf)
+  reglementInterieur: 'https://mediaschool.me/reglement/',
   conservation: {
     compte: null,             // ex : durée de la scolarité + 1 an
     scolarite: null,          // notes, absences, emploi du temps
     messages: null,
     justificatifs: null,      // justificatifs d'absence
     contact: null,            // demandes envoyées via le formulaire de contact
+    connexions: '12 mois, puis suppression automatique', // journal des connexions (SEC-04)
   },
 };
 
 // Date de dernière mise à jour de chaque page
 export const MISES_A_JOUR = {
   mentions: '13 novembre 2026',
-  confidentialite: '13 novembre 2026',
+  confidentialite: '27 novembre 2026',
   cgu: '13 novembre 2026',
 };

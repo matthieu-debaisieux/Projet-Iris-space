@@ -57,6 +57,13 @@ export const Lien = ({ to, href, children }) => (
     : <Link to={to} className={lien}>{children}</Link>
 );
 
+// Lien vers le règlement intérieur (INFOS.reglementInterieur), ou texte + « À compléter »
+export const LienReglement = ({ url, children = 'règlement intérieur' }) => (
+  url
+    ? <a href={url} target="_blank" rel="noreferrer" className={`${lien} inline-flex items-center gap-1`}>{children}<Icon name="external-link" size={13} /></a>
+    : <>{children} <V /></>
+);
+
 export function Section({ id, titre, icon, children }) {
   return (
     <section id={id} className={`${card} p-6 scroll-mt-6`}>

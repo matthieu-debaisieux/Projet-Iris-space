@@ -1,4 +1,4 @@
-import PageLegale, { Lien, Liste, Section, V } from '@/components/legal/PageLegale.jsx';
+import PageLegale, { Lien, LienReglement, Liste, Section, V } from '@/components/legal/PageLegale.jsx';
 import { INFOS, MISES_A_JOUR } from '@/content/infosLegales.js';
 
 // Conditions générales d'utilisation de l'espace numérique.
@@ -68,7 +68,10 @@ export default function CGU() {
       </Section>
 
       <Section {...s('regles')}>
-        <p>L'utilisation du site doit rester conforme à la loi et au règlement intérieur de l'école. Il est interdit :</p>
+        <p>
+          L'utilisation du site doit rester conforme à la loi et au{' '}
+          <LienReglement url={INFOS.reglementInterieur}>règlement intérieur de l'école</LienReglement>. Il est interdit :
+        </p>
         <Liste items={[
           'de publier ou d\'envoyer des propos injurieux, diffamatoires, discriminatoires, harcelants ou violents ;',
           "de transmettre de faux justificatifs ou de fausses informations ;",

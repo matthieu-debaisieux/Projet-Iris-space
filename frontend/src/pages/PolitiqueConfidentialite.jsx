@@ -55,7 +55,7 @@ export default function PolitiqueConfidentialite() {
         <Liste items={[
           <><strong>Identification</strong> : nom, prénom, identifiant, rôle, classe, numéro étudiant, photo.</>,
           <><strong>État civil et coordonnées</strong> : date, lieu et pays de naissance, nationalité, adresse, téléphone, e-mail.</>,
-          <><strong>Connexion</strong> : mot de passe (jamais stocké en clair, seulement sous forme hachée), session, date de dernière connexion, demandes de réinitialisation du mot de passe.</>,
+          <><strong>Connexion</strong> : mot de passe (jamais stocké en clair, seulement sous forme hachée), session, date de dernière connexion, demandes de réinitialisation du mot de passe, et journal des connexions (date, réussite ou échec, adresse IP, navigateur utilisé).</>,
           <><strong>Scolarité</strong> : emploi du temps, notes, appréciations, devoirs et fichiers rendus.</>,
           <><strong>Vie scolaire</strong> : absences, retards, motifs et justificatifs transmis.</>,
           <><strong>Communication</strong> : messages et pièces jointes, notifications, documents partagés.</>,
@@ -108,6 +108,7 @@ export default function PolitiqueConfidentialite() {
           ['Messages', conservation.messages],
           ["Justificatifs d'absence", conservation.justificatifs],
           ['Demandes de contact', conservation.contact],
+          ['Journal des connexions', conservation.connexions],
         ]} />
         <p>À l'issue de ces durées, les données sont supprimées ou anonymisées.</p>
       </Section>
@@ -116,6 +117,8 @@ export default function PolitiqueConfidentialite() {
         <p>
           L'accès à l'espace numérique est protégé par un identifiant et un mot de passe personnels.
           Chaque utilisateur ne voit que les pages et les données autorisées par son profil.
+          Les tentatives de connexion, réussies ou non, sont enregistrées dans un journal afin de
+          détecter les accès frauduleux ; ce journal est supprimé automatiquement après 12 mois.
         </p>
         <Infos lignes={[
           ['Hébergeur', INFOS.hebergeur.nom],
@@ -126,9 +129,22 @@ export default function PolitiqueConfidentialite() {
       <Section {...s('cookies')}>
         <p>
           Le site n'utilise pas de cookies publicitaires ni de traceurs de mesure d'audience. Il utilise
-          uniquement un cookie de session et le stockage local de votre navigateur, strictement
-          nécessaires à son fonctionnement (maintien de votre connexion). Ils ne nécessitent pas de
-          consentement et sont supprimés à la déconnexion ou en vidant les données du navigateur.
+          uniquement :
+        </p>
+        <Liste items={[
+          <><strong>un cookie de session</strong>, déposé quand vous vous connectez, qui permet de vous
+            reconnaître d'une page à l'autre. Il n'est pas lisible par les scripts du site et n'est
+            jamais transmis à un tiers ;</>,
+          <><strong>le stockage local de votre navigateur</strong>, pour garder les informations
+            nécessaires à l'affichage (votre session, votre photo de profil, certaines données mises en
+            cache).</>,
+        ]} />
+        <p>
+          Ces éléments sont strictement nécessaires au fonctionnement du site : comme le prévoient les
+          recommandations de la CNIL, ils ne demandent pas votre consentement. C'est pourquoi le site
+          n'affiche pas de bandeau cookies. Ils sont supprimés à la déconnexion ou en vidant les données
+          de votre navigateur. Si un jour le site utilise d'autres cookies (mesure d'audience, par
+          exemple), cette page sera mise à jour et votre accord vous sera demandé.
         </p>
       </Section>
 
