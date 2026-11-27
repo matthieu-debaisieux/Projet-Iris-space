@@ -12,6 +12,21 @@ use Psr\Http\Message\ServerRequestInterface;
 const TYPES_DEVOIR = ['travail_a_faire', 'controle', 'projet', 'lecture'];
 const TYPES_RESSOURCE = ['fichier', 'lien', 'texte'];
 
+// Sous-requête : pièces jointes du prof pour le devoir d'alias « d » ([{ id, nom, taille_o }], jamais null).
+// Son résultat est du JSON en texte : à passer dans decoderFichiers().
+// Téléchargement : GET /api/devoirs/fichiers/{id}/telecharger (routes/devoirs_fichiers.php)
+const SQL_FICHIERS_DEVOIR = "COALESCE(
+    (SELECT json_agg(json_build_object('id', f.id, 'nom', f.nom, 'taille_o', f.taille_o) ORDER BY f.nom, f.id)
+     FROM devoir_fichier f WHERE f.devoir_id = d.id),
+    '[]'
+  )";
+
+function decoderFichiers(array $devoir): array
+{
+    $devoir['fichiers'] = json_decode($devoir['fichiers'], true);
+    return $devoir;
+}
+
 // Erreur SQL attendue quand le couple classe / matière ne correspond pas au prof
 function erreurClasseMatiere(PDOException $e): never
 {
@@ -52,6 +67,7 @@ function lireDevoir(string $id): array
     $stmt = db()->prepare(
         "SELECT d.id, d.classe_id, c.nom AS classe, d.matiere_id, m.nom AS matiere, d.cours_id, d.type,
                 d.titre, d.description, d.donne_le, d.a_rendre_le, d.rendu_en_ligne, d.created_at, d.updated_at,
+                " . SQL_FICHIERS_DEVOIR . " AS fichiers,
                 count(de.eleve_id) AS eleves,
                 count(*) FILTER (WHERE de.statut IN ('fait', 'rendu', 'corrige')) AS faits,
                 count(*) FILTER (WHERE de.statut IN ('rendu', 'corrige')) AS rendus
@@ -63,7 +79,7 @@ function lireDevoir(string $id): array
          GROUP BY d.id, c.nom, m.nom"
     );
     $stmt->execute(['id' => $id]);
-    return $stmt->fetch();
+    return decoderFichiers($stmt->fetch());
 }
 
 function lireEvaluation(string $id): array
@@ -198,13 +214,14 @@ $group->get('/classes/{id:[0-9]+}/eleves', function (ServerRequestInterface $req
 // DEVOIRS
 // ---------------------------------------------------------------------
 
-// ?classe_id= facultatif ; avec le nombre d'élèves qui l'ont fait ou rendu
+// ?classe_id= facultatif ; avec la consigne, les pièces jointes et le nombre d'élèves qui l'ont fait ou rendu
 $group->get('/devoirs', function (ServerRequestInterface $request, ResponseInterface $response) {
     $classeId = entier($request->getQueryParams(), 'classe_id');
 
     $stmt = db()->prepare(
         "SELECT d.id, d.classe_id, c.nom AS classe, d.matiere_id, m.nom AS matiere, d.type, d.titre,
-                d.donne_le, d.a_rendre_le, d.rendu_en_ligne,
+                d.description, d.donne_le, d.a_rendre_le, d.rendu_en_ligne,
+                " . SQL_FICHIERS_DEVOIR . " AS fichiers,
                 count(de.eleve_id) AS eleves,
                 count(*) FILTER (WHERE de.statut IN ('fait', 'rendu', 'corrige')) AS faits,
                 count(*) FILTER (WHERE de.statut IN ('rendu', 'corrige')) AS rendus
@@ -219,7 +236,7 @@ $group->get('/devoirs', function (ServerRequestInterface $request, ResponseInter
     );
     $stmt->execute(['moi' => moi(), 'classe' => $classeId, 'classe2' => $classeId]);
 
-    return json($response, ['devoirs' => $stmt->fetchAll()]);
+    return json($response, ['devoirs' => array_map('decoderFichiers', $stmt->fetchAll())]);
 });
 
 // Un suivi (devoir_eleve) est créé automatiquement pour chaque élève de la classe (trigger SQL)
@@ -311,9 +328,38 @@ $group->get('/devoirs/{id:' . UUID . '}/suivi', function (ServerRequestInterface
 
     foreach ($suivi as &$ligne) {
         $ligne['fichiers'] = json_decode($ligne['fichiers'], true);
+        $ligne['note'] = decimal($ligne['note']);
     }
 
     return json($response, ['devoir' => lireDevoir($args['id']), 'eleves' => $suivi]);
+});
+
+// Pièce jointe du prof (sujet, consigne détaillée…) : formulaire multipart, champ « fichier ».
+// Un fichier par appel : pour en joindre plusieurs, rappeler la route. Les élèves de la classe les téléchargent
+// avec GET /api/devoirs/fichiers/{id}/telecharger.
+$group->post('/devoirs/{id:' . UUID . '}/fichiers', function (ServerRequestInterface $request, ResponseInterface $response, array $args) {
+    verifierProprietaire('devoir', $args['id']); // avant d'écrire quoi que ce soit sur le disque
+
+    $fichier = enregistrerFichier($request, 'devoirs');
+
+    try {
+        $stmt = db()->prepare(
+            'INSERT INTO devoir_fichier (devoir_id, nom, url, taille_o)
+             VALUES (:devoir, :nom, :url, :taille)
+             RETURNING id, nom, taille_o'
+        );
+        $stmt->execute([
+            'devoir' => $args['id'],
+            'nom'    => $fichier['nom'],
+            'url'    => $fichier['url'],
+            'taille' => $fichier['taille'],
+        ]);
+    } catch (Throwable $e) {
+        supprimerFichier($fichier['url']); // pas de fichier orphelin si la base refuse
+        throw $e;
+    }
+
+    return json($response, ['fichier' => $stmt->fetch()], 201);
 });
 
 // ---------------------------------------------------------------------
