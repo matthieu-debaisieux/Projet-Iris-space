@@ -3,7 +3,7 @@ import DataState from '@/components/ui/DataState.jsx';
 import Modal from '@/components/ui/Modal.jsx';
 import { useAuth } from '@/context/AuthContext.jsx';
 import { useAsync } from '@/hooks/useAsync.js';
-import { estEleve, estProf, getEmploiDuTemps } from '@/services/emploiDuTemps.js';
+import { getEmploiDuTemps } from '@/services/emploiDuTemps.js';
 import { getPlanning } from '@/services/planning.js';
 
 // Données : services/planning.js → schedule[classe][jour] = tableau de cours
@@ -506,9 +506,10 @@ function PlanningClasses() {
 }
 
 // ── Page ────────────────────────────────────────────────────────────────────
-// Élève et prof : leur propre emploi du temps (le service choisit la route selon le rôle).
-// Les autres rôles : planning de toutes les classes.
+// Qui gère l'emploi du temps (droit `emploi_du_temps_gerer`) : planning de toutes les classes.
+// Les autres (élève, prof) : leur propre emploi du temps (le service choisit la route selon le rôle).
+// Règle du projet : la page décide avec les droits, jamais avec `user.role`.
 export default function EmploiDuTemps() {
-  const { user } = useAuth();
-  return estEleve(user) || estProf(user) ? <MonEmploiDuTemps /> : <PlanningClasses />;
+  const { can } = useAuth();
+  return can('emploi_du_temps_gerer') ? <PlanningClasses /> : <MonEmploiDuTemps />;
 }
