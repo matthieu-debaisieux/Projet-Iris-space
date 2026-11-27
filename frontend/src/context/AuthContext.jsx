@@ -8,15 +8,27 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => loadJSON(LS_SESSION, null, { seed: false }));
 
-  async function login(identifiant, motDePasse) {
-    const u = await authService.login(identifiant, motDePasse);
+  function ouvrirSession(u) {
     saveJSON(LS_SESSION, u);
     setUser(u);
+  }
+
+  // Renvoie le résultat de authService.login : { user, doubleAuthAConfigurer } ou { doubleAuthentification }
+  async function login(identifiant, motDePasse) {
+    const resultat = await authService.login(identifiant, motDePasse);
+    if (resultat.user) ouvrirSession(resultat.user);
+    return resultat;
+  }
+
+  // Deuxième étape de la connexion (double authentification)
+  async function verifierCode(code) {
+    const u = await authService.verifierCode(code);
+    ouvrirSession(u);
     return u;
   }
 
   async function logout() {
-    await authService.logout();
+    await authService.logout().catch(() => {});
     localStorage.removeItem(LS_SESSION);
     setUser(null);
   }
@@ -24,7 +36,7 @@ export function AuthProvider({ children }) {
   // Vrai si l'utilisateur possède le droit (toujours faux si déconnecté)
   const can = droit => user?.droits?.includes(droit) ?? false;
 
-  return <AuthContext.Provider value={{ user, login, logout, can }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, login, verifierCode, logout, can }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

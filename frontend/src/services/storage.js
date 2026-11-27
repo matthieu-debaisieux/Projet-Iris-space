@@ -4,7 +4,7 @@ export const LS_MESSAGES      = 'iris_messageCount';
 export const LS_ABSENCES      = 'iris_absences_v2';
 export const LS_COURS         = 'iris_cours';
 export const LS_ACTUALITES    = 'iris_actualites';
-export const LS_CONVERSATIONS = 'iris_conversations';
+export const LS_CONVERSATIONS = 'iris_conversations_v2'; // v2 : format de l'API (MSG-03)
 
 // Lit une valeur JSON ; si absente ou corrompue, enregistre (quand `seed` est
 // vrai) et renvoie une copie de `fallback`.

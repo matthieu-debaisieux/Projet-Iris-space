@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import DataState from '@/components/ui/DataState.jsx';
 import Modal from '@/components/ui/Modal.jsx';
+import ChangerMotDePasse from '@/components/ChangerMotDePasse.jsx';
 import { useAuth } from '@/context/AuthContext.jsx';
 import { useAsync } from '@/hooks/useAsync.js';
 import { getProfil } from '@/services/eleve.js';
@@ -21,6 +22,7 @@ function Champ({ id, label, value, type = 'text', width = 'w-full px-3' }) {
 
 export default function Profil() {
   const [contactOpen, setContactOpen] = useState(false);
+  const [motDePasseOpen, setMotDePasseOpen] = useState(false);
   const closeContact = () => setContactOpen(false);
   const profil = useAsync(getProfil);
   const { logout } = useAuth();
@@ -71,7 +73,8 @@ export default function Profil() {
 
         <main className="flex-1 overflow-auto p-6 md:p-10">
           <DataState state={profil}>{p => {
-            const [jour, mois, annee] = p.dateNaissance.split('/');
+            // ?? '' : le format de l'API diffère encore des mocks (CPT-07) ; évite que toute la page plante
+            const [jour, mois, annee] = (p.dateNaissance ?? '').split('/');
             return (
               <form className="bg-gray-200/70 rounded-2xl p-8 max-w-4xl mx-auto">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-x-10 gap-y-6">
@@ -100,8 +103,23 @@ export default function Profil() {
               </form>
             );
           }}</DataState>
+
+          {/* Sécurité du compte (CPT-06, SEC-03) : pour tous les rôles */}
+          <section className="bg-gray-200/70 rounded-2xl p-8 max-w-4xl mx-auto mt-6 flex flex-col gap-3">
+            <h2 className={labelClass}>Sécurité du compte</h2>
+            <div className="flex flex-wrap gap-3">
+              <button type="button" onClick={() => setMotDePasseOpen(true)} className="rounded-full bg-[var(--color-principal)] px-4 py-2 text-sm font-medium text-white hover:opacity-90">
+                Changer mon mot de passe
+              </button>
+              <Link to="/double-authentification" className="rounded-full border border-[var(--color-principal)] px-4 py-2 text-sm font-medium text-[var(--color-principal)] hover:bg-white">
+                Double authentification
+              </Link>
+            </div>
+          </section>
         </main>
       </div>
+
+      {motDePasseOpen && <ChangerMotDePasse onClose={() => setMotDePasseOpen(false)} />}
 
       {/* Modale "Nous contacter" */}
       {contactOpen && (

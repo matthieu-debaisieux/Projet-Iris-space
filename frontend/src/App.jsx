@@ -9,6 +9,9 @@ import Actualites from '@/pages/Actualites.jsx';
 import Messages from '@/pages/Messages.jsx';
 import Profil from '@/pages/Profil.jsx';
 import APropos from '@/pages/APropos.jsx';
+import MotDePasseOublie from '@/pages/MotDePasseOublie.jsx';
+import ReinitialiserMotDePasse from '@/pages/ReinitialiserMotDePasse.jsx';
+import DoubleAuthentification from '@/pages/DoubleAuthentification.jsx';
 
 import MediaschoolAccueil from '@/pages/mediaschool/Accueil.jsx';
 import Plages from '@/pages/mediaschool/Plages.jsx';
@@ -21,6 +24,8 @@ export default function App() {
     <Routes>
       {/* Connexion : page seule, sans navbar ni footer */}
       <Route path="/" element={<Login />} />
+      <Route path="/mot-de-passe-oublie" element={<MotDePasseOublie />} />
+      <Route path="/reinitialiser-mot-de-passe" element={<ReinitialiserMotDePasse />} />
 
       <Route element={<Layout />}>
         {/* Public */}
@@ -35,6 +40,7 @@ export default function App() {
           ))}
           <Route path="/messages" element={<RequireDroit droit="messagerie"><Messages /></RequireDroit>} />
           <Route path="/profil" element={<Profil />} />
+          <Route path="/double-authentification" element={<DoubleAuthentification />} />
         </Route>
       </Route>
 
