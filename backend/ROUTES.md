@@ -20,6 +20,7 @@ Les sections marquées **(fait)** plus bas sont aussi codées :
 - professeur ;
 - visiteur ;
 - actualités ;
+- messagerie (conversations, messages, non-lus, recherche des destinataires) ;
 - RGPD (journal des connexions, export et suppression des données).
 
 ## Organisation
@@ -27,7 +28,7 @@ Les sections marquées **(fait)** plus bas sont aussi codées :
 - Les routes communes n'ont pas de préfixe : auth, actualités, messagerie.
 - Les routes propres à un espace vont sous `/api/admin`, `/api/prof` et `/api/eleve`. Chaque groupe est protégé par le middleware `requireRole()` de [helpers.php](routes/helpers.php) : 401 si personne n'est connecté, 403 si le rôle ne correspond pas.
 - Côté élève, l'id vient de la session et jamais de l'URL, pour qu'un élève ne puisse pas lire les notes d'un autre.
-- Un fichier de routes par espace : [admin/documents.php](routes/admin/documents.php), [admin/utilisateurs.php](routes/admin/utilisateurs.php), [eleve.php](routes/eleve.php), [prof.php](routes/prof.php), [visiteur.php](routes/visiteur.php), [rgpd.php](routes/rgpd.php) et [admin/rgpd.php](routes/admin/rgpd.php). Les actualités, partagées entre plusieurs rôles, ont leur propre fichier sans préfixe : [actualites.php](routes/actualites.php). Ils sont branchés dans [index.php](public/index.php).
+- Un fichier de routes par espace : [admin/documents.php](routes/admin/documents.php), [admin/utilisateurs.php](routes/admin/utilisateurs.php), [eleve.php](routes/eleve.php), [prof.php](routes/prof.php), [visiteur.php](routes/visiteur.php), [rgpd.php](routes/rgpd.php) et [admin/rgpd.php](routes/admin/rgpd.php). Les routes partagées entre plusieurs rôles ont leur propre fichier sans préfixe : [actualites.php](routes/actualites.php) et [messagerie.php](routes/messagerie.php). Ils sont branchés dans [index.php](public/index.php).
 
 ## Conventions de l'API (pour le front)
 
@@ -115,15 +116,102 @@ Réponse : `{ "actualite": {...} }` pour `POST` et `PUT`, `{ "actualites": [...]
 | GET | `/api/uploads/{categorie}/{nom}` | Servir un fichier déposé via `/api/uploads` (public pour `actualites`, connecté pour les autres catégories) | P1 |
 | GET | `/api/documents/{id}/telecharger` | Télécharger un document après vérification des droits (admin/direction : tout ; élève : généraux et les siens ; prof : généraux, les siens ou déposés par lui) | P2 |
 
-## Messagerie (admin, prof, élève)
+## Messagerie (fait)
 
-| Méthode | Route | Sert à | P |
-|---|---|---|---|
-| GET · POST | `/api/conversations` | Liste avec dernier message et non-lus / nouvelle conversation | P1 |
-| GET · POST | `/api/conversations/{id}/messages` | Fil de discussion / envoyer un message | P1 |
-| POST | `/api/conversations/{id}/lu` | Marquer comme lu (`dernier_lu_at`) | P1 |
-| GET | `/api/messages/non-lus` | Pastille rouge des navbars (aujourd'hui un compteur en localStorage) | P1 |
-| GET | `/api/utilisateurs?recherche=` | Trouver à qui écrire | P1 |
+Toutes les routes sont communes (pas de préfixe) et dans [messagerie.php](routes/messagerie.php). Elles demandent d'être connecté (401 sinon), quel que soit le rôle.
+
+Décision D10 (proposition appliquée, à valider par Mme Hamidat) :
+- Un élève écrit aux professeurs et à l'administration.
+- Un professeur et l'administration écrivent à tout le monde.
+- Pas d'élève ↔ élève dans la bêta.
+- « Administration » regroupe les rôles `administrateur`, `direction` et `dev`.
+- Conséquence : une conversation ne peut jamais réunir deux élèves ou plus (403). Un groupe « 1 élève + plusieurs professeurs ou administrateurs » est possible, pas un groupe de plusieurs élèves, même créé par un professeur. À assouplir plus tard si l'école veut des groupes de classe.
+- La règle est vérifiée à la création : les participants ne changent plus ensuite (pas de route pour en ajouter ou en retirer). La recherche de destinataires applique la même règle.
+
+Comportement :
+- Un utilisateur ne voit que les conversations dont il est participant. Pour toutes les autres (ou un id inconnu), la réponse est 404 : lecture, envoi et « marquer comme lu » compris.
+- Une conversation à deux est unique : écrire à quelqu'un avec qui on a déjà une conversation reprend celle-ci (200) au lieu d'en créer une seconde.
+- Une conversation sans aucun message n'apparaît que chez son créateur, les autres la voient au premier message.
+- Non lu : un message d'un autre participant, plus récent que le `dernier_lu_at` de l'utilisateur (ou tout message si `dernier_lu_at` est vide). Ses propres messages ne comptent jamais. Envoyer un message ne marque rien comme lu : seul `POST …/lu` le fait. À la création, la conversation est lue pour son créateur.
+- Le fil est paginé par curseur : on reçoit les `limit` derniers messages (50 par défaut, 100 au maximum), du plus ancien au plus récent. Pour remonter, passer l'id du plus ancien message reçu dans `avant`. `plus_anciens` vaut `true` tant qu'il en reste.
+- Un message fait 5000 caractères au maximum. Les pièces jointes ne sont pas encore gérées (`MSG-04`).
+- Les messages marqués `supprime` ne sont jamais renvoyés. Les messages d'un compte anonymisé (RGPD) restent, avec « Utilisateur supprimé » comme auteur.
+
+| Méthode | Route | Droits | Sert à | P |
+|---|---|---|---|---|
+| GET | `/api/conversations?limit=` | Connecté | Mes conversations, les plus récemment actives d'abord (100 au maximum) | P1 |
+| POST | `/api/conversations` | Connecté | Nouvelle conversation, avec ses participants et un premier message | P1 |
+| GET | `/api/conversations/{id}/messages?limit=&avant=` | Participant | Fil de discussion | P1 |
+| POST | `/api/conversations/{id}/messages` | Participant | Envoyer un message (201) | P1 |
+| POST | `/api/conversations/{id}/lu` | Participant | Marquer comme lu (`dernier_lu_at` = maintenant) | P1 |
+| GET | `/api/messages/non-lus` | Connecté | Pastille de la barre de navigation | P1 |
+| GET | `/api/utilisateurs?recherche=&limit=` | Connecté | Trouver à qui écrire (règle D10) | P1 |
+
+**`POST /api/conversations`**, corps :
+
+```json
+{
+  "participant_ids": ["uuid-du-destinataire"],
+  "message": "Premier message (facultatif)",
+  "titre": "Nom du groupe (facultatif, groupes seulement)"
+}
+```
+
+- `participant_ids` : les destinataires, sans soi-même (s'il y est, il est ignoré ; les doublons aussi). Il en faut au moins un, 49 au maximum. Un seul destinataire : conversation à deux (`titre` ignoré). Plusieurs : conversation de groupe.
+- `message` (5000 caractères au maximum) et `titre` (200) sont facultatifs. Le front envoie toujours un premier message.
+- Réponses : 201 `{ "conversation": {...} }` pour une nouvelle conversation, 200 avec la même forme si la conversation à deux existait déjà (le `message` y est ajouté).
+- Erreurs : 400 (liste vide ou mal formée, identifiant invalide, trop de participants), 403 (règle D10 : deux élèves ou plus), 404 (destinataire inconnu ou compte désactivé).
+
+**Une conversation** (liste, création) :
+
+```json
+{
+  "id": "uuid",
+  "titre": null,
+  "est_groupe": false,
+  "created_at": "2026-11-27 17:54:55.1739+01",
+  "participants": [
+    { "id": "uuid", "nom": "Leroy", "prenom": "Paul", "role": "professeur", "photo_url": null }
+  ],
+  "dernier_message": {
+    "id": "uuid", "contenu": "Bonjour…", "expediteur_id": "uuid", "envoye_at": "2026-11-27 17:54:55.1739+01"
+  },
+  "non_lus": 1
+}
+```
+
+- `participants` : **les autres participants** (jamais l'utilisateur connecté), par ordre alphabétique. Le nom d'une conversation à deux est celui de l'autre personne ; pour un groupe, `titre` ou à défaut les noms.
+- `dernier_message` : `null` pour une conversation sans message ; son `contenu` est tronqué à 200 caractères (aperçu).
+- `non_lus` : nombre de messages non lus dans cette conversation.
+
+**`GET …/messages`** : `{ "messages": [...], "plus_anciens": false }`. Un message :
+
+```json
+{
+  "id": "uuid",
+  "conversation_id": "uuid",
+  "expediteur_id": "uuid",
+  "expediteur_nom": "Durand",
+  "expediteur_prenom": "Lucas",
+  "contenu": "Texte du message",
+  "envoye_at": "2026-11-27 17:54:55.1739+01",
+  "modifie_at": null
+}
+```
+
+Erreurs : 404 si la conversation n'est pas la vôtre ou si `avant` n'est pas un message de cette conversation, 400 si `limit` n'est pas entre 1 et 100.
+
+**`POST …/messages`**, corps `{ "contenu": "texte" }` : 201 `{ "message": {...} }`. 400 si `contenu` est vide ou dépasse 5000 caractères.
+
+**`POST …/lu`** : sans corps, répond 200 `{ "non_lus": 3 }` : le total qui reste dans toutes les conversations, pour mettre à jour la pastille sans second appel.
+
+**`GET /api/messages/non-lus`** : `{ "non_lus": 3 }`, le nombre de messages non lus dans toutes les conversations.
+
+**`GET /api/utilisateurs`** : `{ "utilisateurs": [ { "id", "nom", "prenom", "role", "classe", "photo_url" } ] }`, classe vide sauf pour un élève.
+- Comptes actifs seulement, jamais soi-même, triés par nom puis prénom. Un élève ne voit aucun élève (règle D10).
+- `recherche` : chaque mot doit se retrouver dans le nom, le prénom, la classe ou le rôle (« prof », « élève », « admin », « direction », « dev »), sans tenir compte des accents ni de la casse. 5 mots au maximum, 100 caractères.
+- Sans `recherche`, la liste commence par l'ordre alphabétique. `limit` vaut 20 par défaut, 100 au maximum.
+- Ni e-mail ni téléphone ne sont renvoyés.
 
 ## Admin : tableau de bord et absences
 
@@ -353,8 +441,8 @@ Table issue de l'ancien README du front : les appels de gauche doivent tous êtr
 | `GET /api/planning` | `getPlanning` | `GET /api/admin/cours?classe_id=&du=&au=` · `GET /api/eleve/emploi-du-temps?du=&au=` · `GET /api/prof/emploi-du-temps?du=&au=` | Élève/prof faits ; admin à faire (`EDT-01`, `EDT-02`) |
 | `GET /api/planning/aujourdhui` | `getCoursDuJour` | `GET /api/admin/cours?du=&au=` (date du jour) | À faire (`EDT-01`, `ACC-02`) |
 | `GET /api/espaces` | `getEspaces` | `GET /api/admin/espaces` (gestion) · `GET /api/eleve/documents` (élève) | Fait (`DOC-02`, `DOC-04`) |
-| `GET /api/conversations` | `getConversations` | `GET /api/conversations` | À faire (`MSG-01`, `MSG-03`) |
-| `POST /api/conversations/:id/messages` | `sendMessage` | `POST /api/conversations/{id}/messages` | À faire (`MSG-01`, `MSG-03`) |
+| `GET /api/conversations` | `getConversations` | `GET /api/conversations` | Fait (`MSG-01`, `MSG-03`) |
+| `POST /api/conversations/:id/messages` | `sendMessage` | `POST /api/conversations/{id}/messages` | Fait (`MSG-01`, `MSG-03`) |
 | `GET /api/eleve/emploi-du-temps?date=` | `getEmploiDuJour` | `GET /api/eleve/emploi-du-temps?du=&au=` · `GET /api/prof/emploi-du-temps?du=&au=` | Back fait ; front à brancher (`EDT-03`) |
 | `GET /api/eleve/raccourcis` | `getRaccourcis` | Supprimée : remplacée par `/api/eleve/devoirs`, `/api/eleve/ressources`, `/api/eleve/notes` | À faire (`ACC-01`) |
 | `GET /api/eleve/notes` | `getNotes` | `GET /api/eleve/notes` et `GET /api/eleve/moyennes` | Back fait ; front à brancher (`NOT-01`) |
@@ -367,7 +455,7 @@ Table issue de l'ancien README du front : les appels de gauche doivent tous êtr
    - une année scolaire courante et un campus ;
    - des classes et des matières ;
    - les liens prof ↔ matière et classe ↔ matière.
-2. **Services front restant à brancher.** Les services `conversations`, `planning`, `absences`, `eleve` et `devoirs` doivent encore être alignés sur les routes ci-dessus (lots `ACC`, `ACT`, `MSG`, `EDT`, `DEV`, `NOT`).
+2. **Services front restant à brancher.** Les services `planning`, `absences`, `eleve` et `devoirs` doivent encore être alignés sur les routes ci-dessus (lots `ACC`, `ACT`, `EDT`, `DEV`, `NOT`).
 3. **Écarts entre les pages et le schéma**, à trancher avant d'écrire les routes concernées :
    - **Actualités :** tranché par la décision D9, à valider par Matthieu (voir la section Actualités). Le statut « Archivé » disparaît de la bêta : un article est un brouillon ou publié. L'auteur est le compte connecté (`auteur_id`), plus un texte libre.
    - **Absences :**

@@ -55,6 +55,7 @@ $app->group('/api', function ($group) {
 
     // Actualités : routes communes à plusieurs rôles (pas de préfixe), chacune pose son requireRole
     require __DIR__ . '/../routes/actualites.php';
+    require __DIR__ . '/../routes/messagerie.php';
 
     // Routes Bonus (P3) : chacune pose elle-même son requireRole / requireConnecte
     require __DIR__ . '/../routes/mot_de_passe.php';
