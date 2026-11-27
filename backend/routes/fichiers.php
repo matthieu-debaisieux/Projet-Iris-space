@@ -10,6 +10,10 @@ const CATEGORIES_UPLOAD = ['general', 'actualites', 'avatars', 'messages'];
 // POST /api/uploads : envoi générique d'un fichier (champ multipart « fichier », « categorie » facultative)
 $group->post('/uploads', function (ServerRequestInterface $request, ResponseInterface $response) {
     $categorie = choix(corps($request), 'categorie', CATEGORIES_UPLOAD, 'general');
+    // Le dossier « actualites » est lisible sans connexion : seuls ceux qui écrivent des actualités y déposent des images
+    if ($categorie === 'actualites' && !in_array($_SESSION['role'] ?? '', ['administrateur', 'direction', 'dev', 'professeur'], true)) {
+        throw new ApiException('Accès refusé', 403);
+    }
     $extensions = in_array($categorie, ['actualites', 'avatars'], true)
         ? EXTENSIONS_IMAGES
         : EXTENSIONS_AUTORISEES;

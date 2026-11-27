@@ -35,26 +35,47 @@ export async function getActualites({ limit, brouillons = false } = {}) {
   return trier(lire().filter(a => a.statut === 'publie' || (brouillons && peutVoirBrouillon(a)))).slice(0, limit);
 }
 
-// data : { titre, contenu, statut, publique, image_url, image }
+// data : { titre, contenu, statut, publique, image_url, fichier, image }
 //   - `image_url` : image déjà enregistrée de l'article (URL ou chemin)
-//   - `image` : nouvelle image choisie dans le formulaire, en base64. Le back n'accepte pas encore
-//     de base64 : tant que l'envoi par `POST /uploads` n'existe pas (tâche ACT-04), elle n'est
-//     gardée qu'en mode mocks.
+//   - `fichier` : nouveau fichier image (File) choisi dans le formulaire.
+//     En mode API : envoyé d'abord via POST /uploads (catégorie « actualites ») puis enregistré dans `image_url`.
+//     En mode mocks : converti en base64 et conservé en localStorage.
 const corps = ({ titre, contenu, statut, publique, image_url }) => ({
   titre, contenu, statut, publique: !!publique, image_url: image_url ?? null,
 });
 
+const lireImage = file => new Promise(resolve => {
+  if (!file) return resolve(null);
+  const reader = new FileReader();
+  reader.onload = e => resolve(e.target.result);
+  reader.readAsDataURL(file);
+});
+
+async function uploadImageActualite(fichier) {
+  const form = new FormData();
+  form.append('fichier', fichier);
+  form.append('categorie', 'actualites');
+  const res = await api.upload('/uploads', form);
+  return res.url;
+}
+
+async function preparerCorpsApi(data) {
+  const image_url = data.fichier ? await uploadImageActualite(data.fichier) : (data.image_url ?? null);
+  return corps({ ...data, image_url });
+}
+
 // Renvoie l'article créé (avec son id) ; l'auteur est le compte connecté
 export async function createActualite(data) {
-  if (!USE_MOCKS) return (await api.post('/actualites', corps(data))).actualite;
+  if (!USE_MOCKS) return (await api.post('/actualites', await preparerCorpsApi(data))).actualite;
 
   const auteur = utilisateurMock();
   if (!aLeDroit(auteur, 'actualites_gerer')) throw erreur('Accès refusé', 403);
+  const image = data.image ?? (data.fichier ? await lireImage(data.fichier) : null);
   const all = lire();
   const maintenant = new Date().toISOString();
   const actu = {
     id: all.length > 0 ? Math.max(...all.map(a => a.id)) + 1 : 0,
-    ...champsMock(data, null),
+    ...champsMock({ ...data, image }, null),
     created_at: maintenant,
     updated_at: maintenant,
     auteur_id: auteur.id,
@@ -67,10 +88,11 @@ export async function createActualite(data) {
 
 // Renvoie l'article modifié (l'auteur ne change pas)
 export async function updateActualite(id, data) {
-  if (!USE_MOCKS) return (await api.put(`/actualites/${id}`, corps(data))).actualite;
+  if (!USE_MOCKS) return (await api.put(`/actualites/${id}`, await preparerCorpsApi(data))).actualite;
 
   const actu = trouverMock(id);
-  const modifie = { ...actu, ...champsMock(data, actu), updated_at: new Date().toISOString() };
+  const image = data.image ?? (data.fichier ? await lireImage(data.fichier) : null);
+  const modifie = { ...actu, ...champsMock({ ...data, image }, actu), updated_at: new Date().toISOString() };
   saveJSON(LS_ACTUALITES, lire().map(a => (a.id === id ? modifie : a)));
   return modifie;
 }

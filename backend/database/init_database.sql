@@ -2,10 +2,6 @@
 --  IRIS SPACE - postgreSQL
 -- =====================================================================
 
--- Remise à zéro : permet de réimporter ce script (ex. via Adminer).
--- ATTENTION : efface toutes les tables et données du schéma public.
-DROP SCHEMA IF EXISTS public CASCADE;
-CREATE SCHEMA public;
 
 CREATE EXTENSION IF NOT EXISTS citext;
 CREATE EXTENSION IF NOT EXISTS btree_gist;

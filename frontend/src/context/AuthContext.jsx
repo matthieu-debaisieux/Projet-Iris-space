@@ -70,10 +70,20 @@ export function AuthProvider({ children }) {
     }
   }
 
+  // Met à jour localement des champs du user connecté (ex. photo_url) et persiste en session locale
+  function updateUser(patch) {
+    setUser(prev => {
+      if (!prev) return prev;
+      const next = typeof patch === 'function' ? patch(prev) : { ...prev, ...patch };
+      saveJSON(LS_SESSION, next);
+      return next;
+    });
+  }
+
   // Vrai si l'utilisateur possède le droit (toujours faux si déconnecté)
   const can = droit => user?.droits?.includes(droit) ?? false;
 
-  return <AuthContext.Provider value={{ user, loading, login, logout, can }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, loading, login, logout, can, updateUser }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

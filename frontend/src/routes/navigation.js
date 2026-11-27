@@ -5,11 +5,15 @@ import Actualites from '@/pages/Actualites.jsx';
 import EmploiDuTemps from '@/pages/EmploiDuTemps.jsx';
 import Documents from '@/pages/Documents.jsx';
 import Comptes from '@/pages/Comptes.jsx';
+import Programme from '@/pages/Programme.jsx';
+import Classe from '@/pages/Classe.jsx';
 
 // Pages du menu de l'espace connecté. Un lien n'est affiché (et la page
 // accessible) que si l'utilisateur possède le `droit` correspondant.
 export const NAV_LINKS = [
   { path: 'comptes',         label: 'Comptes',         droit: 'comptes_gerer',   Page: Comptes },
+  { path: 'programme',       label: 'Programme',       droit: 'programme_gerer', Page: Programme },
+  { path: 'classe',          label: 'Classe',          droit: 'classe_voir',     Page: Classe },
   { path: 'devoirs',         label: 'Devoirs',         droit: 'devoirs',         Page: Devoirs },
   { path: 'notes',           label: 'Notes',           droit: 'notes',           Page: Notes },
   { path: 'absences',        label: 'Vie scolaire',    droit: 'absences',        Page: Absences },

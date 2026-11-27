@@ -11,6 +11,8 @@ Ce document est l'**unique contrat d'API** entre le front-end et le back-end : t
 | POST | `/api/auth/logout` | Vide et détruit la session, supprime le cookie, répond 204 |
 | GET | `/api/auth/me` | Renvoie `{ user }` avec `droits`, ou 401 si pas de session ou compte désactivé |
 | GET | `/api/profil` | Profil complet de l'utilisateur connecté selon son rôle (élève, professeur, administrateur/direction) |
+| POST | `/api/profil/photo` | Envoyer ou remplacer sa photo de profil (`fichier` multipart, JPG/PNG/WebP, 2 Mo max ; met à jour `utilisateur.photo_url` et renvoie `{ photo_url }`) |
+| DELETE | `/api/profil/photo` | Retirer sa photo de profil (supprime le fichier et remet `utilisateur.photo_url` à `null`, 204) |
 
 Les sections marquées **(fait)** plus bas sont aussi codées :
 - fichiers (`/uploads`, `/documents/{id}/telecharger`) ;
@@ -21,6 +23,7 @@ Les sections marquées **(fait)** plus bas sont aussi codées :
 - professeur ;
 - visiteur ;
 - actualités ;
+- notifications ;
 - RGPD (journal des connexions, export et suppression des données).
 
 ## Organisation
@@ -28,7 +31,7 @@ Les sections marquées **(fait)** plus bas sont aussi codées :
 - Les routes communes n'ont pas de préfixe : auth, actualités, messagerie.
 - Les routes propres à un espace vont sous `/api/admin`, `/api/prof` et `/api/eleve`. Chaque groupe est protégé par le middleware `requireRole()` de [helpers.php](routes/helpers.php) : 401 si personne n'est connecté, 403 si le rôle ne correspond pas.
 - Côté élève, l'id vient de la session et jamais de l'URL, pour qu'un élève ne puisse pas lire les notes d'un autre.
-- Un fichier de routes par espace : [admin/documents.php](routes/admin/documents.php), [admin/utilisateurs.php](routes/admin/utilisateurs.php), [admin/emploi_du_temps.php](routes/admin/emploi_du_temps.php), [eleve.php](routes/eleve.php), [prof.php](routes/prof.php), [visiteur.php](routes/visiteur.php), [rgpd.php](routes/rgpd.php) et [admin/rgpd.php](routes/admin/rgpd.php). Les actualités, partagées entre plusieurs rôles, ont leur propre fichier sans préfixe : [actualites.php](routes/actualites.php). Ils sont branchés dans [index.php](public/index.php).
+- Un fichier de routes par espace : [admin/documents.php](routes/admin/documents.php), [admin/utilisateurs.php](routes/admin/utilisateurs.php), [admin/emploi_du_temps.php](routes/admin/emploi_du_temps.php), [admin/programme.php](routes/admin/programme.php), [eleve.php](routes/eleve.php), [prof.php](routes/prof.php), [visiteur.php](routes/visiteur.php), [rgpd.php](routes/rgpd.php) et [admin/rgpd.php](routes/admin/rgpd.php). Les actualités, partagées entre plusieurs rôles, ont leur propre fichier sans préfixe : [actualites.php](routes/actualites.php). Ils sont branchés dans [index.php](public/index.php).
 
 ## Conventions de l'API (pour le front)
 
@@ -112,9 +115,11 @@ Réponse : `{ "actualite": {...} }` pour `POST` et `PUT`, `{ "actualites": [...]
 
 | Méthode | Route | Sert à | P |
 |---|---|---|---|
-| POST | `/api/uploads` | Envoyer un fichier (`fichier`, `categorie` facultative : `general`, `actualites`, `avatars`, `messages`) et récupérer `{ url, fichier }` | P1 |
-| GET | `/api/uploads/{categorie}/{nom}` | Servir un fichier déposé via `/api/uploads` (public pour `actualites`, connecté pour les autres catégories) | P1 |
+| POST | `/api/uploads` | Envoyer un fichier (`fichier`, `categorie` facultative : `general`, `actualites`, `avatars`, `messages`) et récupérer `{ url, fichier }` (`actualites` réservé à admin, direction, dev, prof ; `actualites` et `avatars` limités aux images) | P1 |
+| GET | `/api/uploads/{categorie}/{nom}` | Servir un fichier déposé via `/api/uploads` (public sans connexion pour `actualites`, tout utilisateur connecté pour `general`, `avatars`, `messages`) | P1 |
 | GET | `/api/documents/{id}/telecharger` | Télécharger un document après vérification des droits (admin/direction : tout ; élève : généraux et les siens ; prof : généraux, les siens ou déposés par lui) | P2 |
+| GET | `/api/devoirs/fichiers/{id}/telecharger` | Télécharger une pièce jointe d'un devoir (prof auteur, élèves du devoir, administration) | P2 |
+| GET | `/api/devoirs/rendus/{id}/telecharger` | Télécharger un fichier rendu par un élève (élève auteur ou prof du devoir) | P2 |
 
 ## Messagerie (admin, prof, élève)
 
@@ -237,6 +242,8 @@ Comportement :
   - `{ "matieres": [{ "matiere_id": 1, "coefficient": 2 }] }` pour une classe.
 
   Retirer une matière encore utilisée par des cours, devoirs ou évaluations répond 409.
+- Page « Programme » (droit `programme_gerer`, accordé à `administrateur`, `direction` et `dev`) : elle lit les trois routes `GET /api/admin/programme/…` et écrit avec `POST /api/admin/matieres` et les deux `PUT …/matieres`. Les coefficients sont renvoyés en texte (`"4.00"`).
+- « Voir la classe » (droit `classe_voir`, accordé à l'élève, au prof, à l'administration, à la direction et au dev) : l'élève lit sa classe avec `GET /api/eleve/classe`, le prof ses classes avec `GET /api/prof/classes` puis `GET /api/prof/classes/{id}/eleves`, l'administration toutes les classes avec `GET /api/admin/classes` puis `GET /api/admin/classes/{id}/eleves`. Seuls les élèves actifs sont listés, avec nom, prénom et photo : jamais d'e-mail, de téléphone ni d'adresse. Le numéro d'étudiant n'est donné qu'au prof et à l'administration, pas à l'élève.
 
 | Méthode | Route | Sert à | P |
 |---|---|---|---|
@@ -245,6 +252,10 @@ Comportement :
 | PATCH | `/api/admin/utilisateurs/{id}/actif` | Désactiver / réactiver un compte | P2 |
 | DELETE | `/api/admin/utilisateurs/{id}` | Supprimer un compte (rôle `dev` uniquement ; répond 409 si des données y sont rattachées, voir plus haut) | P2 |
 | GET | `/api/admin/classes` | Lister les classes existantes (pour le menu « Classe » lors de la création/édition d'un élève) | P1 |
+| GET | `/api/admin/classes/{id}/eleves` | Élèves actifs d'une classe (`id`, `nom`, `prenom`, `photo_url`, `numero_etudiant` — sans coordonnées) | P2 |
+| GET | `/api/admin/programme/matieres` | Lister les matières avec `nb_professeurs` et `nb_classes` | P2 |
+| GET | `/api/admin/programme/professeurs` | Lister les professeurs (actifs et désactivés) avec leurs matières enseignées | P2 |
+| GET | `/api/admin/programme/classes` | Lister les classes avec leur programme (`matieres` et `coefficient`) | P2 |
 | POST | `/api/admin/matieres` | Créer une matière | P2 |
 | PUT | `/api/admin/professeurs/{id}/matieres` | Matières qu'un prof enseigne | P2 |
 | PUT | `/api/admin/classes/{id}/matieres` | Programme d'une classe et coefficients | P2 |
@@ -263,6 +274,7 @@ Comportement :
 |---|---|---|---|
 | GET | `/api/eleve/profil` | Page Profil (classe, année scolaire, naissance…) | P1 |
 | PATCH | `/api/eleve/profil` | Modifier ses coordonnées (`email`, `telephone`, `adresse`) | P2 |
+| GET | `/api/eleve/classe` | Classe de l'élève connecté et liste des camarades actifs (`id`, `nom`, `prenom`, `photo_url` — sans coordonnées) | P2 |
 | GET | `/api/eleve/emploi-du-temps?du=&au=` | Accueil (jour affiché, flèches ← →) et page Emploi du temps | P1 |
 | GET | `/api/eleve/notes?limit=` | Page Notes et bloc « Dernières notes » | P1 |
 | GET | `/api/eleve/devoirs?statut=` | Bloc « Travail à faire » et page Devoirs | P1 |
@@ -288,9 +300,11 @@ Toutes les pages front sont encore vides, sauf Messages. Comportement des routes
 | GET | `/api/prof/emploi-du-temps?du=&au=` | Accueil et page Emploi du temps | P2 |
 | GET | `/api/prof/classes` | Ses classes et matières, pour les menus | P2 |
 | GET | `/api/prof/classes/{id}/eleves` | Élèves d'une classe, pour la saisie des notes | P2 |
-| GET · POST | `/api/prof/devoirs` | Lister / donner un devoir | P2 |
+| GET · POST | `/api/prof/devoirs` | Lister (avec `description` et `fichiers`) / donner un devoir | P2 |
 | PUT · DELETE | `/api/prof/devoirs/{id}` | Modifier / supprimer | P2 |
+| POST | `/api/prof/devoirs/{id}/fichiers` | Joindre un fichier à un devoir (multipart, champ `fichier`, prof auteur uniquement) | P2 |
 | GET | `/api/prof/devoirs/{id}/suivi` | Qui a fait ou rendu le devoir, avec les fichiers | P2 |
+| PATCH | `/api/prof/devoirs/{id}/eleves/{eleveId}` | Corriger un rendu (note et/ou appréciation → statut `corrige`) | P3 |
 | GET · POST | `/api/prof/evaluations` | Lister / créer une évaluation | P2 |
 | PUT · DELETE | `/api/prof/evaluations/{id}` | Modifier / supprimer | P2 |
 | GET · PUT | `/api/prof/evaluations/{id}/notes` | Notes de toute la classe, saisies en une fois | P2 |
@@ -304,6 +318,111 @@ Toutes les pages front sont encore vides, sauf Messages. Comportement des routes
 | POST | `/api/contact` | Formulaire de contact : le lien « Contact » du menu visiteur ne mène encore nulle part, alors que la table `demande_contact` est prête | P2 |
 
 Les actualités publiques sont dans la section Actualités.
+
+## Notifications (fait)
+
+Routes dans [notifications.php](routes/notifications.php) (protégées par `requireConnecte()` : un utilisateur ne lit et ne modifie que ses propres notifications) et service d'envoi dans [notifications_service.php](routes/notifications_service.php) (chargé dans [index.php](public/index.php)).
+
+| Méthode | Route | Droits | Sert à | P |
+|---|---|---|---|---|
+| GET | `/api/notifications?limit=&non_lues=` | Connecté | Mes notifications (plus récentes d'abord ; `limit` de 1 à 100, 20 par défaut ; `non_lues=true` pour filtrer) | P1 |
+| PATCH | `/api/notifications/{id}/lue` | Connecté | Marquer une notification comme lue (sans effet si déjà lue ; 404 si inconnue ou d'un autre compte) | P1 |
+| POST | `/api/notifications/tout-lire` | Connecté | Marquer toutes mes notifications non lues comme lues | P1 |
+
+Réponses :
+- `GET /api/notifications` : `{ "notifications": [{ "id", "type", "titre", "lien", "lue_at", "lue", "created_at" }], "non_lues": 3 }` (`non_lues` est le compteur total des non lues, indépendant de `limit`).
+- `PATCH /api/notifications/{id}/lue` : `{ "notification": { "id", "type", "titre", "lien", "lue_at", "created_at" } }`.
+- `POST /api/notifications/tout-lire` : `{ "marquees": 3 }`.
+
+### Service d'envoi (`notifications_service.php`)
+
+Types autorisés (`TYPES_NOTIFICATION`, enum SQL `type_notification`) : `systeme`, `actualite`, `absence`, `note`, `devoir`, `message`.
+
+Fonctions disponibles :
+- `notifier(array $destinataires, string $type, string $titre, ?string $lien = null, array|string|null $exclure = null): int`
+- `notifierUtilisateurs(array $ids, string $type, string $titre, ?string $lien = null, array|string|null $exclure = null): int`
+- `notifierClasse(int $classeId, string $type, string $titre, ?string $lien = null, array|string|null $exclure = null): int`
+- `notifierConversation(string $conversationId, string $type, string $titre, ?string $lien = null, array|string|null $exclure = null): int`
+- `notifierCours(string $coursId, string $type, string $titre, ?string $lien = null, array|string|null $exclure = null): int`
+- `notifierTous(string $type, string $titre, ?string $lien = null, array|string|null $exclure = null): int`
+
+Comportement :
+- Les doublons, UUID invalides, comptes désactivés/supprimés et les ids passés dans `$exclure` (en général `moi()`) sont ignorés ; le titre est tronqué à 200 caractères.
+- Toujours appeler **après** l'écriture principale (hors transaction ou après `commit`, même si `notifier()` pose un `SAVEPOINT` en cas de transaction active) : les erreurs SQL éventuelles sont journalisées (`error_log`) sans bloquer l'action de l'utilisateur.
+- **Déjà branché :** publication d'une actualité dans [actualites.php](routes/actualites.php) (`POST /api/actualites` si `statut === 'publie'`, et `PUT /api/actualites/{id}` uniquement au passage de `brouillon` à `publie`) via `notifierTous('actualite', 'Nouvelle actualité : ' . $titre, '/actualites', moi())`.
+
+### Appels à ajouter ailleurs
+
+1. **Nouveau message** (`POST /api/conversations/{id}/messages`, route messagerie à créer) — après l'insertion du message :
+
+```php
+notifierConversation(
+    $args['id'],
+    'message',
+    'Nouveau message de ' . trim($expediteur['prenom'] . ' ' . $expediteur['nom']),
+    '/messages',
+    moi()
+);
+```
+
+2. **Nouvelle note** (`PUT /api/prof/evaluations/{id}/notes` dans [prof.php](routes/prof.php)) — après `transaction(...)` :
+
+```php
+$elevesNotifies = array_column(
+    array_filter($lignes, fn (array $l) => $l['valeur'] !== null || $l['absent'] === 'true' || $l['commentaire'] !== null),
+    'eleve'
+);
+if ($elevesNotifies !== []) {
+    $eval = lireEvaluation($args['id']);
+    notifierUtilisateurs(
+        $elevesNotifies,
+        'note',
+        'Nouvelle note en ' . $eval['matiere'] . ' : ' . $eval['titre'],
+        '/notes',
+        moi()
+    );
+}
+```
+
+3. **Nouveau devoir** (`POST /api/prof/devoirs` dans [prof.php](routes/prof.php)) — après l'insertion du devoir :
+
+```php
+$devoir = lireDevoir($stmt->fetchColumn());
+notifierClasse(
+    (int) $devoir['classe_id'],
+    'devoir',
+    'Nouveau devoir en ' . $devoir['matiere'] . ' : ' . $devoir['titre'],
+    '/devoirs',
+    moi()
+);
+return json($response, ['devoir' => $devoir], 201);
+```
+
+4. **Cours annulé ou déplacé** (`PUT /api/admin/cours/{id}` et `DELETE /api/admin/cours/{id}`, routes emploi du temps à créer) — après `UPDATE` (si `annule` passe à `true` ou si `debut`/`fin`/`salle_id` changent), ou **avant** `DELETE` :
+
+```php
+$libelle = $annule ? 'Cours annulé : ' : 'Cours déplacé : ';
+notifierCours(
+    $args['id'],
+    'systeme',
+    $libelle . $matiereNom . ' (' . date('d/m H:i', strtotime($debut)) . ')',
+    '/emploi-du-temps',
+    moi()
+);
+```
+
+5. **Nouvelle absence** (`POST /api/admin/absences`, route absences à créer) — après `INSERT INTO absence` :
+
+```php
+$libelle = $type === 'retard' ? 'Retard enregistré le ' : 'Absence enregistrée le ';
+notifierUtilisateurs(
+    [$eleveId],
+    'absence',
+    $libelle . date('d/m/Y', strtotime($dateAbsence)),
+    '/absences',
+    moi()
+);
+```
 
 ## RGPD (fait)
 
@@ -396,7 +515,6 @@ Ces routes ne sont pas nécessaires pour que le site tourne :
 - **Prof :** `PATCH /api/prof/devoirs/{id}/eleves/{eleveId}` pour corriger un devoir (note, appréciation)
 - **Textes publics** (« À propos », mentions légales) : `GET /api/pages/{slug}`, `PUT /api/admin/pages/{slug}` (table `page_publique`)
 - **Demandes de contact côté admin :** `GET /api/admin/contacts`, `PATCH /api/admin/contacts/{id}`
-- **Notifications** (table prête, aucune interface) : `GET /api/notifications`, `PATCH /api/notifications/{id}/lue`, `POST /api/notifications/tout-lire`
 
 Les pages MediaSchool n'ont aucune table en base : leur contenu reste statique tant qu'on n'en crée pas.
 
@@ -420,7 +538,7 @@ Table issue de l'ancien README du front : les appels de gauche doivent tous êtr
 | `POST /api/conversations/:id/messages` | `sendMessage` | `POST /api/conversations/{id}/messages` | À faire (`MSG-01`, `MSG-03`) |
 | `GET /api/eleve/emploi-du-temps?date=` | `getEmploiDuJour` | `GET /api/eleve/emploi-du-temps?du=&au=` · `GET /api/prof/emploi-du-temps?du=&au=` | Back fait ; front à brancher (`EDT-03`) |
 | `GET /api/eleve/raccourcis` | `getRaccourcis` | Supprimée : remplacée par `/api/eleve/devoirs`, `/api/eleve/ressources`, `/api/eleve/notes` | À faire (`ACC-01`) |
-| `GET /api/eleve/notes` | `getNotes` | `GET /api/eleve/notes` et `GET /api/eleve/moyennes` | Back fait ; front à brancher (`NOT-01`) |
+| `GET /api/eleve/notes` | `getNotes` | `GET /api/eleve/notes` et `GET /api/eleve/moyennes` | Fait (`NOT-01`, `NOT-02` pour la saisie par le prof) |
 | `GET /api/eleve/profil` | `getProfil` | `GET /api/profil` (tous rôles) · `GET /api/eleve/profil` (élève) | Fait (`CPT-07`) |
 
 ## Hors routes, mais bloquant

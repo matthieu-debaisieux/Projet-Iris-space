@@ -2,6 +2,17 @@ import { api, USE_MOCKS } from './api.js';
 import { LS_PROFIL, loadJSON } from './storage.js';
 import { PROFIL as PROFIL_DEFAUT } from '@/mocks/eleve.js';
 
+export async function uploadPhotoProfil(fichier) {
+  const form = new FormData();
+  form.append('fichier', fichier);
+  const data = await api.upload('/profil/photo', form);
+  return data.photo_url;
+}
+
+export async function deletePhotoProfil() {
+  await api.delete('/profil/photo');
+}
+
 export async function getMonProfil(user) {
   if (!USE_MOCKS) {
     const data = await api.get('/profil');

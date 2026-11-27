@@ -8,6 +8,7 @@ use Slim\Factory\AppFactory;
 
 require __DIR__ . '/../vendor/autoload.php';
 require __DIR__ . '/../routes/helpers.php';
+require __DIR__ . '/../routes/notifications_service.php';
 
 // « aujourd'hui » et les dates sans fuseau (ex. 2026-10-30T18:00) sont en heure de Paris
 date_default_timezone_set('Europe/Paris');
@@ -51,6 +52,8 @@ $app->group('/api', function ($group) {
     require __DIR__ . '/../routes/Controller/HealthController.php';
     require __DIR__ . '/../routes/auth.php';
     require __DIR__ . '/../routes/fichiers.php';
+    require __DIR__ . '/../routes/profil_photo.php';
+    require __DIR__ . '/../routes/devoirs_fichiers.php';
     require __DIR__ . '/../routes/visiteur.php';
 
     // Actualités : routes communes à plusieurs rôles (pas de préfixe), chacune pose son requireRole
@@ -73,6 +76,7 @@ $app->group('/api', function ($group) {
         require __DIR__ . '/../routes/admin/utilisateurs.php';
         require __DIR__ . '/../routes/admin/emploi_du_temps.php';
         require __DIR__ . '/../routes/admin/rgpd.php';
+        require __DIR__ . '/../routes/admin/programme.php';
     })->add(requireRole('administrateur', 'direction', 'dev'));
 
     $group->group('/eleve', function ($group) {
