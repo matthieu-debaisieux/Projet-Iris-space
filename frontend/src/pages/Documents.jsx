@@ -17,6 +17,7 @@ import {
   uploadDocumentAdmin,
   uploadDocumentEleve,
 } from '@/services/documents.js';
+import RessourcesProf from './documents/RessourcesProf.jsx';
 
 // ── Règles de dépôt (alignées sur backend/routes/helpers.php) ───────────────
 const TAILLE_MAX = 10 * 1024 * 1024; // 10 Mo
@@ -646,11 +647,33 @@ function DocumentsEleve() {
   );
 }
 
-// Consultation / espace « Mes documents » pour l'élève ; gestion complète avec `documents_gerer`
+// ── Vue Professeur (`documents_deposer`) ───────────────────────────────────
+// Bloc « Mes ressources de cours » (documents/RessourcesProf.jsx) : le prof dépose, consulte
+// et supprime SES ressources (fichiers, liens, textes) pour ses classes et matières (/prof/ressources).
+function DocumentsProf() {
+  return (
+    <main className="flex-1 overflow-y-auto bg-[var(--color-page)]">
+      <div className="mx-auto w-full max-w-[1000px] px-4 sm:px-6 py-6 sm:py-8 flex flex-col gap-5">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#001257]">Documents</h1>
+          <p className="mt-1 text-sm text-[#6B7185]">
+            Déposez vos ressources de cours pour vos classes.
+          </p>
+        </div>
+        <RessourcesProf />
+      </div>
+    </main>
+  );
+}
+
+// Consultation / espace « Mes documents » pour l'élève ; gestion complète avec `documents_gerer`, ressources de cours avec `documents_deposer`
 export default function Documents() {
   return (
     <SelonDroit
-      vues={[{ droit: 'documents_gerer', Vue: DocumentsAdmin }]}
+      vues={[
+        { droit: 'documents_gerer', Vue: DocumentsAdmin },
+        { droit: 'documents_deposer', Vue: DocumentsProf },
+      ]}
       defaut={DocumentsEleve}
     />
   );

@@ -11,6 +11,7 @@ export const DROITS_ADMIN = [
 ];
 export const DROITS_PROF = [
   'journee', 'devoirs', 'devoirs_gerer', 'notes', 'actualites', 'emploi_du_temps', 'messagerie', 'outils_dev',
+  'documents', 'documents_deposer',
 ];
 export const DROITS_ELEVE = [
   'journee', 'devoirs', 'notes', 'absences', 'actualites', 'emploi_du_temps', 'documents', 'messagerie',

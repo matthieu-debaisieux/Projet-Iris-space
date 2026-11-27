@@ -113,9 +113,12 @@ function droitsPourRole(string $role): array
         'professeur' => [
             'journee',
             'devoirs',
+            'devoirs_gerer',
             'notes',
             'actualites',
             'emploi_du_temps',
+            'documents',
+            'documents_deposer',
             'messagerie',
         ],
         'eleve' => [
