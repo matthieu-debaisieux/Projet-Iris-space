@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\UploadedFileInterface;
 
 // Messagerie (conversations, messages, non-lus, recherche des destinataires).
 // Tout utilisateur connecté s'en sert, mais ne voit que les conversations dont il est participant :
@@ -21,6 +22,7 @@ const MESSAGERIE_MAX_PARTICIPANTS = 50;
 const MESSAGE_MAX_CARACTERES = 5000;
 const MESSAGERIE_APERCU_CARACTERES = 200;
 const MESSAGERIE_MAX_MOTS_RECHERCHE = 5;
+const MESSAGERIE_MAX_PIECES_JOINTES = 5; // par message (10 Mo chacune, comme tous les fichiers envoyés)
 
 // Recherche sans tenir compte des accents ni de la casse : le texte cherché et les colonnes de la base
 // passent par la même transformation (translate PostgreSQL côté base, strtr côté PHP).
@@ -79,7 +81,7 @@ function messagerieNonLus(): int
 
 // Mes conversations (ou une seule avec $id), de la plus récemment active à la plus ancienne. Une conversation
 // sans aucun message n'apparaît que chez son créateur : les autres ne la voient qu'au premier message.
-// { id, titre, est_groupe, created_at, participants (les autres), dernier_message, non_lus }
+// { id, titre, est_groupe, created_at, participants (les autres), dernier_message (avec nb_pieces_jointes), non_lus }
 function messagerieConversations(?string $id = null, int $limite = 100): array
 {
     $sql = 'SELECT c.id, c.titre, c.est_groupe, c.created_at,
@@ -87,11 +89,13 @@ function messagerieConversations(?string $id = null, int $limite = 100): array
                      WHERE m.conversation_id = c.id AND NOT m.supprime AND m.expediteur_id <> :moi
                        AND (cp.dernier_lu_at IS NULL OR m.envoye_at > cp.dernier_lu_at)) AS non_lus,
                    dm.id AS dm_id, left(dm.contenu, ' . MESSAGERIE_APERCU_CARACTERES . ') AS dm_contenu,
-                   dm.expediteur_id AS dm_expediteur_id, dm.envoye_at AS dm_envoye_at
+                   dm.expediteur_id AS dm_expediteur_id, dm.envoye_at AS dm_envoye_at,
+                   dm.nb_pieces_jointes AS dm_nb_pieces_jointes
             FROM conversation c
             JOIN conversation_participant cp ON cp.conversation_id = c.id AND cp.utilisateur_id = :moi2
             LEFT JOIN LATERAL (
-                SELECT m.id, m.contenu, m.expediteur_id, m.envoye_at
+                SELECT m.id, m.contenu, m.expediteur_id, m.envoye_at,
+                       (SELECT count(*) FROM message_piece_jointe pj WHERE pj.message_id = m.id) AS nb_pieces_jointes
                 FROM message m
                 WHERE m.conversation_id = c.id AND NOT m.supprime
                 ORDER BY m.envoye_at DESC, m.id DESC
@@ -145,6 +149,7 @@ function messagerieConversations(?string $id = null, int $limite = 100): array
             'contenu'       => $l['dm_contenu'],
             'expediteur_id' => $l['dm_expediteur_id'],
             'envoye_at'     => $l['dm_envoye_at'],
+            'nb_pieces_jointes' => (int) $l['dm_nb_pieces_jointes'],
         ],
         'non_lus'         => (int) $l['non_lus'],
     ], $lignes);
@@ -159,7 +164,28 @@ function messagerieLireMessage(string $id): array
          WHERE m.id = :id'
     );
     $stmt->execute(['id' => $id]);
-    return $stmt->fetch();
+    return messagerieAvecPiecesJointes([$stmt->fetch()])[0];
+}
+
+// Ajoute à chaque message sa liste `pieces_jointes` ([{ id, nom }], vide s'il n'y en a pas), en une requête.
+// Le chemin du fichier sur le disque reste interne : on le télécharge par l'id de la pièce jointe.
+function messagerieAvecPiecesJointes(array $messages): array
+{
+    if (!$messages) {
+        return [];
+    }
+    $stmt = db()->prepare(
+        'SELECT id, message_id, nom FROM message_piece_jointe
+         WHERE message_id = ANY (CAST(:ids AS uuid[]))
+         ORDER BY nom, id'
+    );
+    $stmt->execute(['ids' => '{' . implode(',', array_column($messages, 'id')) . '}']);
+    $pieces = [];
+    foreach ($stmt->fetchAll() as $piece) {
+        $pieces[$piece['message_id']][] = ['id' => $piece['id'], 'nom' => $piece['nom']];
+    }
+
+    return array_map(fn (array $m): array => $m + ['pieces_jointes' => $pieces[$m['id']] ?? []], $messages);
 }
 
 // Enregistre un message envoyé par l'utilisateur connecté et renvoie son id
@@ -404,22 +430,93 @@ $group->get('/conversations/{id:' . UUID . '}/messages', function (ServerRequest
     $messages = $stmt->fetchAll();
 
     $plusAnciens = count($messages) > $limite;
-    $messages = array_reverse(array_slice($messages, 0, $limite));
+    $messages = messagerieAvecPiecesJointes(array_reverse(array_slice($messages, 0, $limite)));
 
     return json($response, ['messages' => $messages, 'plus_anciens' => $plusAnciens]);
 })->add(requireConnecte());
 
+// Fichiers joints d'une requête multipart : champ « fichiers[] » (plusieurs) ou « fichier » (un seul).
+// Renvoie une liste d'UploadedFileInterface (les champs vides, « aucun fichier choisi », sont ignorés).
+function messagerieFichiersEnvoyes(ServerRequestInterface $request): array
+{
+    $envoyes = [];
+    $ranger = function (mixed $valeur) use (&$ranger, &$envoyes): void {
+        if ($valeur instanceof UploadedFileInterface) {
+            if ($valeur->getError() !== UPLOAD_ERR_NO_FILE) {
+                $envoyes[] = $valeur;
+            }
+        } elseif (is_array($valeur)) {
+            foreach ($valeur as $element) {
+                $ranger($element);
+            }
+        }
+    };
+    $fichiers = $request->getUploadedFiles();
+    $ranger($fichiers['fichiers'] ?? null);
+    $ranger($fichiers['fichier'] ?? null);
+
+    if (count($envoyes) > MESSAGERIE_MAX_PIECES_JOINTES) {
+        throw new ApiException('Un message ne peut pas avoir plus de ' . MESSAGERIE_MAX_PIECES_JOINTES . ' pièces jointes', 400);
+    }
+    return $envoyes;
+}
+
 // ---------------------------------------------------------------------
 // POST /api/conversations/{id}/messages : envoyer un message (201 avec { message })
-// Corps : { "contenu": "texte" } (5000 caractères au maximum). Pas de pièce jointe pour le moment (MSG-04).
+// Corps JSON { "contenu": "texte" } (5000 caractères au maximum), ou formulaire multipart avec « contenu »
+// et jusqu'à 5 fichiers dans « fichiers[] » (mêmes types et même taille que les autres envois : 10 Mo chacun).
+// Le texte peut être vide quand il y a au moins une pièce jointe. Le message renvoyé contient `pieces_jointes`.
 // ---------------------------------------------------------------------
 $group->post('/conversations/{id:' . UUID . '}/messages', function (ServerRequestInterface $request, ResponseInterface $response, array $args) {
     messagerieVerifierParticipant($args['id']);
-    $contenu = texte(corps($request), 'contenu', MESSAGE_MAX_CARACTERES, true);
+    $fichiersEnvoyes = messagerieFichiersEnvoyes($request);
+    $contenu = texte(corps($request), 'contenu', MESSAGE_MAX_CARACTERES, !$fichiersEnvoyes) ?? '';
 
-    $messageId = messagerieInsererMessage($args['id'], $contenu);
+    // Les fichiers sont enregistrés un par un avec les règles habituelles ; en cas d'échec, on efface ceux déjà posés
+    $enregistres = [];
+    try {
+        foreach ($fichiersEnvoyes as $fichier) {
+            $enregistres[] = enregistrerFichier($request->withUploadedFiles(['fichier' => $fichier]), 'messages');
+        }
+
+        $messageId = transaction(function (PDO $pdo) use ($args, $contenu, $enregistres): string {
+            $messageId = messagerieInsererMessage($args['id'], $contenu);
+            $stmt = $pdo->prepare('INSERT INTO message_piece_jointe (message_id, nom, url) VALUES (:message, :nom, :url)');
+            foreach ($enregistres as $fichier) {
+                $stmt->execute(['message' => $messageId, 'nom' => $fichier['nom'], 'url' => $fichier['url']]);
+            }
+            return $messageId;
+        });
+    } catch (Throwable $e) {
+        foreach ($enregistres as $fichier) {
+            supprimerFichier($fichier['url']);
+        }
+        throw $e;
+    }
 
     return json($response, ['message' => messagerieLireMessage($messageId)], 201);
+})->add(requireConnecte());
+
+// ---------------------------------------------------------------------
+// GET /api/messages/pieces-jointes/{id}/telecharger : télécharger une pièce jointe
+// Réservé aux participants de la conversation du message : pour les autres (ou un id inconnu, ou un
+// message supprimé), 404 comme si elle n'existait pas. PDF et images s'affichent dans le navigateur.
+// ---------------------------------------------------------------------
+$group->get('/messages/pieces-jointes/{id:' . UUID . '}/telecharger', function (ServerRequestInterface $request, ResponseInterface $response, array $args) {
+    $stmt = db()->prepare(
+        'SELECT pj.nom, pj.url
+         FROM message_piece_jointe pj
+         JOIN message m ON m.id = pj.message_id AND NOT m.supprime
+         JOIN conversation_participant cp ON cp.conversation_id = m.conversation_id AND cp.utilisateur_id = :moi
+         WHERE pj.id = :id'
+    );
+    $stmt->execute(['id' => $args['id'], 'moi' => moi()]);
+    $piece = $stmt->fetch();
+    if (!$piece) {
+        throw new ApiException('Pièce jointe introuvable', 404);
+    }
+
+    return envoyerFichier($response, $piece['url'], $piece['nom'], true);
 })->add(requireConnecte());
 
 // ---------------------------------------------------------------------

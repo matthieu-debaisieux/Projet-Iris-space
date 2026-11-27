@@ -52,7 +52,10 @@ $group->get('/eleve/moyennes', function (ServerRequestInterface $request, Respon
 // Formulaire multipart : « fichier » (obligatoire), « motif » (facultatif)
 // Le fichier est rangé dans uploads/justificatifs/ ; absence.justificatif_url reçoit son chemin.
 // `justifie` reste à false : c'est l'administration qui valide (PATCH /api/admin/absences/{id}).
-// Une absence avec justificatif_url renseigné et justifie = false est donc « en attente ».
+// Une absence avec justificatif_url renseigné et justifie = false est donc « en attente » (visible ainsi côté
+// administration : GET /api/admin/absences/{id}/justificatif pour le fichier). Un justificatif déjà envoyé
+// peut être remplacé tant que l'absence n'est pas justifiée (409 ensuite).
+// Réponse : { absence } (le chemin du fichier reste interne : `justificatif_envoye` le signale).
 // ---------------------------------------------------------------------
 $group->post('/eleve/absences/{id:' . UUID . '}/justificatif', function (ServerRequestInterface $request, ResponseInterface $response, array $args) {
     $motif = texte(corps($request), 'motif', 2000);
@@ -76,8 +79,8 @@ $group->post('/eleve/absences/{id:' . UUID . '}/justificatif', function (ServerR
         $stmt = db()->prepare(
             'UPDATE absence SET justificatif_url = :url, motif = COALESCE(:motif, motif)
              WHERE id = :id AND eleve_id = :eleve
-             RETURNING id, type, date_absence, duree_heures, minutes_retard, libelle,
-                       justifie, motif, justificatif_url'
+             RETURNING id, type, date_absence, duree_heures, minutes_retard, libelle, justifie, motif,
+                       true AS justificatif_envoye'
         );
         $stmt->execute(['url' => $fichier['url'], 'motif' => $motif, 'id' => $args['id'], 'eleve' => moi()]);
     } catch (Throwable $e) {
@@ -87,5 +90,8 @@ $group->post('/eleve/absences/{id:' . UUID . '}/justificatif', function (ServerR
 
     supprimerFichier($absence['justificatif_url']); // l'ancien justificatif est remplacé
 
-    return json($response, ['absence' => $stmt->fetch()]);
+    $enregistree = $stmt->fetch();
+    $enregistree['statut'] = $enregistree['justifie'] ? 'justifie' : 'en_attente';
+
+    return json($response, ['absence' => $enregistree]);
 })->add(requireRole('eleve'));

@@ -1,4 +1,5 @@
-import { api, USE_MOCKS } from './api.js';
+import { api, BASE_URL, USE_MOCKS } from './api.js';
+import { EXTENSIONS_FICHIER, TAILLE_MAX_FICHIER } from './devoirs.js';
 import { LS_CONVERSATIONS, LS_SESSION, LS_UTILISATEURS, loadJSON, saveJSON } from './storage.js';
 import { CONVERSATIONS } from '@/mocks/conversations.js';
 import { UTILISATEURS_MOCK } from '@/mocks/utilisateurs.js';
@@ -34,7 +35,52 @@ export function nomConversation(conversation) {
 }
 
 export function apercuConversation(conversation) {
-  return conversation?.dernier_message?.contenu || 'Nouvelle conversation';
+  const dernier = conversation?.dernier_message;
+  if (dernier?.contenu) return dernier.contenu;
+  if (dernier?.nb_pieces_jointes > 0) return dernier.nb_pieces_jointes > 1 ? 'Pièces jointes' : 'Pièce jointe';
+  return 'Nouvelle conversation';
+}
+
+// ── Pièces jointes ──────────────────────────────────────────────────────────
+// Règles du back (messagerie.php, helpers.php) reprises ici pour valider avant l'envoi
+export const MAX_PIECES_JOINTES = 5;
+export const TAILLE_MAX_PIECE_JOINTE = TAILLE_MAX_FICHIER;
+
+// Texte de l'erreur si la liste de fichiers n'est pas acceptable, sinon null
+export function erreurPiecesJointes(fichiers) {
+  if (fichiers.length > MAX_PIECES_JOINTES) {
+    return `Un message ne peut pas avoir plus de ${MAX_PIECES_JOINTES} pièces jointes.`;
+  }
+  for (const fichier of fichiers) {
+    const extension = fichier.name.includes('.') ? fichier.name.split('.').pop().toLowerCase() : '';
+    if (!EXTENSIONS_FICHIER.includes(extension)) return `« ${fichier.name} » : type de fichier non autorisé.`;
+    if (fichier.size > TAILLE_MAX_PIECE_JOINTE) return `« ${fichier.name} » : fichier trop volumineux (10 Mo maximum).`;
+  }
+  return null;
+}
+
+// Adresse de téléchargement d'une pièce jointe (réservée aux participants de la conversation)
+export function getPieceJointeUrl(id) {
+  return `${BASE_URL}/messages/pieces-jointes/${encodeURIComponent(id)}/telecharger`;
+}
+
+// Mocks : les fichiers envoyés pendant la session restent en mémoire pour pouvoir être retéléchargés
+const fichiersMockMemoire = new Map();
+
+export const aPieceJointeMock = id => fichiersMockMemoire.has(id);
+
+export function telechargerPieceJointeMock(id) {
+  const fichier = fichiersMockMemoire.get(id);
+  if (!fichier) return;
+  const url = URL.createObjectURL(fichier);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fichier.name || 'fichier';
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 export function lireDate(valeur) {
@@ -149,11 +195,24 @@ export async function createConversation({ participant_ids, message, titre } = {
   return nouvelle;
 }
 
+// payload : le texte, ou { text, fichiers } (fichiers = objets File joints au message : multipart « fichiers[] »).
+// (Mocks seulement : { text, sent: false, from } simule un message reçu, pour le panneau DEV.)
 export async function sendMessage(conversationId, payload) {
-  const contenu = typeof payload === 'string' ? payload : payload?.text;
+  const contenu = typeof payload === 'string' ? payload : (payload?.text ?? '');
+  const fichiers = typeof payload === 'object' && payload !== null ? (payload.fichiers ?? []) : [];
   if (!USE_MOCKS) {
-    return (await api.post(`/conversations/${conversationId}/messages`, { contenu })).message;
+    if (!fichiers.length) {
+      return (await api.post(`/conversations/${conversationId}/messages`, { contenu })).message;
+    }
+    const formData = new FormData();
+    if (contenu.trim() !== '') formData.append('contenu', contenu);
+    fichiers.forEach(fichier => formData.append('fichiers[]', fichier));
+    return (await api.post(`/conversations/${conversationId}/messages`, formData)).message;
   }
+
+  const erreurFichiers = erreurPiecesJointes(fichiers);
+  if (erreurFichiers) throw erreurMock(erreurFichiers, 400);
+  if (!String(contenu).trim() && !fichiers.length) throw erreurMock('Le champ « contenu » est requis', 400);
 
   const moi = utilisateurMock();
   const estExterne = typeof payload === 'object' && payload !== null && payload.sent === false;
@@ -162,6 +221,11 @@ export async function sendMessage(conversationId, payload) {
     : moi;
 
   const msg = creerMessageMock(conversationId, auteur, contenu, new Date().toISOString());
+  msg.pieces_jointes = fichiers.map(fichier => {
+    const id = 'pj-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+    fichiersMockMemoire.set(id, fichier);
+    return { id, nom: fichier.name };
+  });
   const liste = lireMocksNormalises();
   let trouve = false;
   const maj = liste.map(c => {
@@ -238,6 +302,7 @@ const versApercu = msg => ({
   contenu: msg.contenu.slice(0, 200),
   expediteur_id: msg.expediteur_id,
   envoye_at: msg.envoye_at,
+  nb_pieces_jointes: msg.pieces_jointes?.length ?? 0,
 });
 
 function creerMessageMock(conversationId, auteur, contenu, envoyeAt) {
@@ -250,6 +315,7 @@ function creerMessageMock(conversationId, auteur, contenu, envoyeAt) {
     contenu: String(contenu ?? ''),
     envoye_at: envoyeAt,
     modifie_at: null,
+    pieces_jointes: [],
   };
 }
 
@@ -267,6 +333,7 @@ function normaliserMockConversation(conv, moi) {
     contenu: m.text,
     envoye_at: new Date().toISOString(),
     modifie_at: null,
+    pieces_jointes: [],
   }));
   const dernier = messages.at(-1) ?? null;
 

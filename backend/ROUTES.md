@@ -148,7 +148,7 @@ Comportement :
 - Une conversation sans aucun message n'apparaît que chez son créateur, les autres la voient au premier message.
 - Non lu : un message d'un autre participant, plus récent que le `dernier_lu_at` de l'utilisateur (ou tout message si `dernier_lu_at` est vide). Ses propres messages ne comptent jamais. Envoyer un message ne marque rien comme lu : seul `POST …/lu` le fait. À la création, la conversation est lue pour son créateur.
 - Le fil est paginé par curseur : on reçoit les `limit` derniers messages (50 par défaut, 100 au maximum), du plus ancien au plus récent. Pour remonter, passer l'id du plus ancien message reçu dans `avant`. `plus_anciens` vaut `true` tant qu'il en reste.
-- Un message fait 5000 caractères au maximum. Les pièces jointes ne sont pas encore gérées (`MSG-04`).
+- Un message fait 5000 caractères au maximum. Il peut avoir jusqu'à 5 pièces jointes (`MSG-04`, voir plus bas) : un message sans texte est accepté s'il a au moins un fichier.
 - Les messages marqués `supprime` ne sont jamais renvoyés. Les messages d'un compte anonymisé (RGPD) restent, avec « Utilisateur supprimé » comme auteur.
 
 | Méthode | Route | Droits | Sert à | P |
@@ -156,7 +156,8 @@ Comportement :
 | GET | `/api/conversations?limit=` | Connecté | Mes conversations, les plus récemment actives d'abord (100 au maximum) | P1 |
 | POST | `/api/conversations` | Connecté | Nouvelle conversation, avec ses participants et un premier message | P1 |
 | GET | `/api/conversations/{id}/messages?limit=&avant=` | Participant | Fil de discussion | P1 |
-| POST | `/api/conversations/{id}/messages` | Participant | Envoyer un message (201) | P1 |
+| POST | `/api/conversations/{id}/messages` | Participant | Envoyer un message, avec ou sans pièces jointes (201) | P1 |
+| GET | `/api/messages/pieces-jointes/{id}/telecharger` | Participant de la conversation | Télécharger une pièce jointe (404 pour tout autre compte) | P2 |
 | POST | `/api/conversations/{id}/lu` | Participant | Marquer comme lu (`dernier_lu_at` = maintenant) | P1 |
 | GET | `/api/messages/non-lus` | Connecté | Pastille de la barre de navigation | P1 |
 | GET | `/api/utilisateurs?recherche=&limit=` | Connecté | Trouver à qui écrire (règle D10) | P1 |
@@ -188,14 +189,15 @@ Comportement :
     { "id": "uuid", "nom": "Leroy", "prenom": "Paul", "role": "professeur", "photo_url": null }
   ],
   "dernier_message": {
-    "id": "uuid", "contenu": "Bonjour…", "expediteur_id": "uuid", "envoye_at": "2026-11-27 17:54:55.1739+01"
+    "id": "uuid", "contenu": "Bonjour…", "expediteur_id": "uuid", "envoye_at": "2026-11-27 17:54:55.1739+01",
+    "nb_pieces_jointes": 0
   },
   "non_lus": 1
 }
 ```
 
 - `participants` : **les autres participants** (jamais l'utilisateur connecté), par ordre alphabétique. Le nom d'une conversation à deux est celui de l'autre personne ; pour un groupe, `titre` ou à défaut les noms.
-- `dernier_message` : `null` pour une conversation sans message ; son `contenu` est tronqué à 200 caractères (aperçu).
+- `dernier_message` : `null` pour une conversation sans message ; son `contenu` est tronqué à 200 caractères (aperçu) et peut être vide si le message n'a que des pièces jointes (`nb_pieces_jointes` les compte).
 - `non_lus` : nombre de messages non lus dans cette conversation.
 
 **`GET …/messages`** : `{ "messages": [...], "plus_anciens": false }`. Un message :
@@ -209,13 +211,19 @@ Comportement :
   "expediteur_prenom": "Lucas",
   "contenu": "Texte du message",
   "envoye_at": "2026-11-27 17:54:55.1739+01",
-  "modifie_at": null
+  "modifie_at": null,
+  "pieces_jointes": [ { "id": "uuid", "nom": "devoir.pdf" } ]
 }
 ```
 
 Erreurs : 404 si la conversation n'est pas la vôtre ou si `avant` n'est pas un message de cette conversation, 400 si `limit` n'est pas entre 1 et 100.
 
 **`POST …/messages`**, corps `{ "contenu": "texte" }` : 201 `{ "message": {...} }`. 400 si `contenu` est vide ou dépasse 5000 caractères.
+
+**`POST …/messages` avec pièces jointes** : formulaire multipart (pas de JSON), avec `contenu` (facultatif s'il y a un fichier) et un ou plusieurs fichiers dans `fichiers[]` (un seul fichier peut aussi venir du champ `fichier`). Mêmes règles de fichiers que tous les envois ([helpers.php](routes/helpers.php), `enregistrerFichier`) : 10 Mo maximum chacun, extensions pdf, txt, csv, zip, doc/docx/odt, xls/xlsx/ods, ppt/pptx/odp, jpg/jpeg/png/gif/webp, contenu HTML/PHP/SVG refusé. Les fichiers sont rangés dans `uploads/messages/` sous un nom aléatoire ; le nom d'origine est gardé dans `message_piece_jointe.nom`. Le message renvoyé (201) contient `pieces_jointes: [{ id, nom }]` ; le chemin sur le disque reste interne.
+- Erreurs : 400 (aucun texte ni fichier, plus de 5 fichiers, type refusé), 413 (fichier de plus de 10 Mo), 404 (conversation inconnue ou qui n'est pas la vôtre). Si un fichier est refusé, rien n'est enregistré : le message n'est pas créé et les fichiers déjà posés sont effacés. Attention : la taille totale de la requête est aussi bornée par `post_max_size` et `upload_max_filesize` de PHP (8 Mo et 2 Mo par défaut) ; à relever dans la configuration PHP du serveur pour que les 10 Mo par fichier soient atteignables.
+
+**`GET /api/messages/pieces-jointes/{id}/telecharger`** : renvoie le fichier (PDF et images s'affichent dans le navigateur, les autres types se téléchargent), sous son nom d'origine. Réservé aux participants de la conversation du message : pour tout autre compte (administration comprise), pour un id inconnu ou un message supprimé, la réponse est 404 « Pièce jointe introuvable » ; 401 sans connexion.
 
 **`POST …/lu`** : sans corps, répond 200 `{ "non_lus": 3 }` : le total qui reste dans toutes les conversations, pour mettre à jour la pastille sans second appel.
 
@@ -313,6 +321,8 @@ Comportement :
 
 Comportement :
 - `emploi-du-temps` sans paramètre renvoie le jour même.
+- `absences` : chaque ligne porte `statut` (`justifie`, `en_attente` = justificatif envoyé et pas encore validé, `non_justifie`) et `justificatif_envoye` ; le fichier lui-même n'est pas exposé à l'élève.
+- `POST absences/{id}/justificatif` : formulaire multipart avec `fichier` (mêmes règles que tous les envois : 10 Mo, extensions autorisées) et `motif` (2000 caractères, facultatif : remplace le motif de l'absence s'il est envoyé). Réponse 200 : `{ absence: { id, type, date_absence, duree_heures, minutes_retard, libelle, justifie, motif, justificatif_envoye: true, statut: "en_attente" } }`. L'absence passe en « en_attente » côté administration (`GET /api/admin/absences?statut=en_attente`, fichier par `GET /api/admin/absences/{id}/justificatif`) ; `justifie` ne change que par validation de l'administration. Un justificatif déjà envoyé est remplacé (l'ancien fichier est effacé) tant que l'absence n'est pas justifiée. 404 si l'absence n'est pas la sienne ou n'existe pas, 409 si elle est déjà justifiée, 400 (fichier manquant ou refusé), 413 (plus de 10 Mo), 403 pour un compte qui n'est pas élève.
 - `absences` renvoie aussi un `resume` : nombre d'absences, d'absences non justifiées et de retards, heures d'absence, et `ponctualite`. La ponctualité est le pourcentage des cours passés de la classe sans absence ni retard.
 - Un devoir déjà rendu ne peut plus être marqué « à faire ». On peut déposer plusieurs fichiers tant qu'il n'est pas corrigé.
 - `PATCH profil` ne modifie que les coordonnées de l'élève : `email`, `telephone` et `adresse`. Seuls les champs envoyés changent. `telephone` et `adresse` se vident avec `null` ou `""`, alors que `email` est obligatoire s'il est envoyé. Les autres champs (nom, prénom, naissance, nationalité, classe, identifiant…) restent réservés à l'administration : ils sont ignorés, et la requête répond 400 s'il ne reste aucun des trois champs. La réponse est `{ "profil": … }`, au même format que `GET profil`.
@@ -329,6 +339,7 @@ Comportement :
 | GET | `/api/eleve/devoirs?statut=` | Bloc « Travail à faire » et page Devoirs | P1 |
 | GET | `/api/eleve/ressources?limit=` | Bloc « Dernières ressources » | P1 |
 | GET | `/api/eleve/absences` | Bloc « Vie scolaire » (avec la ponctualité) et page Vie scolaire | P1 |
+| POST | `/api/eleve/absences/{id}/justificatif` | Envoyer un justificatif pour une de ses absences ou retards (multipart : `fichier` obligatoire, `motif` facultatif) | P2 |
 | PATCH | `/api/eleve/devoirs/{id}` | Marquer un devoir comme fait | P2 |
 | POST | `/api/eleve/devoirs/{id}/rendu` | Rendre un devoir en ligne | P2 |
 | GET | `/api/eleve/documents` | Page Documents (renvoie `personnel` et `depose_par_moi`) | P2 |
@@ -565,7 +576,7 @@ Le compte est **anonymisé** et non effacé : plusieurs tables le référencent 
 
 Ces routes ne sont pas nécessaires pour que le site tourne :
 
-- **Élève :** `GET /api/eleve/moyennes` (la vue `v_moyenne_matiere` est déjà prête), `POST /api/eleve/absences/{id}/justificatif`
+- **Élève :** `GET /api/eleve/moyennes` (la vue `v_moyenne_matiere` est déjà prête)
 - **Prof :** `PATCH /api/prof/devoirs/{id}/eleves/{eleveId}` pour corriger un devoir (note, appréciation)
 - **Textes publics** (« À propos », mentions légales) : `GET /api/pages/{slug}`, `PUT /api/admin/pages/{slug}` (table `page_publique`)
 - **Demandes de contact côté admin :** `GET /api/admin/contacts`, `PATCH /api/admin/contacts/{id}`
