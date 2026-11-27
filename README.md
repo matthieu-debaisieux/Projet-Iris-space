@@ -16,7 +16,7 @@ npm run dev     # serveur de développement
 npm run build   # build de production dans dist/
 ```
 
-Comptes de test (mode mock) : `admin` / `admin`, `prof` / `prof`, `eleve` / `eleve`.
+Comptes de test (mode mock) : `admin` / `admin`, `direction` / `direction`, `prof` / `prof`, `eleve` / `eleve`.
 Les espaces `/visiteur` et `/mediaschool` sont publics.
 
 ## Architecture du front
@@ -57,7 +57,8 @@ Règles :
 - Imports avec l'alias `@/` (= `src/`), par ex. `import Modal from '@/components/ui/Modal.jsx'`.
 - **Pas de page par type d'utilisateur** : une URL unique par fonctionnalité, et ce qui s'affiche
   dépend des droits de l'utilisateur (`user.droits`, renvoyés par le back depuis la base).
-  On ne teste jamais `user.role` : dans la page, `const { can } = useAuth();` puis
+  On ne teste jamais `user.role` dans une page (si le rôle compte vraiment : `estAdmin`, `estProf`, `estEleve`
+  de `services/utilisateur.js`) : dans la page, `const { can } = useAuth();` puis
   `{can('documents_gerer') && <button>…</button>}`. Liste des droits : `mocks/users.js`.
 - Une nouvelle page du menu = un fichier dans `pages/` + une ligne dans `routes/navigation.js`.
 - Le panel DEV est affiché si l'utilisateur a le droit `outils_dev` ; une page y ajoute ses boutons
@@ -98,5 +99,7 @@ Routes attendues par le front :
 | GET     | `/api/eleve/profil`                | `getProfil`              |
 
 Le format des données renvoyées est celui des fichiers de `frontend/src/mocks/`.
-`POST /api/auth/login` renvoie `{ id, identifiant, role, nom, droits }` où `droits` est la liste
+`POST /api/auth/login` renvoie `{ user }` avec `user = { id, identifiant, email, role, nom, prenom, photo_url }`
+(`backend/routes/auth.php`) ; `role` vaut `administrateur`, `direction`, `professeur` ou `eleve`. Les mocks y ajoutent
+`droits`, la liste
 des codes de droits de l'utilisateur (voir `frontend/src/mocks/users.js` pour la liste utilisée).

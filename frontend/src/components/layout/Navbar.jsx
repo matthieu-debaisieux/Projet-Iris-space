@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext.jsx';
+import { nomComplet } from '@/services/utilisateur.js';
 import logo from '@/assets/img/Logo_IRIS_SPACE.svg';
 import msLogo from '@/assets/img/ms_logo_cmjn_blanc_1.png';
 import { BurgerButton, MobileMenu } from '@/components/layout/MobileMenu.jsx';
@@ -27,7 +28,7 @@ export default function Navbar({ links, menuLinks, mediaschool = false }) {
           </Link>
 
           <span className="text-white/30 text-xl font-light hidden md:inline">|</span>
-          <div className="title text-lg text-white tracking-wide font-medium hidden md:block">{user?.nom ?? 'VISITEUR'}</div>
+          <div className="title text-lg text-white tracking-wide font-medium hidden md:block">{nomComplet(user) || 'VISITEUR'}</div>
 
           {user && (
             <>
