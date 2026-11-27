@@ -4,7 +4,10 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App.jsx';
 import { AuthProvider } from '@/context/AuthContext.jsx';
 import { MessageCountProvider } from '@/context/MessageCountContext.jsx';
+import { registerServiceWorker } from '@/lib/pwa.js';
 import '@/assets/style/style.css';
+
+registerServiceWorker();
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

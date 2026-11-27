@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext.jsx';
 import { useProfilPhoto } from '@/hooks/useProfilPhoto.js';
+import { nomComplet } from '@/services/utilisateur.js';
 import logo from '@/assets/img/Logo_IRIS_SPACE.svg';
 import msLogo from '@/assets/img/ms_logo_cmjn_blanc_1.png';
 import { BurgerButton, MobileMenu } from '@/components/layout/MobileMenu.jsx';
@@ -51,7 +52,7 @@ export default function Navbar({ links, menuLinks, mediaschool = false }) {
             >
               {photo
                 ? <img src={photo} alt="" className="h-full w-full object-cover" />
-                : initiales(user.nom) || '?'}
+                : initiales(nomComplet(user)) || '?'}
             </NavLink>
           )}
         </div>

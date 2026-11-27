@@ -12,12 +12,14 @@ export const ROLES = {
   DIRECTION: 'direction',
   PROFESSEUR: 'professeur',
   ELEVE: 'eleve',
+  DEV: 'dev',
 };
 
 // Le back donne les mêmes accès à `administrateur` et `direction` (groupe /api/admin)
 export const estAdmin = user => user?.role === ROLES.ADMINISTRATEUR || user?.role === ROLES.DIRECTION;
 export const estProf  = user => user?.role === ROLES.PROFESSEUR;
 export const estEleve = user => user?.role === ROLES.ELEVE;
+export const estDev   = user => user?.role === ROLES.DEV;
 
 // « Prénom Nom » (le back sépare `prenom` et `nom`) ; ignore un champ vide
 export const nomComplet = user => [user?.prenom, user?.nom].filter(Boolean).join(' ');

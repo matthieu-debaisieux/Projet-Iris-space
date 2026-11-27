@@ -4,10 +4,46 @@ Projet de classe sur la création/refonte du Site Iris
 ```
 Projet-Iris-space/
 ├── frontend/   application React (Vite + React Router + Tailwind/daisyUI)
-└── backend/    API (à venir)
+└── backend/    API PHP (Slim 4) + base PostgreSQL
 ```
 
-## Lancer le front
+## Lancer avec Docker (front + API + base)
+
+Copier `.env.example` en `.env`, puis :
+
+```bash
+docker compose up -d --build
+# front   : http://localhost:8080
+# API     : http://localhost:3000/api/health
+# Adminer : http://localhost:8081
+```
+
+Le front Docker utilise l'API et la base, pas les mocks : on s'y connecte avec un compte de la base
+(les comptes de test du mode mock n'y marchent pas).
+
+`init_database.sql` n'est exécuté qu'à la création du volume de la base. Sur une base créée avant
+l'ajout du rôle `dev`, l'ajouter à la main (ou repartir de zéro avec `docker compose down -v`,
+ce qui efface les données) :
+
+```bash
+docker compose exec db psql -U iris -d iris_space -c "ALTER TYPE role_utilisateur ADD VALUE IF NOT EXISTS 'dev';"
+```
+
+Seul un compte `dev` peut créer un compte `dev` : le premier se crée en SQL. Générer le hash du
+mot de passe, puis lancer la requête dans Adminer (onglet « Requête SQL ») :
+
+```bash
+docker compose exec api php -r "echo password_hash('MotDePasseDev', PASSWORD_DEFAULT), PHP_EOL;"
+```
+
+```sql
+INSERT INTO utilisateur (identifiant, email, mot_de_passe_hash, role, nom, prenom)
+VALUES ('dev', 'dev@iris-space.fr', '<hash affiché ci-dessus>', 'dev', 'Développeur', 'Équipe');
+```
+
+Ce compte crée ensuite tous les autres depuis la page `/comptes`.
+
+## Lancer le front sans Docker
 
 ```bash
 cd frontend
@@ -16,8 +52,21 @@ npm run dev     # serveur de développement
 npm run build   # build de production dans dist/
 ```
 
-Comptes de test (mode mock) : `admin` / `admin`, `direction` / `direction`, `prof` / `prof`, `eleve` / `eleve`.
+Comptes de test (mode mock) : `admin` / `admin`, `direction` / `direction`, `prof` / `prof`, `eleve` / `eleve`, `dev` / `dev`.
 Les espaces `/visiteur` et `/mediaschool` sont publics.
+
+## Lancer le back (API Slim) sans Docker
+
+Avec PHP 8.2+ et Composer installés :
+
+```bash
+cd backend
+composer install
+php -S localhost:3000 -t public
+```
+
+Les routes sont déclarées dans `backend/public/index.php`, dans le groupe `/api`.
+Les classes PHP vont dans `backend/src/` (namespace `App\`).
 
 ## Architecture du front
 
@@ -38,18 +87,19 @@ frontend/src/
 └── assets/             fonts, images, style.css
 ```
 
-## Architecture du backend 
+## Architecture du backend
+
 ```
-backend 
-├── database /    Iris_space -- PostgresSQL   
-│   ├── init_database.sql           
-├── public /              
-├── routes /      toutes les routes (database, eleve, admin, prof, visiteur)         
-├── src /         connexion a la db + API health    
-├── vendor /      
-├── Dockerfile    configuration API PHP Slim servie par Apache     
-├── ...
+backend/
+├── database/    Iris_space -- PostgreSQL
+│   └── init_database.sql
+├── public/      point d'entrée Slim (`index.php`)
+├── routes/      toutes les routes (database, auth, eleve, admin, prof, visiteur)
+├── src/         classes PHP (namespace `App\`)
+├── vendor/      dépendances Composer
+└── Dockerfile   configuration API PHP Slim servie par Apache
 ```
+
 Règles :
 
 - **Une page n'accède jamais directement à `localStorage` ni à `fetch`** : elle appelle une
@@ -77,30 +127,12 @@ VITE_BACKEND_URL=http://localhost:3000   # adresse du back en dev
 En dev, Vite redirige `/api/*` vers `VITE_BACKEND_URL` (pas de souci CORS).
 Les requêtes envoient le cookie de session (`credentials: 'include'`).
 
-Routes attendues par le front :
+## Contrat d'API (unique source de vérité)
 
-| Méthode | Route                              | Service                  |
-|---------|------------------------------------|--------------------------|
-| POST    | `/api/auth/login`                  | `auth.login`             |
-| POST    | `/api/auth/logout`                 | `auth.logout`            |
-| GET     | `/api/actualites[?statut=Publié]`  | `actualites.get…`        |
-| POST    | `/api/actualites`                  | `createActualite`        |
-| PUT     | `/api/actualites/:id`              | `updateActualite`        |
-| DELETE  | `/api/actualites/:id`              | `deleteActualite`        |
-| GET     | `/api/absences?date=today`         | `getAbsences`            |
-| GET     | `/api/planning`                    | `getPlanning`            |
-| GET     | `/api/planning/aujourdhui`         | `getCoursDuJour`         |
-| GET     | `/api/espaces`                     | `getEspaces`             |
-| GET     | `/api/conversations`               | `getConversations`       |
-| POST    | `/api/conversations/:id/messages`  | `sendMessage`            |
-| GET     | `/api/eleve/emploi-du-temps?du=&au=` | `getEmploiDuTemps` (élève) |
-| GET     | `/api/prof/emploi-du-temps?du=&au=` | `getEmploiDuTemps` (prof) |
-| GET     | `/api/eleve/raccourcis`            | `getRaccourcis`          |
-| GET     | `/api/eleve/notes`                 | `getNotes`               |
-| GET     | `/api/eleve/profil`                | `getProfil`              |
+Le contrat officiel entre le front-end et le back-end est décrit dans [`backend/ROUTES.md`](backend/ROUTES.md).
+Toute nouvelle route ou modification de format doit d'abord y être documentée avant d'être implémentée.
 
-Le format des données renvoyées est celui des fichiers de `frontend/src/mocks/`.
-`POST /api/auth/login` renvoie `{ user }` avec `user = { id, identifiant, email, role, nom, prenom, photo_url }`
-(`backend/routes/auth.php`) ; `role` vaut `administrateur`, `direction`, `professeur` ou `eleve`. Les mocks y ajoutent
-`droits`, la liste
-des codes de droits de l'utilisateur (voir `frontend/src/mocks/users.js` pour la liste utilisée).
+Points essentiels :
+- `POST /api/auth/login` attend `{ identifiant, mot_de_passe }` et renvoie `{ user }` (`{ id, identifiant, email, role, nom, prenom, photo_url, droits }`), où `role` vaut `administrateur`, `direction`, `professeur`, `eleve` ou `dev` et `droits` est déduit du rôle (voir [`frontend/src/mocks/users.js`](frontend/src/mocks/users.js)).
+- `GET /api/auth/me` restaure la session courante (ou répond `401`).
+- Les formulaires d'envoi de fichiers utilisent `FormData` (champ `fichier`).

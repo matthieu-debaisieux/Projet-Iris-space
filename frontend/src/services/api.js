@@ -3,15 +3,30 @@
 // utilisent les mocks + localStorage et ce client n'est pas appelé.
 export const USE_MOCKS = import.meta.env.VITE_USE_MOCKS !== 'false';
 
-const BASE_URL = import.meta.env.VITE_API_URL ?? '/api';
+export const BASE_URL = import.meta.env.VITE_API_URL ?? '/api';
 
-export async function apiFetch(path, { method = 'GET', body } = {}) {
+export class ApiError extends Error {
+  constructor(message, status, data = null) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.data = data;
+  }
+}
+
+let onUnauthorized = null;
+
+export function setUnauthorizedHandler(handler) {
+  onUnauthorized = handler;
+}
+
+export async function apiFetch(path, { method = 'GET', body, skipUnauthorized = false } = {}) {
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
 
   const res = await fetch(BASE_URL + path, {
     method,
-    headers: isFormData || body === undefined ? undefined : { 'Content-Type': 'application/json' },
-    body: isFormData ? body : (body !== undefined ? JSON.stringify(body) : undefined),
+    headers: body !== undefined && !isFormData ? { 'Content-Type': 'application/json' } : undefined,
+    body: body === undefined ? undefined : (isFormData ? body : JSON.stringify(body)),
     credentials: 'include', // envoie le cookie de session
   });
 
@@ -20,24 +35,29 @@ export async function apiFetch(path, { method = 'GET', body } = {}) {
     try {
       data = await res.json();
     } catch {
-      // Ignorer l'échec de lecture si le corps n'est pas du JSON
+      // Réponse non-JSON : on conserve le message par défaut
     }
 
-    const message = data?.error ? data.error : `${method} ${path} → ${res.status}`;
-    const error = new Error(message);
-    error.status = res.status;
-    error.data = data;
-    throw error;
+    const message =
+      data && typeof data.error === 'string' && data.error.trim() !== ''
+        ? data.error
+        : `${method} ${path} → ${res.status}`;
+
+    if (res.status === 401 && !skipUnauthorized && onUnauthorized) {
+      onUnauthorized();
+    }
+
+    throw new ApiError(message, res.status, data);
   }
 
   return res.status === 204 ? null : res.json();
 }
 
 export const api = {
-  get:    path                              => apiFetch(path),
-  post:   (path, body)                      => apiFetch(path, { method: 'POST', body }),
-  put:    (path, body)                      => apiFetch(path, { method: 'PUT', body }),
-  patch:  (path, body)                      => apiFetch(path, { method: 'PATCH', body }),
-  delete: path                              => apiFetch(path, { method: 'DELETE' }),
-  upload: (path, formData, method = 'POST') => apiFetch(path, { method, body: formData }),
+  get:    (path, opts)                     => apiFetch(path, { ...opts, method: 'GET' }),
+  post:   (path, body, opts)               => apiFetch(path, { ...opts, method: 'POST', body }),
+  put:    (path, body, opts)               => apiFetch(path, { ...opts, method: 'PUT', body }),
+  patch:  (path, body, opts)               => apiFetch(path, { ...opts, method: 'PATCH', body }),
+  delete: (path, opts)                     => apiFetch(path, { ...opts, method: 'DELETE' }),
+  upload: (path, formData, method = 'POST', opts) => apiFetch(path, { ...opts, method, body: formData }),
 };

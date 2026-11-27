@@ -1,6 +1,7 @@
 import { Link, Outlet } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext.jsx';
 import Navbar from '@/components/layout/Navbar.jsx';
+import PwaBanner from '@/components/layout/PwaBanner.jsx';
 import Footer from '@/components/layout/Footer.jsx';
 import { WithDevPanel } from '@/components/layout/DevPanel.jsx';
 import { MEDIASCHOOL_LINKS, NAV_LINKS, PUBLIC_LINKS } from '@/routes/navigation.js';
@@ -36,6 +37,7 @@ export default function Layout({ mediaschool = false }) {
   return (
     <div className="flex flex-col h-screen overflow-hidden">
       <Navbar links={lateral ? [] : links} menuLinks={menuLinks} mediaschool={mediaschool} />
+      <PwaBanner />
 
       <div className="flex flex-1 overflow-hidden">
         {lateral && (

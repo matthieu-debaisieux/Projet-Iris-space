@@ -1,0 +1,5 @@
+vendor
+database
+.env
+.env.*
+!.env.example

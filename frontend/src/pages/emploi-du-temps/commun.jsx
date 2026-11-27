@@ -10,7 +10,7 @@ export const MONTH_NAMES = [
   'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
   'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
 ];
-const HOUR_SLOTS = ['09h00', '10h00', '11h00', '12h00', '13h00', '14h00', '15h00', '16h00', '17h00', '18h00'];
+const HOUR_SLOTS = ['08h00', '09h00', '10h00', '11h00', '12h00', '13h00', '14h00', '15h00', '16h00', '17h00', '18h00', '19h00'];
 const ROW_HEIGHT = 34; // px par tranche de 30 min
 
 // ── Styles communs (mêmes codes que Notes / Vie scolaire / Actualités) ──────
@@ -214,7 +214,7 @@ export function TimetableGrid({ classData, monday, onCourseClick, onAddCourse })
               className={`h-full w-full rounded-lg border-l-4 ${getColorForSubject(course.subject)} px-2.5 py-1.5 text-left flex flex-col gap-0.5 overflow-hidden hover:shadow-md hover:-translate-y-px transition`}
             >
               <span className="text-[11px] font-semibold opacity-75">{course.start} – {course.end}</span>
-              <span className="text-sm font-bold leading-tight truncate w-full">{course.subject}</span>
+              <span className="text-sm font-bold leading-tight truncate w-full">{course.subject}{course.annule && ' (annulé)'}</span>
               {span >= 3 && (
                 <span className="text-xs leading-tight truncate w-full flex items-center gap-1">
                   <Icon name="user" size={12} /> {course.intervenant}
