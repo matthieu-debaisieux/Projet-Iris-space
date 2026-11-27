@@ -1,5 +1,6 @@
-// Structure : classes[classe][jour] = tableau de cours
+// Semaine type récurrente (mode mocks) : classes[classe][jour] = tableau de cours
 // Chaque cours : { start, end, subject, intervenant, room }
+// services/planning.js en tire des cours datés, au format du back, pour les semaines autour d'aujourd'hui.
 export const CLASSES = {
   'Iris 1': {
     Mercredi: [
@@ -36,5 +37,5 @@ export const CLASSES = {
   },
 };
 
-// Tableau "Cours aujourd'hui" du dashboard : { heureDebut, salle1, salle2, salle3 }
-export const COURS_DU_JOUR = [];
+// Jours de la semaine type ci-dessus, dans l'ordre (le lundi vaut 0)
+export const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'];

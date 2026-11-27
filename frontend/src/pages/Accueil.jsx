@@ -227,28 +227,36 @@ function SuiviDuJour() {
       {/* Cours aujourd'hui */}
       <section className={`${card} min-w-0`}>
         <h2 className={cardTitle}>Cours aujourd&apos;hui</h2>
-        <DataState state={cours}>{rows => (
-          <table className="w-full border-separate border-spacing-0">
-            <thead>
-              <tr>
-                <th className={`${th} w-16`}>Heure</th>
-                <th className={th}>Salle / Classe</th>
-                <th className={th}>Salle / Classe</th>
-                <th className={th}>Salle / Classe</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, i) => (
-                <tr key={i} className="hover:bg-[#F7F8FB]">
-                  <td className={`${td} text-xs font-semibold text-[#001257]`}>{row.heureDebut}</td>
-                  <td className={td}>{row.salle1 ?? ''}</td>
-                  <td className={td}>{row.salle2 ?? ''}</td>
-                  <td className={td}>{row.salle3 ?? ''}</td>
+        <DataState state={cours}>{rows => (rows.length ? (
+          <div className="overflow-x-auto">
+            <table className="w-full border-separate border-spacing-0">
+              <thead>
+                <tr>
+                  <th className={`${th} whitespace-nowrap`}>Heure</th>
+                  <th className={th}>Classe</th>
+                  <th className={th}>Matière</th>
+                  <th className={th}>Salle</th>
+                  <th className={th}>Professeur</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}</DataState>
+              </thead>
+              <tbody>
+                {rows.map(row => (
+                  <tr key={row.id} className={`hover:bg-[#F7F8FB] ${row.annule ? 'opacity-60' : ''}`}>
+                    <td className={`${td} text-xs font-semibold text-[#001257] whitespace-nowrap`}>
+                      {row.start} – {row.end}
+                    </td>
+                    <td className={`${td} font-medium`}>{row.classe}</td>
+                    <td className={td}>{row.subject}{row.annule && ' (annulé)'}</td>
+                    <td className={td}>{row.room || '—'}</td>
+                    <td className={td}>{row.intervenant}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-[#6B7185]">Aucun cours prévu aujourd&apos;hui.</p>
+        ))}</DataState>
       </section>
 
       {/* Modale coordonnées contact */}

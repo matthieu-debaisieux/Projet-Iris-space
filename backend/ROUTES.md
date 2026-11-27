@@ -531,8 +531,8 @@ Table issue de l'ancien README du front : les appels de gauche doivent tous êtr
 | `PUT /api/actualites/:id` | `updateActualite` | `PUT /api/admin/actualites/{id}` | À faire (`ACT-01`, `ACT-03`) |
 | `DELETE /api/actualites/:id` | `deleteActualite` | `DELETE /api/admin/actualites/{id}` | À faire (`ACT-01`, `ACT-03`) |
 | `GET /api/absences?date=today` | `getAbsences` | `GET /api/admin/absences?date=` (admin) · `GET /api/eleve/absences` (élève) | Bonus après J3 (`VSC-01`) / élève fait |
-| `GET /api/planning` | `getPlanning` | `GET /api/admin/cours?classe_id=&du=&au=` · `GET /api/eleve/emploi-du-temps?du=&au=` · `GET /api/prof/emploi-du-temps?du=&au=` | Élève/prof faits ; admin à faire (`EDT-01`, `EDT-02`) |
-| `GET /api/planning/aujourdhui` | `getCoursDuJour` | `GET /api/admin/cours?du=&au=` (date du jour) | À faire (`EDT-01`, `ACC-02`) |
+| `GET /api/planning` | `getPlanning` | `GET /api/admin/cours?classe_id=&du=&au=` · `GET /api/eleve/emploi-du-temps?du=&au=` · `GET /api/prof/emploi-du-temps?du=&au=` | Fait (`EDT-01`, `EDT-02`) ; élève/prof faits |
+| `GET /api/planning/aujourdhui` | `getCoursDuJour` | `GET /api/admin/cours?du=&au=` (date du jour) | Fait (`EDT-01`, `ACC-02`) |
 | `GET /api/espaces` | `getEspaces` | `GET /api/admin/espaces` (gestion) · `GET /api/eleve/documents` (élève) | Fait (`DOC-02`, `DOC-04`) |
 | `GET /api/conversations` | `getConversations` | `GET /api/conversations` | À faire (`MSG-01`, `MSG-03`) |
 | `POST /api/conversations/:id/messages` | `sendMessage` | `POST /api/conversations/{id}/messages` | À faire (`MSG-01`, `MSG-03`) |
