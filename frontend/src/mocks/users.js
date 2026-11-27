@@ -3,14 +3,15 @@
 // n'utilise jamais `role` pour afficher quelque chose, uniquement ces droits :
 //   - un droit par page (`notes`, `documents`…) pour y accéder
 //   - `<page>_gerer` pour les boutons de modification dans la page
+//   - `actualites_gerer` : écrire des articles ; sans `actualites_gerer_tout`, seulement les siens
 //   - `tableau_de_bord` / `journee` : blocs de la page d'accueil
 //   - `outils_dev` : panel DEV, `menu_lateral` : menu sur le côté au lieu d'en haut
 const DROITS_ADMIN = [
-  'menu_lateral', 'tableau_de_bord', 'absences', 'actualites', 'actualites_gerer', 'emploi_du_temps',
-  'emploi_du_temps_gerer', 'documents', 'documents_gerer', 'messagerie', 'outils_dev',
+  'menu_lateral', 'tableau_de_bord', 'absences', 'actualites', 'actualites_gerer', 'actualites_gerer_tout',
+  'emploi_du_temps', 'emploi_du_temps_gerer', 'documents', 'documents_gerer', 'messagerie', 'outils_dev',
 ];
 const DROITS_PROF = [
-  'journee', 'devoirs', 'notes', 'actualites', 'emploi_du_temps', 'messagerie', 'outils_dev',
+  'journee', 'devoirs', 'notes', 'actualites', 'actualites_gerer', 'emploi_du_temps', 'messagerie', 'outils_dev',
 ];
 const DROITS_ELEVE = [
   'journee', 'devoirs', 'notes', 'absences', 'actualites', 'emploi_du_temps', 'documents', 'messagerie',

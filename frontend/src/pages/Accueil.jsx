@@ -4,7 +4,7 @@ import Modal from '@/components/ui/Modal.jsx';
 import { useAuth } from '@/context/AuthContext.jsx';
 import { useAsync } from '@/hooks/useAsync.js';
 import { getAbsences, STATUT_ABSENCE_LABEL } from '@/services/absences.js';
-import { getActualitesPubliees } from '@/services/actualites.js';
+import { dateActualite, getActualites } from '@/services/actualites.js';
 import { getEmploiDuJour, getRaccourcis } from '@/services/eleve.js';
 import { getCoursDuJour } from '@/services/planning.js';
 
@@ -146,16 +146,16 @@ function MaJournee() {
 
 // ── Dernières actualités publiées ───────────────────────────────────────────
 function DernieresActualites() {
-  const actualites = useAsync(getActualitesPubliees);
+  const actualites = useAsync(() => getActualites({ limit: 3 }));
 
   return (
     <section className={card}>
       <h2 className={cardTitle}>Actualités</h2>
       <DataState state={actualites}>{liste => (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {liste.slice(0, 3).map(actu => (
+          {liste.map(actu => (
             <article key={actu.id} className="rounded-xl bg-[#EEF1F7] p-4 flex flex-col gap-1.5">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#07A6A6]">{actu.date}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#07A6A6]">{dateActualite(actu)}</p>
               <p className="text-sm font-semibold text-[#001257]">{actu.titre}</p>
               <p className="text-xs text-[#6B7185] line-clamp-2">{actu.contenu}</p>
             </article>

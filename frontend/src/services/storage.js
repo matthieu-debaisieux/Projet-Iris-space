@@ -3,7 +3,7 @@ export const LS_SESSION       = 'iris_session_v2';
 export const LS_MESSAGES      = 'iris_messageCount';
 export const LS_ABSENCES      = 'iris_absences_v2';
 export const LS_COURS         = 'iris_cours';
-export const LS_ACTUALITES    = 'iris_actualites';
+export const LS_ACTUALITES    = 'iris_actualites_v2'; // v2 : format du back (auteur_id, statut publie / brouillon…)
 export const LS_CONVERSATIONS = 'iris_conversations';
 
 // Lit une valeur JSON ; si absente ou corrompue, enregistre (quand `seed` est
