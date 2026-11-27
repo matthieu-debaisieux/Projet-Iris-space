@@ -98,6 +98,9 @@ function droitsPourRole(string $role): array
             'documents',
             'documents_gerer',
             'messagerie',
+            'programme_gerer',
+            'classe_voir',
+            'classe_voir_tout',
         ],
         'administrateur', 'direction' => [
             'menu_lateral',
@@ -111,6 +114,9 @@ function droitsPourRole(string $role): array
             'documents',
             'documents_gerer',
             'messagerie',
+            'programme_gerer',
+            'classe_voir',
+            'classe_voir_tout',
         ],
         'professeur' => [
             'journee',
@@ -123,6 +129,8 @@ function droitsPourRole(string $role): array
             'documents',
             'documents_deposer',
             'messagerie',
+            'classe_voir',
+            'classe_voir_ses_classes',
         ],
         'eleve' => [
             'journee',
@@ -134,6 +142,7 @@ function droitsPourRole(string $role): array
             'documents',
             'messagerie',
             'profil_modifier',
+            'classe_voir',
         ],
         default => [],
     };

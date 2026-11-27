@@ -83,6 +83,34 @@ $group->patch('/profil', function (ServerRequestInterface $request, ResponseInte
     return json($response, ['profil' => lireProfilEleve() ?: throw new ApiException('Profil introuvable', 404)]);
 });
 
+// Ma classe et ses élèves actifs (nom, prénom, photo uniquement : jamais d'e-mail, téléphone ni adresse)
+$group->get('/classe', function (ServerRequestInterface $request, ResponseInterface $response) {
+    $stmt = db()->prepare(
+        'SELECT c.id, c.nom, a.libelle AS annee_scolaire, ca.nom AS campus
+         FROM eleve e
+         JOIN classe c         ON c.id = e.classe_id
+         JOIN annee_scolaire a ON a.id = c.annee_scolaire_id
+         JOIN campus ca        ON ca.id = c.campus_id
+         WHERE e.utilisateur_id = :id'
+    );
+    $stmt->execute(['id' => moi()]);
+    $classe = $stmt->fetch();
+    if (!$classe) {
+        return json($response, ['classe' => null, 'eleves' => []]);
+    }
+
+    $stmt = db()->prepare(
+        'SELECT u.id, u.nom, u.prenom, u.photo_url
+         FROM eleve e
+         JOIN utilisateur u ON u.id = e.utilisateur_id
+         WHERE e.classe_id = :classe AND u.actif
+         ORDER BY u.nom, u.prenom'
+    );
+    $stmt->execute(['classe' => $classe['id']]);
+
+    return json($response, ['classe' => $classe, 'eleves' => $stmt->fetchAll()]);
+});
+
 // ?du=AAAA-MM-JJ&au=AAAA-MM-JJ (par défaut : aujourd'hui)
 $group->get('/emploi-du-temps', function (ServerRequestInterface $request, ResponseInterface $response) {
     [$du, $au] = periode($request->getQueryParams());

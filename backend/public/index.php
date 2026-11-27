@@ -72,6 +72,7 @@ $app->group('/api', function ($group) {
         require __DIR__ . '/../routes/admin/documents.php';
         require __DIR__ . '/../routes/admin/utilisateurs.php';
         require __DIR__ . '/../routes/admin/rgpd.php';
+        require __DIR__ . '/../routes/admin/programme.php';
     })->add(requireRole('administrateur', 'direction', 'dev'));
 
     $group->group('/eleve', function ($group) {
