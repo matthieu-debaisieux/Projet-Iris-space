@@ -430,7 +430,8 @@ function enregistrerFichier(ServerRequestInterface $request, string $sousDossier
         supprimerFichier($url);
         throw new ApiException('Contenu du fichier non autorisé', 400);
     }
-    if ($extensionsAutorisees === EXTENSIONS_IMAGES && !str_starts_with($mime, 'image/')) {
+    // Une liste réduite à des extensions d'images (ex. jpg/png/webp pour une photo de profil) exige aussi un contenu d'image
+    if ($extensionsAutorisees !== null && array_diff($extensionsAutorisees, EXTENSIONS_IMAGES) === [] && !str_starts_with($mime, 'image/')) {
         supprimerFichier($url);
         throw new ApiException('Le fichier doit être une image valide', 400);
     }
@@ -531,9 +532,14 @@ function envoyerFichier(
         ->withHeader('Cache-Control', $cacheControl);
 }
 
+// Accepte le chemin relatif à uploads/ (colonne `url`) comme l'URL renvoyée par POST /api/uploads
+// (colonnes image_url et photo_url : /api/uploads/avatars/<nom>)
 function supprimerFichier(?string $url): void
 {
-    if ($url === null || $url === '' || str_contains($url, '..')) {
+    if ($url !== null && str_starts_with($url, '/api/uploads/')) {
+        $url = substr($url, strlen('/api/'));
+    }
+    if ($url === null || $url === '' || str_contains($url, '..') || str_starts_with($url, '/')) {
         return;
     }
     $chemin = DOSSIER_FICHIERS . '/' . $url;

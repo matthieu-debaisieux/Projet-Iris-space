@@ -5,6 +5,7 @@ import Modal from '@/components/ui/Modal.jsx';
 import { useAuth } from '@/context/AuthContext.jsx';
 import { useAsync } from '@/hooks/useAsync.js';
 import { useProfilPhoto } from '@/hooks/useProfilPhoto.js';
+import { USE_MOCKS } from '@/services/api.js';
 import { updateProfil } from '@/services/eleve.js';
 import { getMonProfil } from '@/services/profil.js';
 
@@ -370,7 +371,20 @@ function PhotoProfil({ prenom, nom }) {
     try {
       await enregistrer(fichier);
     } catch (err) {
-      setErreur(err.message);
+      setErreur(err instanceof TypeError ? 'Impossible de joindre le serveur. Réessayez dans un instant.' : err.message);
+    } finally {
+      setEnCours(false);
+    }
+  }
+
+  async function retirer() {
+    if (enCours) return;
+    setErreur('');
+    setEnCours(true);
+    try {
+      await supprimer();
+    } catch (err) {
+      setErreur(err instanceof TypeError ? 'Impossible de joindre le serveur. Réessayez dans un instant.' : err.message);
     } finally {
       setEnCours(false);
     }
@@ -381,8 +395,9 @@ function PhotoProfil({ prenom, nom }) {
       <button
         type="button"
         onClick={() => entree.current?.click()}
+        disabled={enCours}
         aria-label="Changer la photo de profil"
-        className="group relative h-32 w-32 overflow-hidden rounded-full bg-[#F8B005] ring-4 ring-[#EEF1F7] focus:outline-none focus-visible:ring-[#001257]"
+        className="group relative h-32 w-32 overflow-hidden rounded-full bg-[#F8B005] ring-4 ring-[#EEF1F7] focus:outline-none focus-visible:ring-[#001257] disabled:opacity-75"
       >
         {photo
           ? <img src={photo} alt="Ma photo de profil" className="h-full w-full object-cover" />
@@ -400,14 +415,14 @@ function PhotoProfil({ prenom, nom }) {
           <Icone d={ICONES.camera} size={15} /> {enCours ? 'Envoi…' : photo ? 'Changer la photo' : 'Ajouter une photo'}
         </button>
         {photo && (
-          <button type="button" onClick={() => { supprimer(); setErreur(''); }}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-[#E1E5EE] px-3 py-2 text-xs font-semibold text-[#B23A3A] hover:bg-[#FBE6E6] transition">
+          <button type="button" onClick={retirer} disabled={enCours}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[#E1E5EE] px-3 py-2 text-xs font-semibold text-[#B23A3A] hover:bg-[#FBE6E6] disabled:opacity-60 transition">
             <Icone d={ICONES.corbeille} size={15} /> Retirer
           </button>
         )}
       </div>
 
-      <p className="text-xs text-[#6B7185]">PNG, JPG ou WebP · 5 Mo maximum</p>
+      <p className="text-xs text-[#6B7185]">PNG, JPG ou WebP · {USE_MOCKS ? '5' : '2'} Mo maximum</p>
       {erreur && <p role="alert" className="text-xs font-medium text-[#B23A3A]">{erreur}</p>}
     </div>
   );

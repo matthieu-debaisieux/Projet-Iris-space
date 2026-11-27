@@ -1,24 +1,26 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext.jsx';
+import { USE_MOCKS } from '@/services/api.js';
+import { deletePhotoProfil, uploadPhotoProfil } from '@/services/profil.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Photo de profil, à placer dans src/hooks/useProfilPhoto.js
 //
-// Version SANS base de données : la photo est enregistrée dans le navigateur
-// (localStorage), une par utilisateur, sous forme d'une petite image carrée 256 px.
-// Elle est donc visible partout sur CET appareil (barre du haut + page Profil),
-// mais pas sur un autre ordinateur. Quand l'API sera prête, remplacer
-// `ecrire` / `lire` / `effacer` par l'envoi et la lecture côté serveur.
+// Mode API (USE_MOCKS === false) : envoi vers POST /api/profil/photo (JPG/PNG/WebP, ≤ 2 Mo),
+// suppression via DELETE /api/profil/photo, lecture depuis user.photo_url.
+// Mode mocks (USE_MOCKS === true) : enregistrée dans le navigateur (localStorage),
+// une par utilisateur, sous forme d'une petite image carrée 256 px.
 //
 //   const { photo, enregistrer, supprimer } = useProfilPhoto();
-//   photo        : "data:image/jpeg;base64,…" ou null
+//   photo        : URL serveur (/api/uploads/avatars/...), data URL en mocks, ou null
 //   enregistrer  : async (file) → lève une Error (message en français) si le fichier est refusé
-//   supprimer    : () → retire la photo
+//   supprimer    : async () → retire la photo
 // ─────────────────────────────────────────────────────────────────────────────
 
 const FORMATS = ['image/png', 'image/jpeg', 'image/webp']; // volontairement sans SVG
-const TAILLE_MAX = 5 * 1024 * 1024; // 5 Mo avant réduction
-const COTE = 256;                   // px, image finale carrée
+const TAILLE_MAX_MOCK = 5 * 1024 * 1024; // 5 Mo avant réduction (mode mocks)
+const TAILLE_MAX_API = 2 * 1024 * 1024;  // 2 Mo max côté serveur (POST /api/profil/photo)
+const COTE = 256;                        // px, image finale carrée (mode mocks)
 const EVENEMENT = 'iris-photo-change';
 
 const cleDe = user => `iris-photo:${user?.id ?? user?.nom ?? 'anonyme'}`;
@@ -27,11 +29,20 @@ const lire = cle => { try { return localStorage.getItem(cle); } catch { return n
 const ecrire = (cle, valeur) => { localStorage.setItem(cle, valeur); window.dispatchEvent(new Event(EVENEMENT)); };
 const effacer = cle => { try { localStorage.removeItem(cle); } catch { /* ignoré */ } window.dispatchEvent(new Event(EVENEMENT)); };
 
-// Recadre au centre en carré, réduit à 256 px et ré-encode en JPEG.
+function validerImage(file, tailleMax) {
+  if (!FORMATS.includes(file.type)) {
+    throw new Error('Format non accepté : utilisez une image PNG, JPG ou WebP.');
+  }
+  if (file.size > tailleMax) {
+    const mo = Math.round(tailleMax / (1024 * 1024));
+    throw new Error(`Image trop lourde (${mo} Mo maximum).`);
+  }
+}
+
+// Recadre au centre en carré, réduit à 256 px et ré-encode en JPEG (mode mocks).
 // Le ré-encodage retire aussi les métadonnées (position GPS, appareil photo…) de l'image d'origine.
 async function reduire(file) {
-  if (!FORMATS.includes(file.type)) throw new Error('Format non accepté : utilisez une image PNG, JPG ou WebP.');
-  if (file.size > TAILLE_MAX) throw new Error('Image trop lourde (5 Mo maximum).');
+  validerImage(file, TAILLE_MAX_MOCK);
 
   let image;
   try { image = await createImageBitmap(file); } catch { throw new Error("Cette image est illisible. Essayez-en une autre."); }
@@ -49,13 +60,14 @@ async function reduire(file) {
 }
 
 export function useProfilPhoto() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const cle = cleDe(user);
-  const [photo, setPhoto] = useState(() => lire(cle));
+  const [photoMock, setPhotoMock] = useState(() => (USE_MOCKS ? lire(cle) : null));
 
-  // Resynchronise : changement d'utilisateur, autre composant, autre onglet
+  // Resynchronise en mode mocks : changement d'utilisateur, autre composant, autre onglet
   useEffect(() => {
-    const maj = () => setPhoto(lire(cle));
+    if (!USE_MOCKS) return undefined;
+    const maj = () => setPhotoMock(lire(cle));
     maj();
     window.addEventListener(EVENEMENT, maj);
     window.addEventListener('storage', maj);
@@ -66,11 +78,26 @@ export function useProfilPhoto() {
   }, [cle]);
 
   const enregistrer = useCallback(async file => {
+    if (!USE_MOCKS) {
+      validerImage(file, TAILLE_MAX_API);
+      const photoUrl = await uploadPhotoProfil(file);
+      updateUser({ photo_url: photoUrl });
+      return;
+    }
     const data = await reduire(file);
     try { ecrire(cle, data); } catch { throw new Error("Impossible d'enregistrer la photo (stockage du navigateur plein ou bloqué)."); }
-  }, [cle]);
+  }, [cle, updateUser]);
 
-  const supprimer = useCallback(() => effacer(cle), [cle]);
+  const supprimer = useCallback(async () => {
+    if (!USE_MOCKS) {
+      await deletePhotoProfil();
+      updateUser({ photo_url: null });
+      return;
+    }
+    effacer(cle);
+  }, [cle, updateUser]);
+
+  const photo = USE_MOCKS ? photoMock : (user?.photo_url ?? null);
 
   return { photo, enregistrer, supprimer };
 }

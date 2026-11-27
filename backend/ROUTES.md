@@ -11,6 +11,8 @@ Ce document est l'**unique contrat d'API** entre le front-end et le back-end : t
 | POST | `/api/auth/logout` | Vide et détruit la session, supprime le cookie, répond 204 |
 | GET | `/api/auth/me` | Renvoie `{ user }` avec `droits`, ou 401 si pas de session ou compte désactivé |
 | GET | `/api/profil` | Profil complet de l'utilisateur connecté selon son rôle (élève, professeur, administrateur/direction) |
+| POST | `/api/profil/photo` | Envoyer ou remplacer sa photo de profil (`fichier` multipart, JPG/PNG/WebP, 2 Mo max ; met à jour `utilisateur.photo_url` et renvoie `{ photo_url }`) |
+| DELETE | `/api/profil/photo` | Retirer sa photo de profil (supprime le fichier et remet `utilisateur.photo_url` à `null`, 204) |
 
 Les sections marquées **(fait)** plus bas sont aussi codées :
 - fichiers (`/uploads`, `/documents/{id}/telecharger`) ;
@@ -111,8 +113,8 @@ Réponse : `{ "actualite": {...} }` pour `POST` et `PUT`, `{ "actualites": [...]
 
 | Méthode | Route | Sert à | P |
 |---|---|---|---|
-| POST | `/api/uploads` | Envoyer un fichier (`fichier`, `categorie` facultative : `general`, `actualites`, `avatars`, `messages`) et récupérer `{ url, fichier }` | P1 |
-| GET | `/api/uploads/{categorie}/{nom}` | Servir un fichier déposé via `/api/uploads` (public pour `actualites`, connecté pour les autres catégories) | P1 |
+| POST | `/api/uploads` | Envoyer un fichier (`fichier`, `categorie` facultative : `general`, `actualites`, `avatars`, `messages`) et récupérer `{ url, fichier }` (`actualites` réservé à admin, direction, dev, prof ; `actualites` et `avatars` limités aux images) | P1 |
+| GET | `/api/uploads/{categorie}/{nom}` | Servir un fichier déposé via `/api/uploads` (public sans connexion pour `actualites`, tout utilisateur connecté pour `general`, `avatars`, `messages`) | P1 |
 | GET | `/api/documents/{id}/telecharger` | Télécharger un document après vérification des droits (admin/direction : tout ; élève : généraux et les siens ; prof : généraux, les siens ou déposés par lui) | P2 |
 
 ## Messagerie (admin, prof, élève)
