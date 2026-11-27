@@ -21,3 +21,15 @@ export const ESPACES = [
     },
   ],
 }));
+
+export const MES_DOCUMENTS_ELEVE = [
+  {
+    id: '10000000-0000-4000-8000-000000000001',
+    titre: 'Attestation_assurance_2026.pdf',
+    created_at: '2026-10-20T14:30:00+02:00',
+    espace_id: 99,
+    espace: 'Mes documents',
+    personnel: true,
+    depose_par_moi: true,
+  },
+];

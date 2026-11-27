@@ -248,17 +248,87 @@ $group->post('/devoirs/{id:' . UUID . '}/rendu', function (ServerRequestInterfac
     return json($response, ['rendu' => $rendu], 201);
 });
 
-// Documents généraux (sans utilisateur) et documents déposés pour cet élève
+// Documents généraux (sans utilisateur) et documents déposés pour/par cet élève
 $group->get('/documents', function (ServerRequestInterface $request, ResponseInterface $response) {
     $stmt = db()->prepare(
         'SELECT d.id, d.titre, d.created_at, t.id AS espace_id, t.nom AS espace,
-                (d.utilisateur_id IS NOT NULL) AS personnel
+                (d.utilisateur_id IS NOT NULL) AS personnel,
+                (d.depose_par = :id2) AS depose_par_moi
          FROM document d
          JOIN type_document t ON t.id = d.type_document_id
          WHERE d.utilisateur_id IS NULL OR d.utilisateur_id = :id
          ORDER BY t.nom, d.created_at DESC'
     );
-    $stmt->execute(['id' => moi()]);
+    $stmt->execute(['id' => moi(), 'id2' => moi()]);
 
     return json($response, ['documents' => $stmt->fetchAll()]);
+});
+
+// Déposer un document personnel dans « Mes documents »
+// (les rendus de devoirs passent par POST /api/eleve/devoirs/{id}/rendu)
+$group->post('/documents', function (ServerRequestInterface $request, ResponseInterface $response) {
+    $titre = texte(corps($request), 'titre', 200);
+    $fichier = enregistrerFichier($request, 'documents');
+
+    try {
+        $document = transaction(function (PDO $pdo) use ($fichier, $titre) {
+            $stmt = $pdo->prepare(
+                "INSERT INTO type_document (nom) VALUES ('Mes documents')
+                 ON CONFLICT (nom) DO UPDATE SET nom = EXCLUDED.nom
+                 RETURNING id, nom"
+            );
+            $stmt->execute();
+            $espace = $stmt->fetch();
+
+            $stmt = $pdo->prepare(
+                'INSERT INTO document (type_document_id, utilisateur_id, titre, url, depose_par)
+                 VALUES (:espace, :utilisateur, :titre, :url, :depose_par)
+                 RETURNING id, titre, created_at'
+            );
+            $stmt->execute([
+                'espace'      => $espace['id'],
+                'utilisateur' => moi(),
+                'titre'       => $titre ?? mb_substr($fichier['nom'], 0, 200),
+                'url'         => $fichier['url'],
+                'depose_par'  => moi(),
+            ]);
+            $doc = $stmt->fetch();
+
+            return $doc + [
+                'espace_id'      => (int) $espace['id'],
+                'espace'         => $espace['nom'],
+                'personnel'      => true,
+                'depose_par_moi' => true,
+            ];
+        });
+    } catch (Throwable $e) {
+        supprimerFichier($fichier['url']);
+        throw $e;
+    }
+
+    return json($response, ['document' => $document], 201);
+});
+
+// Supprimer uniquement un document déposé par l'élève connecté lui-même
+$group->delete('/documents/{id:' . UUID . '}', function (ServerRequestInterface $request, ResponseInterface $response, array $args) {
+    $stmt = db()->prepare(
+        'SELECT url, utilisateur_id, depose_par
+         FROM document
+         WHERE id = :id'
+    );
+    $stmt->execute(['id' => $args['id']]);
+    $doc = $stmt->fetch();
+
+    if (!$doc) {
+        throw new ApiException('Document introuvable', 404);
+    }
+    if ($doc['utilisateur_id'] !== moi() || $doc['depose_par'] !== moi()) {
+        throw new ApiException('Vous ne pouvez supprimer que vos propres documents', 403);
+    }
+
+    $stmt = db()->prepare('DELETE FROM document WHERE id = :id AND utilisateur_id = :id_user AND depose_par = :id_depose');
+    $stmt->execute(['id' => $args['id'], 'id_user' => moi(), 'id_depose' => moi()]);
+    supprimerFichier($doc['url']);
+
+    return $response->withStatus(204);
 });
