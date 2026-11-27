@@ -1,22 +1,22 @@
-# Routes de l'API à faire
+# Contrat d'API — IRIS-SPACE (`ROUTES.md`)
 
-État au 21/10/2026, branche `backend`.
+Ce document est l'**unique contrat d'API** entre le front-end et le back-end : toute nouvelle route y est décrite avant d'être codée.
 
-Le frontend n'appelle encore aucune route : toutes les données sont écrites en dur dans les pages ou stockées dans le localStorage, et même [Login.jsx](../frontend/src/pages/Login.jsx) compare en dur `admin/admin` et `eleve/eleve`. Le schéma SQL, lui, est complet : la liste part de ce que chaque page React affiche et des tables qui existent déjà.
-
-## Déjà fait
+## Authentification, session et socle (fait)
 
 | Méthode | Route | Remarque |
 |---|---|---|
 | GET | `/api/health` | Test de vie de l'API |
-| POST | `/api/auth/login` | Existe, mais le front ne l'appelle pas encore |
+| POST | `/api/auth/login` | Reçoit `{ identifiant, mot_de_passe }`, renvoie `{ user }` avec `droits` et pose le cookie de session (`HttpOnly`, `SameSite=Lax`, `Secure` hors dev) |
 | POST | `/api/auth/logout` | Vide et détruit la session, supprime le cookie, répond 204 |
-| GET | `/api/auth/me` | Renvoie `{ user }` (même format que le login), ou 401 si pas de session ou compte désactivé |
+| GET | `/api/auth/me` | Renvoie `{ user }` avec `droits`, ou 401 si pas de session ou compte désactivé |
+| GET | `/api/profil` | Profil complet de l'utilisateur connecté selon son rôle (élève, professeur, administrateur/direction) |
 
-Les sections marquées **(fait)** plus bas sont aussi codées et testées :
+Les sections marquées **(fait)** plus bas sont aussi codées :
+- fichiers (`/uploads`, `/documents/{id}/telecharger`) ;
 - admin documents ;
 - admin comptes et programme ;
-- élève ;
+- élève (dont « Mes documents ») ;
 - professeur ;
 - visiteur.
 
@@ -41,7 +41,7 @@ Les sections marquées **(fait)** plus bas sont aussi codées et testées :
 - **Dates :** `AAAA-MM-JJ` pour un jour, ISO `AAAA-MM-JJTHH:MM` pour une date et heure. Une heure sans fuseau compte en heure de Paris. Les dates renvoyées incluent le décalage (`2026-10-30 18:00:00+01`) et se lisent avec `new Date()`.
 - **Nombres décimaux** (notes, coefficients, barèmes) : renvoyés en texte (`"16.00"`), il faut les convertir avec `Number()`.
 - **`PUT` remplace tout :** un champ facultatif absent est remis à vide. Il faut renvoyer l'objet complet, pas seulement le champ modifié. Pour un changement partiel, utiliser les routes `PATCH`.
-- **Fichiers :** ils sont rangés dans `backend/uploads/` (ignoré par git, hors de `public/`). La colonne `url` contient leur chemin dans ce dossier. On ne peut pas encore les télécharger : il manque la route `GET /api/documents/{id}/telecharger` (voir Fichiers).
+- **Fichiers :** ils sont rangés dans `backend/uploads/` (ignoré par git, hors de `public/`). La colonne `url` contient leur chemin dans ce dossier. Ils sont envoyés via `POST /api/uploads` (ou les routes dédiées) et téléchargés via `GET /api/documents/{id}/telecharger` avec contrôle des droits.
 
 **P1** : nécessaire pour les pages déjà construites. **P2** : pages encore vides, ou saisie de données qui n'a pas encore de page.
 
@@ -54,12 +54,13 @@ Les sections marquées **(fait)** plus bas sont aussi codées et testées :
 | GET · POST | `/api/admin/actualites` | Toutes les actualités, brouillons compris / créer un article | P1 |
 | PUT · DELETE | `/api/admin/actualites/{id}` | Modifier / supprimer | P1 |
 
-## Fichiers
+## Fichiers (fait)
 
 | Méthode | Route | Sert à | P |
 |---|---|---|---|
-| POST | `/api/uploads` | Envoyer un fichier et récupérer son URL : image d'actualité (aujourd'hui en base64 dans le localStorage), documents, devoirs rendus | P1 |
-| GET | `/api/documents/{id}/telecharger` | Télécharger un document privé après vérification des droits | P2 |
+| POST | `/api/uploads` | Envoyer un fichier (`fichier`, `categorie` facultative : `general`, `actualites`, `avatars`, `messages`) et récupérer `{ url, fichier }` | P1 |
+| GET | `/api/uploads/{categorie}/{nom}` | Servir un fichier déposé via `/api/uploads` (public pour `actualites`, connecté pour les autres catégories) | P1 |
+| GET | `/api/documents/{id}/telecharger` | Télécharger un document après vérification des droits (admin/direction : tout ; élève : généraux et les siens ; prof : généraux, les siens ou déposés par lui) | P2 |
 
 ## Messagerie (admin, prof, élève)
 
@@ -144,7 +145,9 @@ Comportement :
 | GET | `/api/eleve/absences` | Bloc « Vie scolaire » (avec la ponctualité) et page Vie scolaire | P1 |
 | PATCH | `/api/eleve/devoirs/{id}` | Marquer un devoir comme fait | P2 |
 | POST | `/api/eleve/devoirs/{id}/rendu` | Rendre un devoir en ligne | P2 |
-| GET | `/api/eleve/documents` | Page Documents | P2 |
+| GET | `/api/eleve/documents` | Page Documents (renvoie `personnel` et `depose_par_moi`) | P2 |
+| POST | `/api/eleve/documents` | Déposer un document dans l'espace « Mes documents » (`fichier`, `titre` facultatif) | P2 |
+| DELETE | `/api/eleve/documents/{id}` | Supprimer un de ses propres documents de « Mes documents » | P2 |
 
 ## Professeur (fait)
 
@@ -190,21 +193,38 @@ Ces routes ne sont pas nécessaires pour que le site tourne :
 
 Les pages MediaSchool n'ont aucune table en base : leur contenu reste statique tant qu'on n'en crée pas.
 
+## Correspondance des appels front hérités (reprise du README)
+
+Table issue de l'ancien README du front : les appels de gauche doivent tous être remplacés par la route officielle de droite.
+
+| Ancien appel front (README) | Service front | Route officielle (`ROUTES.md`) | État |
+|---|---|---|---|
+| `POST /api/auth/login` | `auth.login` | `POST /api/auth/login` (`{ identifiant, mot_de_passe }` → `{ user }` avec `droits`) | Fait (`SOC-02`, `SOC-03`) |
+| `POST /api/auth/logout` | `auth.logout` | `POST /api/auth/logout` | Fait (`SOC-03`) |
+| `GET /api/actualites[?statut=Publié]` | `actualites.get…` | `GET /api/actualites/publiques` (visiteur) · `GET /api/actualites?limit=` (connecté) · `GET /api/admin/actualites` (gestion) | À faire (`ACT-01`, `ACT-03`) |
+| `POST /api/actualites` | `createActualite` | `POST /api/admin/actualites` | À faire (`ACT-01`, `ACT-03`) |
+| `PUT /api/actualites/:id` | `updateActualite` | `PUT /api/admin/actualites/{id}` | À faire (`ACT-01`, `ACT-03`) |
+| `DELETE /api/actualites/:id` | `deleteActualite` | `DELETE /api/admin/actualites/{id}` | À faire (`ACT-01`, `ACT-03`) |
+| `GET /api/absences?date=today` | `getAbsences` | `GET /api/admin/absences?date=` (admin) · `GET /api/eleve/absences` (élève) | Bonus après J3 (`VSC-01`) / élève fait |
+| `GET /api/planning` | `getPlanning` | `GET /api/admin/cours?classe_id=&du=&au=` · `GET /api/eleve/emploi-du-temps?du=&au=` · `GET /api/prof/emploi-du-temps?du=&au=` | Élève/prof faits ; admin à faire (`EDT-01`, `EDT-02`) |
+| `GET /api/planning/aujourdhui` | `getCoursDuJour` | `GET /api/admin/cours?du=&au=` (date du jour) | À faire (`EDT-01`, `ACC-02`) |
+| `GET /api/espaces` | `getEspaces` | `GET /api/admin/espaces` (gestion) · `GET /api/eleve/documents` (élève) | Fait (`DOC-02`, `DOC-04`) |
+| `GET /api/conversations` | `getConversations` | `GET /api/conversations` | À faire (`MSG-01`, `MSG-03`) |
+| `POST /api/conversations/:id/messages` | `sendMessage` | `POST /api/conversations/{id}/messages` | À faire (`MSG-01`, `MSG-03`) |
+| `GET /api/eleve/emploi-du-temps?date=` | `getEmploiDuJour` | `GET /api/eleve/emploi-du-temps?du=&au=` · `GET /api/prof/emploi-du-temps?du=&au=` | Back fait ; front à brancher (`EDT-03`) |
+| `GET /api/eleve/raccourcis` | `getRaccourcis` | Supprimée : remplacée par `/api/eleve/devoirs`, `/api/eleve/ressources`, `/api/eleve/notes` | À faire (`ACC-01`) |
+| `GET /api/eleve/notes` | `getNotes` | `GET /api/eleve/notes` et `GET /api/eleve/moyennes` | Back fait ; front à brancher (`NOT-01`) |
+| `GET /api/eleve/profil` | `getProfil` | `GET /api/profil` (tous rôles) · `GET /api/eleve/profil` (élève) | Fait (`CPT-07`) |
+
 ## Hors routes, mais bloquant
 
-1. **La base est vide.** [init_database.sql](database/init_database.sql) ne crée aucun compte, donc le login répond toujours 401. Il faut un script de seed avec :
+1. **La base est vide.** [init_database.sql](database/init_database.sql) ne crée aucun compte, donc le login répond toujours 401 tant que le jeu de démo (`SOC-01`, `seed_demo.sql`) n'est pas en place avec :
    - des comptes de test admin, prof et élève (hash avec `password_hash`) ;
    - une année scolaire courante et un campus ;
    - des classes et des matières ;
    - les liens prof ↔ matière et classe ↔ matière.
-2. **Proxy Vite.** Seul nginx relaie `/api`, donc ça ne marche que sous Docker. Pour `npm run dev`, il faut ajouter `server.proxy: { '/api': 'http://localhost:3000' }` dans [vite.config.js](../frontend/vite.config.js).
-3. **Côté front.** [Login.jsx](../frontend/src/pages/Login.jsx) doit appeler `POST /api/auth/login` avec `identifiant` et `mot_de_passe`, puis rediriger selon le rôle :
-   - `eleve` vers `/eleve` ;
-   - `professeur` vers `/prof` ;
-   - `administrateur` ou `direction` vers `/admin`.
-
-   Ensuite, il faut remplacer par des appels à l'API toutes les données en dur ainsi que [storage.js](../frontend/src/lib/storage.js).
-4. **Écarts entre les pages et le schéma**, à trancher avant d'écrire les routes concernées :
+2. **Services front restant à brancher.** Les services `actualites`, `conversations`, `planning`, `absences`, `eleve` et `devoirs` doivent encore être alignés sur les routes ci-dessus (lots `ACC`, `ACT`, `MSG`, `EDT`, `DEV`, `NOT`).
+3. **Écarts entre les pages et le schéma**, à trancher avant d'écrire les routes concernées :
    - **Actualités :** le statut « Archivé » n'existe pas en base (seulement `publique` et `publie_at`). L'auteur est saisi en texte libre alors que la base attend `auteur_id`.
    - **Absences :**
      - pas de statut « En attente », car `justifie` est un booléen ;
@@ -215,4 +235,3 @@ Les pages MediaSchool n'ont aucune table en base : leur contenu reste statique t
      - créer une classe exige une année scolaire et un campus, et créer une salle exige un campus ;
      - le « Enregistrer quand même ? » en cas de chevauchement ne pourra plus marcher, car la base refuse ces cours (contraintes `EXCLUDE`, erreur `23P01`). Il faudra renvoyer un code 409 au lieu d'une erreur 500.
    - **Profil :** il n'y a pas de colonne « civilité ».
-5. **README.** [README.md](../README.md) contient encore des marqueurs de conflit (`<<<<<<< Updated upstream`), restes d'un `git stash pop`.

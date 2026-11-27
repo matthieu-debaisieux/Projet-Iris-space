@@ -101,27 +101,12 @@ VITE_BACKEND_URL=http://localhost:3000   # adresse du back en dev
 En dev, Vite redirige `/api/*` vers `VITE_BACKEND_URL` (pas de souci CORS).
 Les requêtes envoient le cookie de session (`credentials: 'include'`).
 
-Routes attendues par le front :
+## Contrat d'API (unique source de vérité)
 
-| Méthode | Route                              | Service                  |
-|---------|------------------------------------|--------------------------|
-| POST    | `/api/auth/login`                  | `auth.login`             |
-| POST    | `/api/auth/logout`                 | `auth.logout`            |
-| GET     | `/api/actualites[?statut=Publié]`  | `actualites.get…`        |
-| POST    | `/api/actualites`                  | `createActualite`        |
-| PUT     | `/api/actualites/:id`              | `updateActualite`        |
-| DELETE  | `/api/actualites/:id`              | `deleteActualite`        |
-| GET     | `/api/absences?date=today`         | `getAbsences`            |
-| GET     | `/api/planning`                    | `getPlanning`            |
-| GET     | `/api/planning/aujourdhui`         | `getCoursDuJour`         |
-| GET     | `/api/espaces`                     | `getEspaces`             |
-| GET     | `/api/conversations`               | `getConversations`       |
-| POST    | `/api/conversations/:id/messages`  | `sendMessage`            |
-| GET     | `/api/eleve/emploi-du-temps?date=` | `getEmploiDuJour`        |
-| GET     | `/api/eleve/raccourcis`            | `getRaccourcis`          |
-| GET     | `/api/eleve/notes`                 | `getNotes`               |
-| GET     | `/api/eleve/profil`                | `getProfil`              |
+Le contrat officiel entre le front-end et le back-end est décrit dans [`backend/ROUTES.md`](backend/ROUTES.md).
+Toute nouvelle route ou modification de format doit d'abord y être documentée avant d'être implémentée.
 
-Le format des données renvoyées est celui des fichiers de `frontend/src/mocks/`.
-`POST /api/auth/login` renvoie `{ id, identifiant, role, nom, droits }` où `droits` est la liste
-des codes de droits de l'utilisateur (voir `frontend/src/mocks/users.js` pour la liste utilisée).
+Points essentiels :
+- `POST /api/auth/login` attend `{ identifiant, mot_de_passe }` et renvoie `{ user }` contenant la liste `droits` déduite du rôle (voir [`frontend/src/mocks/users.js`](frontend/src/mocks/users.js)).
+- `GET /api/auth/me` restaure la session courante (ou répond `401`).
+- Les formulaires d'envoi de fichiers utilisent `FormData` (champ `fichier`).
