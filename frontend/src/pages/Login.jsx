@@ -1,22 +1,39 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext.jsx';
 
 // ── Page de connexion ───────────────────────────────────────────────────────
 export default function Login() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { user, loading, login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState(false);
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  if (loading) {
+    return (
+      <main className="flex h-screen items-center justify-center p-6 bg-[var(--color-page)] text-sm text-gray-500">
+        Vérification de la session…
+      </main>
+    );
+  }
+
+  if (user) {
+    return <Navigate to="/accueil" replace />;
+  }
 
   async function handleLogin(e) {
     e.preventDefault();
+    setError('');
+    setSubmitting(true);
     try {
       await login(email.trim(), password);
       navigate('/accueil');
-    } catch {
-      setError(true);
+    } catch (err) {
+      setError(err?.message || 'Identifiants incorrects');
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -36,10 +53,10 @@ export default function Login() {
           <label className="label" htmlFor="login-password">Password</label>
           <input id="login-password" type="password" className="input" placeholder="Password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} />
 
-          {error && <p className="text-error text-sm mt-2">Identifiants incorrects</p>}
+          {error && <p className="text-error text-sm mt-2">{error}</p>}
           <a href="#" className="underline"> mot de passe oublié?</a>
-          <button type="submit" className="btn bg-[var(--color-button)] mt-4">
-            Login
+          <button type="submit" disabled={submitting} className="btn bg-[var(--color-button)] mt-4">
+            {submitting ? 'Connexion…' : 'Login'}
           </button>
         </fieldset>
       </form>
