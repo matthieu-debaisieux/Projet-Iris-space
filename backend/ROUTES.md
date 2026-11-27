@@ -107,8 +107,9 @@ Un « espace » de la page correspond à une ligne de la table `type_document`. 
 
 ## Admin : comptes et programme (fait)
 
-Le rôle `dev` dispose du droit `comptes_gerer` (accès à la page `/comptes` de gestion et création des comptes) ainsi que de tous les droits d'administration et des outils de développement.
-Seul un compte `dev` peut créer, modifier, désactiver ou supprimer un compte `dev`, et supprimer un utilisateur (si aucune donnée bloquante n'y est rattachée ; sinon utiliser la désactivation).
+Le rôle `dev` dispose du droit `comptes_gerer` (accès à la page `/comptes` de gestion et création des comptes) ainsi que de tous les droits d'administration (et des outils de développement quand `APP_ENV` vaut `dev`, comme les autres rôles).
+Seul un compte `dev` peut créer, modifier, désactiver ou supprimer un compte `dev`, et supprimer un utilisateur.
+La suppression est refusée (409) dès qu'une donnée est rattachée au compte : notes, absences, devoirs rendus ou corrigés, documents personnels, messages, actualités, cours ou évaluations d'un prof… Dans ce cas, désactiver le compte.
 Tant que `professeur_matiere` et `classe_matiere` sont vides, les clés étrangères font refuser à la base tout cours, devoir, évaluation ou ressource.
 
 Comportement :
@@ -126,7 +127,7 @@ Comportement :
 | GET · POST | `/api/admin/utilisateurs` | Lister (`?role=`) / créer un compte : utilisateur + ligne `eleve` ou `professeur`, mot de passe hashé | P2 |
 | GET · PUT | `/api/admin/utilisateurs/{id}` | Lire un compte / modifier, dont la classe d'un élève | P2 |
 | PATCH | `/api/admin/utilisateurs/{id}/actif` | Désactiver / réactiver un compte | P2 |
-| DELETE | `/api/admin/utilisateurs/{id}` | Supprimer un compte (rôle `dev` uniquement ; répond 409 si des données y sont liées) | P2 |
+| DELETE | `/api/admin/utilisateurs/{id}` | Supprimer un compte (rôle `dev` uniquement ; répond 409 si des données y sont rattachées, voir plus haut) | P2 |
 | GET | `/api/admin/classes` | Lister les classes existantes (pour le menu « Classe » lors de la création/édition d'un élève) | P1 |
 | POST | `/api/admin/matieres` | Créer une matière | P2 |
 | PUT | `/api/admin/professeurs/{id}/matieres` | Matières qu'un prof enseigne | P2 |

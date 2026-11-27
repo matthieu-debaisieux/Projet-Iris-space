@@ -18,6 +18,28 @@ docker compose up -d --build
 # Adminer : http://localhost:8081
 ```
 
+`init_database.sql` n'est exécuté qu'à la création du volume de la base. Sur une base créée avant
+l'ajout du rôle `dev`, l'ajouter à la main (ou repartir de zéro avec `docker compose down -v`,
+ce qui efface les données) :
+
+```bash
+docker compose exec db psql -U iris -d iris_space -c "ALTER TYPE role_utilisateur ADD VALUE IF NOT EXISTS 'dev';"
+```
+
+Seul un compte `dev` peut créer un compte `dev` : le premier se crée en SQL. Générer le hash du
+mot de passe, puis lancer la requête dans Adminer (onglet « Requête SQL ») :
+
+```bash
+docker compose exec api php -r "echo password_hash('MotDePasseDev', PASSWORD_DEFAULT), PHP_EOL;"
+```
+
+```sql
+INSERT INTO utilisateur (identifiant, email, mot_de_passe_hash, role, nom, prenom)
+VALUES ('dev', 'dev@iris-space.fr', '<hash affiché ci-dessus>', 'dev', 'Développeur', 'Équipe');
+```
+
+Ce compte crée ensuite tous les autres depuis la page `/comptes`.
+
 ## Lancer le front sans Docker
 
 ```bash

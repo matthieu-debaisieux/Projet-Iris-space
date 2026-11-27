@@ -97,7 +97,6 @@ function droitsPourRole(string $role): array
             'documents',
             'documents_gerer',
             'messagerie',
-            'outils_dev',
         ],
         'administrateur', 'direction' => [
             'menu_lateral',
@@ -132,7 +131,7 @@ function droitsPourRole(string $role): array
         default => [],
     };
 
-    if (appEnDev() && in_array($role, ['administrateur', 'direction', 'professeur'], true)) {
+    if (appEnDev() && in_array($role, ['dev', 'administrateur', 'direction', 'professeur'], true)) {
         $droits[] = 'outils_dev';
     }
 

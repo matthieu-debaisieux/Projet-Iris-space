@@ -227,15 +227,38 @@ $group->delete('/utilisateurs/{id:' . UUID . '}', function (ServerRequestInterfa
         throw new ApiException('Vous ne pouvez pas supprimer votre propre compte', 400);
     }
 
+    $refus = new ApiException(
+        'Impossible de supprimer ce compte : des données y sont encore rattachées (désactivez-le plutôt)',
+        409
+    );
+
+    // Notes, absences, devoirs rendus et documents personnels partiraient en cascade
+    // avec le compte (ON DELETE CASCADE) : on refuse plutôt que de les effacer.
+    // Le suivi « a_faire » créé d'office pour chaque devoir de la classe ne bloque pas.
+    $stmt = db()->prepare(
+        "SELECT EXISTS (SELECT 1 FROM note WHERE eleve_id = :note)
+             OR EXISTS (SELECT 1 FROM absence WHERE eleve_id = :absence)
+             OR EXISTS (SELECT 1 FROM devoir_eleve WHERE eleve_id = :devoir AND statut IN ('rendu', 'corrige'))
+             OR EXISTS (SELECT 1 FROM document WHERE utilisateur_id = :document)"
+    );
+    $stmt->execute([
+        'note'     => $args['id'],
+        'absence'  => $args['id'],
+        'devoir'   => $args['id'],
+        'document' => $args['id'],
+    ]);
+    if ($stmt->fetchColumn()) {
+        throw $refus;
+    }
+
+    // Les autres liens (messages, actualités, cours d'un prof…) n'ont pas de cascade :
+    // la base refuse elle-même la suppression (23503).
     try {
         $stmt = db()->prepare('DELETE FROM utilisateur WHERE id = :id');
         $stmt->execute(['id' => $args['id']]);
     } catch (PDOException $e) {
         if (codeSql($e) === '23503') {
-            throw new ApiException(
-                'Impossible de supprimer ce compte : des données y sont encore rattachées (désactivez-le plutôt)',
-                409
-            );
+            throw $refus;
         }
         throw $e;
     }

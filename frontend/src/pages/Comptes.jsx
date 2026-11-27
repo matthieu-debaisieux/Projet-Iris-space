@@ -444,7 +444,8 @@ function ConfirmDeleteModal({ target, onDeleted, onClose }) {
         <strong>{[target.prenom, target.nom].filter(Boolean).join(' ')}</strong> ({target.identifiant}) ?
       </p>
       <p className="text-xs text-gray-500 mb-4">
-        Si des cours, devoirs, notes ou messages y sont déjà rattachés, utilisez plutôt « Désactiver ».
+        Impossible si des notes, absences, devoirs rendus, documents, messages ou cours y sont déjà
+        rattachés : utilisez plutôt « Désactiver ».
       </p>
       {error && (
         <div role="alert" className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700 font-medium mb-3">
