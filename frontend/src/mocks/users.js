@@ -5,6 +5,7 @@
 //   - `<page>_gerer` pour les boutons de modification dans la page
 //   - `tableau_de_bord` / `journee` : blocs de la page d'accueil
 //   - `outils_dev` : panel DEV, `menu_lateral` : menu sur le côté au lieu d'en haut
+//   - `profil_modifier` : modifier ses coordonnées (email, téléphone, adresse) dans la page Profil
 const DROITS_ADMIN = [
   'menu_lateral', 'tableau_de_bord', 'absences', 'actualites', 'actualites_gerer', 'emploi_du_temps',
   'emploi_du_temps_gerer', 'documents', 'documents_gerer', 'messagerie', 'outils_dev',
@@ -13,7 +14,7 @@ const DROITS_PROF = [
   'journee', 'devoirs', 'notes', 'actualites', 'emploi_du_temps', 'messagerie', 'outils_dev',
 ];
 const DROITS_ELEVE = [
-  'journee', 'devoirs', 'notes', 'absences', 'actualites', 'emploi_du_temps', 'documents', 'messagerie',
+  'journee', 'devoirs', 'notes', 'absences', 'actualites', 'emploi_du_temps', 'documents', 'messagerie', 'profil_modifier',
 ];
 
 export const USERS = [

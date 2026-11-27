@@ -12,7 +12,11 @@ export async function apiFetch(path, { method = 'GET', body } = {}) {
     body: body !== undefined ? JSON.stringify(body) : undefined,
     credentials: 'include', // envoie le cookie de session
   });
-  if (!res.ok) throw new Error(`${method} ${path} → ${res.status}`);
+  if (!res.ok) {
+    // Le back répond { "error": "message lisible" } : on le garde pour pouvoir l'afficher tel quel
+    const corps = await res.json().catch(() => null);
+    throw Object.assign(new Error(corps?.error ?? `${method} ${path} → ${res.status}`), { status: res.status });
+  }
   return res.status === 204 ? null : res.json();
 }
 
@@ -20,5 +24,6 @@ export const api = {
   get:    path         => apiFetch(path),
   post:   (path, body) => apiFetch(path, { method: 'POST', body }),
   put:    (path, body) => apiFetch(path, { method: 'PUT', body }),
+  patch:  (path, body) => apiFetch(path, { method: 'PATCH', body }),
   delete: path         => apiFetch(path, { method: 'DELETE' }),
 };

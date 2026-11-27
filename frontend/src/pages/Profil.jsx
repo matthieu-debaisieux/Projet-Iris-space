@@ -5,7 +5,7 @@ import Modal from '@/components/ui/Modal.jsx';
 import { useAuth } from '@/context/AuthContext.jsx';
 import { useAsync } from '@/hooks/useAsync.js';
 import { useProfilPhoto } from '@/hooks/useProfilPhoto.js';
-import { getProfil } from '@/services/eleve.js';
+import { getProfil, updateProfil } from '@/services/eleve.js';
 
 const card = 'bg-white rounded-2xl border border-[#E1E5EE] p-6';
 const btnPrincipal = 'inline-flex items-center justify-center gap-2 rounded-lg bg-[#EC6F6F] px-4 py-2.5 text-sm font-bold text-[#001257] hover:opacity-90 transition';
@@ -14,17 +14,24 @@ const btnSecondaire = 'inline-flex items-center justify-center gap-2 rounded-lg 
 // "John Doe" → "JD"
 const initiales = (...parties) => parties.join(' ').split(' ').filter(Boolean).slice(0, 2).map(m => m[0]).join('').toUpperCase();
 
-// Champ en lecture seule
-function Champ({ id, label, value }) {
+// Champ en lecture seule, ou modifiable quand `onChange` est fourni
+function Champ({ id, label, value, onChange, multiligne = false, className = '', ...autres }) {
+  const Balise = multiligne ? 'textarea' : 'input';
+  const style = onChange
+    ? 'border-[#001257]/40 bg-white focus:border-[#001257]'
+    : 'border-[#E1E5EE] bg-[#F7F8FB]';
   return (
-    <div>
+    <div className={className}>
       <label htmlFor={id} className="block mb-1.5 text-xs font-semibold text-[#6B7185]">{label}</label>
-      <input
+      <Balise
         id={id}
         name={id}
-        readOnly
+        readOnly={!onChange}
         value={value ?? ''}
-        className="w-full rounded-lg border border-[#E1E5EE] bg-[#F7F8FB] px-3 py-2.5 text-sm text-[#1A1D2E] focus:outline-none"
+        onChange={onChange}
+        {...(multiligne && { rows: 2 })}
+        {...autres}
+        className={`w-full rounded-lg border px-3 py-2.5 text-sm text-[#1A1D2E] focus:outline-none transition ${style} ${multiligne ? 'resize-none' : ''}`}
       />
     </div>
   );
@@ -39,14 +46,18 @@ const ICONES = {
   camera: 'M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
   aide: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3 M12 17h.01',
   sortie: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9',
+  crayon: 'M12 20h9 M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z',
   corbeille: 'M3 6h18 M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2 M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6',
 };
 
 export default function Profil() {
   const profil = useAsync(getProfil);
-  const { logout } = useAuth();
+  const { logout, can } = useAuth();
   const navigate = useNavigate();
   const [contactOuvert, setContactOuvert] = useState(false);
+
+  // Après un enregistrement : on garde à l'écran les coordonnées renvoyées par le service
+  const majCoordonnees = maj => profil.setData(p => ({ ...p, email: maj.email, telephone: maj.telephone, adresse: maj.adresse }));
 
   async function deconnexion() {
     await logout();
@@ -62,9 +73,7 @@ export default function Profil() {
             <p className="mt-1 text-sm text-[#6B7185]">Vos informations et votre photo.</p>
           </div>
 
-          <DataState state={profil}>{p => {
-            const [jour = '', mois = '', annee = ''] = (p.dateNaissance ?? '').split('/');
-            return (
+          <DataState state={profil}>{p => (
               <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6 items-start">
                 {/* ── Colonne gauche : photo + actions ── */}
                 <aside className={`${card} flex flex-col items-center gap-5 text-center`}>
@@ -83,30 +92,10 @@ export default function Profil() {
                   </div>
                 </aside>
 
-                {/* ── Colonne droite : informations (lecture seule) ── */}
-                <form className={card} onSubmit={e => e.preventDefault()}>
-                  <h2 className="text-base font-bold text-[#001257]">Informations personnelles</h2>
-                  <p className="mt-1 mb-5 text-xs text-[#6B7185]">
-                    Ces informations ne sont pas modifiables ici. Pour une correction, contactez le service scolarité.
-                  </p>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-                    <Champ id="civilite" label="Civilité" value={p.civilite} />
-                    <Champ id="age" label="Âge" value={p.age} />
-                    <Champ id="nom" label="Nom" value={p.nom} />
-                    <Champ id="prenom" label="Prénom" value={p.prenom} />
-                    <Champ id="email" label="Email" value={p.email} />
-                    <Champ id="naissance" label="Date de naissance" value={jour && `${jour}/${mois}/${annee}`} />
-                    <Champ id="lieu-naissance" label="Lieu de naissance" value={p.lieuNaissance} />
-                    <Champ id="pays-naissance" label="Pays de naissance" value={p.paysNaissance} />
-                    <Champ id="nationalite" label="Nationalité" value={p.nationalite} />
-                    <Champ id="classe" label="Classe" value={p.classe} />
-                    <Champ id="annee-scolaire" label="Année scolaire" value={p.anneeScolaire} />
-                  </div>
-                </form>
+                {/* ── Colonne droite : informations ── */}
+                <InfosPersonnelles p={p} modifiable={can('profil_modifier')} onSaved={majCoordonnees} />
               </div>
-            );
-          }}</DataState>
+          )}</DataState>
         </div>
       </div>
 
@@ -130,6 +119,116 @@ export default function Profil() {
         </Modal>
       )}
     </>
+  );
+}
+
+// ── Informations personnelles : lecture seule, ou coordonnées modifiables ───
+// Seuls l'email, le téléphone et l'adresse se modifient (droit `profil_modifier`) ;
+// le reste (nom, naissance, classe…) est corrigé par le service scolarité.
+function InfosPersonnelles({ p, modifiable, onSaved }) {
+  const [edition, setEdition] = useState(false);
+  const [form, setForm] = useState({ email: '', telephone: '', adresse: '' });
+  const [erreur, setErreur] = useState('');
+  const [succes, setSucces] = useState(false);
+  const [enCours, setEnCours] = useState(false);
+
+  const [jour = '', mois = '', annee = ''] = (p.dateNaissance ?? '').split('/');
+  const saisir = cle => e => setForm(f => ({ ...f, [cle]: e.target.value }));
+
+  function modifier() {
+    setForm({ email: p.email ?? '', telephone: p.telephone ?? '', adresse: p.adresse ?? '' });
+    setErreur('');
+    setSucces(false);
+    setEdition(true);
+  }
+
+  function annuler() {
+    setEdition(false);
+    setErreur('');
+  }
+
+  async function enregistrer(e) {
+    e.preventDefault();
+    if (!edition || enCours) return;
+
+    // PATCH : on n'envoie que les champs réellement modifiés
+    const champs = Object.fromEntries(Object.entries(form).filter(([cle, valeur]) => valeur.trim() !== (p[cle] ?? '')));
+    if (Object.keys(champs).length === 0) {
+      setEdition(false);
+      return;
+    }
+
+    setErreur('');
+    setEnCours(true);
+    try {
+      onSaved(await updateProfil(champs));
+      setEdition(false);
+      setSucces(true);
+    } catch (err) {
+      // Message du back (« Cet email est déjà utilisé »…) ; TypeError = serveur injoignable
+      setErreur(err instanceof TypeError ? 'Impossible de joindre le serveur. Réessayez dans un instant.' : err.message);
+    } finally {
+      setEnCours(false);
+    }
+  }
+
+  return (
+    <form className={card} onSubmit={enregistrer} noValidate>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <h2 className="text-base font-bold text-[#001257]">Informations personnelles</h2>
+        {modifiable && !edition && (
+          <button type="button" onClick={modifier} className={btnSecondaire}>
+            <Icone d={ICONES.crayon} size={16} /> Modifier mes informations
+          </button>
+        )}
+      </div>
+      <p className="mt-1 mb-5 text-xs text-[#6B7185]">
+        {modifiable
+          ? 'Vous pouvez modifier votre email, votre téléphone et votre adresse. Pour toute autre correction, contactez le service scolarité.'
+          : 'Ces informations ne sont pas modifiables ici. Pour une correction, contactez le service scolarité.'}
+      </p>
+
+      {succes && !edition && (
+        <p role="status" className="mb-5 rounded-lg bg-[#E3F5EC] px-4 py-3 text-sm font-semibold text-[#1E7F55]">
+          Vos informations ont bien été enregistrées.
+        </p>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+        <Champ id="civilite" label="Civilité" value={p.civilite} />
+        <Champ id="age" label="Âge" value={p.age} />
+        <Champ id="nom" label="Nom" value={p.nom} />
+        <Champ id="prenom" label="Prénom" value={p.prenom} />
+        <Champ id="email" label="Email" value={edition ? form.email : p.email}
+          onChange={edition ? saisir('email') : undefined} type="email" autoComplete="email" maxLength={254} />
+        {modifiable && (
+          <>
+            <Champ id="telephone" label="Téléphone" value={edition ? form.telephone : p.telephone}
+              onChange={edition ? saisir('telephone') : undefined} type="tel" autoComplete="tel" maxLength={30} />
+            <Champ id="adresse" label="Adresse" value={edition ? form.adresse : p.adresse} multiligne className="sm:col-span-2"
+              onChange={edition ? saisir('adresse') : undefined} autoComplete="street-address" maxLength={500} />
+          </>
+        )}
+        <Champ id="naissance" label="Date de naissance" value={jour && `${jour}/${mois}/${annee}`} />
+        <Champ id="lieu-naissance" label="Lieu de naissance" value={p.lieuNaissance} />
+        <Champ id="pays-naissance" label="Pays de naissance" value={p.paysNaissance} />
+        <Champ id="nationalite" label="Nationalité" value={p.nationalite} />
+        <Champ id="classe" label="Classe" value={p.classe} />
+        <Champ id="annee-scolaire" label="Année scolaire" value={p.anneeScolaire} />
+      </div>
+
+      {edition && (
+        <div className="mt-6 flex flex-col gap-3 border-t border-[#E1E5EE] pt-5">
+          {erreur && <p role="alert" className="text-xs font-medium text-[#B23A3A]">{erreur}</p>}
+          <div className="flex flex-wrap justify-end gap-2">
+            <button type="button" onClick={annuler} disabled={enCours} className={`${btnSecondaire} disabled:opacity-60`}>Annuler</button>
+            <button type="submit" disabled={enCours} className={`${btnPrincipal} disabled:opacity-60`}>
+              {enCours ? 'Enregistrement…' : 'Enregistrer'}
+            </button>
+          </div>
+        </div>
+      )}
+    </form>
   );
 }
 
