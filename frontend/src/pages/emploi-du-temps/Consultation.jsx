@@ -3,18 +3,7 @@ import DataState from '@/components/ui/DataState.jsx';
 import { useAuth } from '@/context/AuthContext.jsx';
 import { useAsync } from '@/hooks/useAsync.js';
 import { getEmploiDuTemps } from '@/services/emploiDuTemps.js';
-import { addDays, card, DAY_NAMES, DetailCours, getMonday, NavigationSemaine, Stat, statsSemaine, TimetableGrid } from './commun.jsx';
-
-// Cours de la semaine → { Lundi: [...], …, Vendredi: [...] } comme attend TimetableGrid
-function coursParJour(cours) {
-  const parJour = Object.fromEntries(DAY_NAMES.map(nom => [nom, []]));
-  for (const c of cours) {
-    // getDay() : 0 = dimanche ; (… + 6) % 7 donne 0 pour lundi, et 5 / 6 (non affichés) le week-end
-    const nom = DAY_NAMES[(new Date(`${c.jour}T12:00:00`).getDay() + 6) % 7];
-    if (nom) parJour[nom].push(c);
-  }
-  return parJour;
-}
+import { addDays, card, coursParJour, DetailCours, getMonday, NavigationSemaine, Stat, statsSemaine, TimetableGrid } from './commun.jsx';
 
 // Vue « lecture seule » (élève, prof…) : emploi du temps personnel de la semaine,
 // demandé d'un coup (lundi → vendredi) via services/emploiDuTemps.js.

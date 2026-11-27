@@ -5,7 +5,7 @@ import { estProf } from './utilisateur.js';
 // Emploi du temps personnel de l'utilisateur connecté (élève ou professeur)
 
 // Date locale → 'AAAA-MM-JJ' (toISOString() décalerait d'un jour autour de minuit)
-const jourISO = d => [
+export const jourISO = d => [
   d.getFullYear(),
   String(d.getMonth() + 1).padStart(2, '0'),
   String(d.getDate()).padStart(2, '0'),
@@ -13,7 +13,7 @@ const jourISO = d => [
 
 // Le back renvoie l'heure de Paris : '2026-10-21 09:30:00+02' → { jour: '2026-10-21', heure: '09h30' }
 // (lue dans le texte, sans passer par Date, pour ne pas dépendre du fuseau du navigateur)
-function decouper(horodatage) {
+export function decouper(horodatage) {
   const [, jour, h, min] = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}):(\d{2})/.exec(horodatage);
   return { jour, heure: `${h}h${min}` };
 }

@@ -131,6 +131,17 @@ export function statsSemaine(classData) {
   };
 }
 
+// Cours de la semaine → { Lundi: [...], …, Vendredi: [...] } comme attend TimetableGrid
+export function coursParJour(cours) {
+  const parJour = Object.fromEntries(DAY_NAMES.map(nom => [nom, []]));
+  for (const c of cours) {
+    // getDay() : 0 = dimanche ; (… + 6) % 7 donne 0 pour lundi, et 5 / 6 (non affichés) le week-end
+    const nom = DAY_NAMES[(new Date(`${c.jour}T12:00:00`).getDay() + 6) % 7];
+    if (nom) parJour[nom].push(c);
+  }
+  return parJour;
+}
+
 // ── Navigation semaine ──────────────────────────────────────────────────────
 export function NavigationSemaine({ monday, setMonday }) {
   const friday = addDays(monday, 4);
@@ -201,7 +212,7 @@ export function TimetableGrid({ classData, monday, onCourseClick, onAddCourse })
       const index = courses.findIndex(c => toDecimalHour(c.start) === currentHour);
       if (index !== -1) {
         const course = courses[index];
-        const span = duree(course) * 2;
+        const span = Math.max(1, Math.round(duree(course) * 2));
         cells.push(
           <div
             key={`c-${r}-${d}`}
@@ -211,7 +222,7 @@ export function TimetableGrid({ classData, monday, onCourseClick, onAddCourse })
             <button
               type="button"
               onClick={() => onCourseClick?.(day, index)}
-              className={`h-full w-full rounded-lg border-l-4 ${getColorForSubject(course.subject)} px-2.5 py-1.5 text-left flex flex-col gap-0.5 overflow-hidden hover:shadow-md hover:-translate-y-px transition`}
+              className={`h-full w-full rounded-lg border-l-4 ${getColorForSubject(course.subject)} ${course.annule ? 'opacity-60' : ''} px-2.5 py-1.5 text-left flex flex-col gap-0.5 overflow-hidden hover:shadow-md hover:-translate-y-px transition`}
             >
               <span className="text-[11px] font-semibold opacity-75">{course.start} – {course.end}</span>
               <span className="text-sm font-bold leading-tight truncate w-full">{course.subject}{course.annule && ' (annulé)'}</span>
@@ -220,7 +231,7 @@ export function TimetableGrid({ classData, monday, onCourseClick, onAddCourse })
                   <Icon name="user" size={12} /> {course.intervenant}
                 </span>
               )}
-              {span >= 4 && (
+              {span >= 4 && course.room && (
                 <span className="text-xs leading-tight truncate w-full flex items-center gap-1 opacity-80">
                   <Icon name="map-pin" size={12} /> {course.room}
                 </span>
@@ -306,7 +317,7 @@ export function DetailCours({ cours, jour, classe, onClose }) {
       <ul className="flex flex-col gap-3 mb-6">
         <Ligne icon="calendar">{jour}, {cours.start} – {cours.end} <span className="text-[#6B7185]">({formatDuree(duree(cours))})</span></Ligne>
         <Ligne icon="user">{cours.intervenant}</Ligne>
-        <Ligne icon="map-pin">{cours.room}</Ligne>
+        <Ligne icon="map-pin">{cours.room || 'Non précisée'}</Ligne>
       </ul>
       <div className="flex justify-end gap-2 pt-4 border-t border-[#E1E5EE]">
         <button type="button" onClick={onClose} className={btnSecondaire}>Fermer</button>
