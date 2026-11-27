@@ -18,14 +18,15 @@ Les sections marquées **(fait)** plus bas sont aussi codées et testées :
 - admin comptes et programme ;
 - élève ;
 - professeur ;
-- visiteur.
+- visiteur ;
+- actualités.
 
 ## Organisation
 
 - Les routes communes n'ont pas de préfixe : auth, actualités, messagerie.
 - Les routes propres à un espace vont sous `/api/admin`, `/api/prof` et `/api/eleve`. Chaque groupe est protégé par le middleware `requireRole()` de [helpers.php](routes/helpers.php) : 401 si personne n'est connecté, 403 si le rôle ne correspond pas.
 - Côté élève, l'id vient de la session et jamais de l'URL, pour qu'un élève ne puisse pas lire les notes d'un autre.
-- Un fichier de routes par espace : [admin/documents.php](routes/admin/documents.php), [admin/utilisateurs.php](routes/admin/utilisateurs.php), [eleve.php](routes/eleve.php), [prof.php](routes/prof.php), [visiteur.php](routes/visiteur.php). Ils sont branchés dans [index.php](public/index.php).
+- Un fichier de routes par espace : [admin/documents.php](routes/admin/documents.php), [admin/utilisateurs.php](routes/admin/utilisateurs.php), [eleve.php](routes/eleve.php), [prof.php](routes/prof.php), [visiteur.php](routes/visiteur.php). Les actualités, partagées entre plusieurs rôles, ont leur propre fichier sans préfixe : [actualites.php](routes/actualites.php). Ils sont branchés dans [index.php](public/index.php).
 
 ## Conventions de l'API (pour le front)
 
@@ -45,14 +46,65 @@ Les sections marquées **(fait)** plus bas sont aussi codées et testées :
 
 **P1** : nécessaire pour les pages déjà construites. **P2** : pages encore vides, ou saisie de données qui n'a pas encore de page.
 
-## Actualités
+## Actualités (fait)
 
-| Méthode | Route | Sert à | P |
-|---|---|---|---|
-| GET | `/api/actualites/publiques` | Accueil visiteur, sans connexion | P1 |
-| GET | `/api/actualites?limit=` | Élève et prof : page Actualité et bloc de l'accueil | P1 |
-| GET · POST | `/api/admin/actualites` | Toutes les actualités, brouillons compris / créer un article | P1 |
-| PUT · DELETE | `/api/admin/actualites/{id}` | Modifier / supprimer | P1 |
+Toutes les routes sont sur `/api/actualites`, dans [actualites.php](routes/actualites.php), et non sous `/api/admin` : un professeur doit pouvoir écrire, alors que le groupe `/admin` est réservé à l'administration.
+
+Décision D9 (proposition appliquée, à valider par Matthieu) :
+- L'auteur d'un article est le compte connecté (`auteur_id`). Le front n'envoie jamais d'auteur : s'il en envoie un, il est ignoré. Les réponses donnent `auteur_id`, `auteur_nom` et `auteur_prenom`.
+- Pas de statut « Archivé » dans la bêta : un article est soit un brouillon (`publie_at` vaut `NULL`), soit publié (`publie_at` renseigné). L'API l'expose avec `statut` : `"publie"` ou `"brouillon"`.
+- `publique` est un champ à part : un article publié n'est lisible sans connexion que si `publique` vaut `true`. Un brouillon n'est jamais visible, même avec `publique: true`.
+
+Comportement :
+- Lecture : tout utilisateur connecté lit les articles publiés, publics ou non. Les brouillons n'apparaissent qu'avec `brouillons=true`, et seulement pour ceux qui peuvent écrire : admin et direction voient tous les brouillons, un prof les siens, un élève aucun (le paramètre est sans effet).
+- Écriture (`POST`, `PUT`, `DELETE`) : admin et direction sur tous les articles. Un prof seulement sur les siens : 403 pour l'article d'un autre, 404 si l'id n'existe pas. Un élève reçoit 403.
+- Publier fixe `publie_at` à l'instant présent. Un article déjà publié garde sa date quand on le modifie ; le repasser en brouillon l'efface, et le republier la remet à maintenant. La date de publication ne se choisit pas.
+- `PUT` remplace tout : `titre`, `contenu` et `statut` sont obligatoires, `image_url` absent est remis à vide et `publique` absent vaut `false`. L'auteur ne change jamais.
+- `image_url` est une URL http(s) ou un chemin commençant par `/`. Une image en base64 est refusée (400) : son envoi passera par `POST /api/uploads`.
+- Les listes sont triées de la plus récente à la plus ancienne (date de publication, ou de création pour un brouillon). `limit` vaut 100 par défaut et au maximum.
+
+| Méthode | Route | Droits | Sert à | P |
+|---|---|---|---|---|
+| GET | `/api/actualites/publiques?limit=` | Aucune connexion | Accueil et page visiteur : articles publiés avec `publique` à `true` | P1 |
+| GET | `/api/actualites?limit=&brouillons=` | Connecté | Page Actualité et bloc de l'accueil | P1 |
+| POST | `/api/actualites` | Admin, direction, prof | Créer un article (201) | P1 |
+| PUT | `/api/actualites/{id}` | Admin, direction, prof (les siens) | Modifier un article | P1 |
+| DELETE | `/api/actualites/{id}` | Admin, direction, prof (les siens) | Supprimer un article (204) | P1 |
+
+Corps de `POST` et `PUT` :
+
+```json
+{
+  "titre": "Rentrée 2026",
+  "contenu": "Texte de l'article",
+  "statut": "publie",
+  "publique": true,
+  "image_url": "/images/rentree.jpg"
+}
+```
+
+`titre` (200 caractères maximum), `contenu` et `statut` (`"publie"` ou `"brouillon"`) sont obligatoires. `publique` et `image_url` sont facultatifs.
+
+Réponse : `{ "actualite": {...} }` pour `POST` et `PUT`, `{ "actualites": [...] }` pour les deux `GET`. Un article :
+
+```json
+{
+  "id": "uuid",
+  "titre": "Rentrée 2026",
+  "contenu": "Texte de l'article",
+  "image_url": "/images/rentree.jpg",
+  "publique": true,
+  "statut": "publie",
+  "publie_at": "2026-09-01 08:00:00+02",
+  "created_at": "2026-08-30 15:12:00+02",
+  "updated_at": "2026-08-30 15:12:00+02",
+  "auteur_id": "uuid",
+  "auteur_nom": "Dupont",
+  "auteur_prenom": "Claire"
+}
+```
+
+`publie_at` vaut `null` pour un brouillon.
 
 ## Fichiers
 
@@ -205,7 +257,7 @@ Les pages MediaSchool n'ont aucune table en base : leur contenu reste statique t
 
    Ensuite, il faut remplacer par des appels à l'API toutes les données en dur ainsi que [storage.js](../frontend/src/lib/storage.js).
 4. **Écarts entre les pages et le schéma**, à trancher avant d'écrire les routes concernées :
-   - **Actualités :** le statut « Archivé » n'existe pas en base (seulement `publique` et `publie_at`). L'auteur est saisi en texte libre alors que la base attend `auteur_id`.
+   - **Actualités :** tranché par la décision D9, à valider par Matthieu (voir la section Actualités). Le statut « Archivé » disparaît de la bêta : un article est un brouillon ou publié. L'auteur est le compte connecté (`auteur_id`), plus un texte libre.
    - **Absences :**
      - pas de statut « En attente », car `justifie` est un booléen ;
      - pas de table pour le « contact responsable » (le parent) ;
