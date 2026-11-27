@@ -7,6 +7,9 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 # Code source, puis build de production dans dist/
+# Les fichiers .env.* ne sont pas copiés (.dockerignore) : le mode mock / API
+# se choisit avec cet argument, passé par docker-compose.yml
+ARG VITE_USE_MOCKS=true
 COPY . .
 RUN npm run build
 

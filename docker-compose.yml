@@ -1,7 +1,10 @@
 services:
   # Front : build Vite servi par nginx
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        VITE_USE_MOCKS: "false"   # le front appelle l'API du conteneur api (via nginx)
     container_name: iris-frontend
     ports:
       - "8080:80"   # http://localhost:8080

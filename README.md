@@ -18,6 +18,9 @@ docker compose up -d --build
 # Adminer : http://localhost:8081
 ```
 
+Le front Docker utilise l'API et la base, pas les mocks : on s'y connecte avec un compte de la base
+(les comptes de test du mode mock n'y marchent pas).
+
 `init_database.sql` n'est exécuté qu'à la création du volume de la base. Sur une base créée avant
 l'ajout du rôle `dev`, l'ajouter à la main (ou repartir de zéro avec `docker compose down -v`,
 ce qui efface les données) :
