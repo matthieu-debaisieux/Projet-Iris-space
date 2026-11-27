@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 // Charge des données via une fonction asynchrone (un service).
 // Les données précédentes restent affichées pendant un rechargement.
 //   const { data, loading, error, setData, reload } = useAsync(getActualites);
-//   const notes = useAsync(() => getEmploiDuJour(date), [date]);
+//   const cours = useAsync(() => getEmploiDuTemps(user, date, date), [user, date]);
 export function useAsync(loader, deps = []) {
   const [state, setState] = useState({ data: undefined, loading: true, error: null });
   const [version, setVersion] = useState(0);

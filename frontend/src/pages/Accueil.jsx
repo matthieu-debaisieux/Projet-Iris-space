@@ -5,7 +5,8 @@ import { useAuth } from '@/context/AuthContext.jsx';
 import { useAsync } from '@/hooks/useAsync.js';
 import { getAbsences, STATUT_ABSENCE_LABEL } from '@/services/absences.js';
 import { getActualitesPubliees } from '@/services/actualites.js';
-import { getEmploiDuJour, getRaccourcis } from '@/services/eleve.js';
+import { getRaccourcis } from '@/services/eleve.js';
+import { getEmploiDuTemps } from '@/services/emploiDuTemps.js';
 import { getCoursDuJour } from '@/services/planning.js';
 
 const th = 'border border-gray-400 px-3 py-3 text-center font-semibold bg-[var(--color-background)]';
@@ -160,10 +161,27 @@ function SuiviDuJour() {
   );
 }
 
+// Un créneau par heure (de 8h à 20h, plus large si un cours dépasse) avec les cours qui l'occupent
+// cours : { start: '09h00', end: '10h30', … } → [{ heure: '09h00', cours: [...] }]
+function creneauxDuJour(cours) {
+  const enHeures = hhmm => Number(hhmm.slice(0, 2)) + Number(hhmm.slice(3)) / 60;
+  const premiere = Math.min(8, ...cours.map(c => Math.floor(enHeures(c.start))));
+  const derniere = Math.max(20, ...cours.map(c => Math.ceil(enHeures(c.end)) - 1));
+  return Array.from({ length: derniere - premiere + 1 }, (_, i) => {
+    const h = premiere + i;
+    return {
+      heure: `${String(h).padStart(2, '0')}h00`,
+      cours: cours.filter(c => enHeures(c.start) < h + 1 && enHeures(c.end) > h),
+    };
+  });
+}
+
 // ── Emploi du temps du jour + raccourcis (utilisateur connecté) ─────────────
+// Élève ou prof : le service choisit la route selon le rôle
 function MaJournee() {
+  const { user } = useAuth();
   const [date, setDate] = useState(() => new Date());
-  const emploi = useAsync(() => getEmploiDuJour(date), [date]);
+  const emploi = useAsync(() => getEmploiDuTemps(user, date, date), [user, date]);
   const raccourcis = useAsync(getRaccourcis);
 
   const shiftDay = n => setDate(d => {
@@ -187,20 +205,21 @@ function MaJournee() {
         {/* emploi du temps du jour */}
         <div className="w-full xl:w-72 shrink-0">
           <div className="border border-gray-300 rounded-md overflow-hidden">
-            <DataState state={emploi}>{creneaux => (
+            <DataState state={emploi}>{cours => (
               <table className="w-full border-collapse text-xs">
                 <tbody>
-                  {creneaux.map(c => (
-                    <tr key={c.heure}>
-                      <td className="border border-gray-500 align-top px-2 py-3 w-16 text-gray-600 font-medium">{c.heure}</td>
+                  {creneauxDuJour(cours).map(creneau => (
+                    <tr key={creneau.heure}>
+                      <td className="border border-gray-500 align-top px-2 py-3 w-16 text-gray-600 font-medium">{creneau.heure}</td>
                       <td className="border border-gray-500 bg-[var(--color-background)] h-16 px-2 py-1">
-                        {c.matiere && (
-                          <>
-                            <p className="text-xs font-semibold text-[var(--color-titre)] leading-tight mt-1">{c.matiere}</p>
-                            <p className="text-[11px] text-gray-500 leading-tight">{c.salle}</p>
-                          </>
-                        )}
-                        {c.pause && <p className="text-xs italic text-gray-500 text-center mt-3">{c.pause}</p>}
+                        {creneau.cours.map(c => (
+                          <div key={c.id}>
+                            <p className="text-xs font-semibold text-[var(--color-titre)] leading-tight mt-1">
+                              {c.subject}{c.annule && ' (annulé)'}
+                            </p>
+                            <p className="text-[11px] text-gray-500 leading-tight">{c.room}</p>
+                          </div>
+                        ))}
                       </td>
                     </tr>
                   ))}
