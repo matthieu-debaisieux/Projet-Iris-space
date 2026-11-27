@@ -10,6 +10,7 @@ import {
 } from '@/services/actualites.js';
 
 const TAILLE_MAX_IMAGE = 2 * 1024 * 1024; // 2 Mo
+const FORMATS_IMAGE = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 
 const STATUT_CLASSES = {
   publie:    'bg-[#E3F5EC] text-[#1E7F55]',
@@ -20,12 +21,6 @@ const Icon = ({ name, size = 16, className = '' }) => (
   <i className={`ti ti-${name} ${className}`} style={{ fontSize: size }} aria-hidden="true" />
 );
 
-const lireImage = file => new Promise(resolve => {
-  if (!file) return resolve(null);
-  const reader = new FileReader();
-  reader.onload = e => resolve(e.target.result);
-  reader.readAsDataURL(file);
-});
 const norm = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 // ── Page ────────────────────────────────────────────────────────────────────
@@ -216,6 +211,7 @@ function Formulaire({ actu, onSubmit, onClose }) {
   const [publique, setPublique] = useState(actu?.publique ?? true);
   const [contenu, setContenu] = useState(actu?.contenu ?? '');
   const [photo, setPhoto] = useState(null);
+  const [imageUrl, setImageUrl] = useState(actu?.image_url ?? null);
   const [apercu, setApercu] = useState(actu?.image_url || '');
   const [erreurs, setErreurs] = useState({});
   const [erreurServeur, setErreurServeur] = useState('');
@@ -225,11 +221,22 @@ function Formulaire({ actu, onSubmit, onClose }) {
   useEffect(() => () => { if (apercu.startsWith('blob:')) URL.revokeObjectURL(apercu); }, [apercu]);
 
   const choisirPhoto = e => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
+    if (file.type && !FORMATS_IMAGE.includes(file.type)) {
+      return setErreurs(er => ({ ...er, photo: 'Format non accepté (JPG, PNG, GIF ou WebP).' }));
+    }
     if (file.size > TAILLE_MAX_IMAGE) return setErreurs(er => ({ ...er, photo: 'Image trop lourde (2 Mo max).' }));
     setPhoto(file);
     setApercu(URL.createObjectURL(file));
+    setErreurs(er => ({ ...er, photo: false }));
+  };
+
+  const retirerPhoto = () => {
+    setPhoto(null);
+    setImageUrl(null);
+    setApercu('');
     setErreurs(er => ({ ...er, photo: false }));
   };
 
@@ -246,8 +253,8 @@ function Formulaire({ actu, onSubmit, onClose }) {
         contenu: contenu.trim(),
         statut,
         publique,
-        image_url: actu?.image_url ?? null,
-        image: await lireImage(photo),
+        image_url: imageUrl,
+        fichier: photo,
       });
     } catch (e) {
       setErreurServeur(e.message);
@@ -293,8 +300,13 @@ function Formulaire({ actu, onSubmit, onClose }) {
                 <span className="text-[11px]">JPG, PNG, WEBP — 2 Mo max</span>
               </span>
             )}
-            <input type="file" accept="image/*" className="hidden" onChange={choisirPhoto} />
+            <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" className="hidden" onChange={choisirPhoto} />
           </label>
+          {apercu && (
+            <button type="button" onClick={retirerPhoto} className="mt-1.5 text-xs font-semibold text-[#B23A3A] hover:underline">
+              Retirer l&apos;image
+            </button>
+          )}
           {typeof erreurs.photo === 'string' && <p className="mt-1 text-xs text-[#B23A3A]">{erreurs.photo}</p>}
         </div>
 

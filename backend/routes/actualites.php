@@ -56,18 +56,34 @@ function roleConnecte(): string
     return (string) $stmt->fetchColumn();
 }
 
-// 404 si l'article n'existe pas ; 403 si un professeur essaie de toucher à l'article de quelqu'un d'autre
-function verifierDroitSurActualite(string $id): void
+// 404 si l'article n'existe pas ; 403 si un professeur essaie de toucher à l'article de quelqu'un d'autre.
+// Renvoie l'image actuelle de l'article (pour effacer son fichier si elle change ou si l'article disparaît).
+function verifierDroitSurActualite(string $id): ?string
 {
-    $stmt = db()->prepare('SELECT auteur_id FROM actualite WHERE id = :id');
+    $stmt = db()->prepare('SELECT auteur_id, image_url FROM actualite WHERE id = :id');
     $stmt->execute(['id' => $id]);
-    $auteurId = $stmt->fetchColumn();
+    $article = $stmt->fetch();
 
-    if ($auteurId === false) {
+    if ($article === false) {
         throw new ApiException('Article introuvable', 404);
     }
-    if (roleConnecte() === 'professeur' && $auteurId !== moi()) {
+    if (roleConnecte() === 'professeur' && $article['auteur_id'] !== moi()) {
         throw new ApiException('Vous ne pouvez modifier que vos propres articles', 403);
+    }
+    return $article['image_url'];
+}
+
+// Efface le fichier d'une image envoyée par POST /api/uploads (catégorie « actualites ») quand plus aucun
+// article ne l'utilise. Une image externe (http…) ou un autre chemin est laissé tel quel.
+function nettoyerImageActualite(?string $url): void
+{
+    if ($url === null || !preg_match('#^/api/uploads/actualites/[0-9a-f]{32}\.[a-z0-9]+$#', $url)) {
+        return;
+    }
+    $stmt = db()->prepare('SELECT 1 FROM actualite WHERE image_url = :url');
+    $stmt->execute(['url' => $url]);
+    if ($stmt->fetchColumn() === false) {
+        supprimerFichier($url);
     }
 }
 
@@ -168,7 +184,7 @@ $group->post('/actualites', function (ServerRequestInterface $request, ResponseI
 // brouillon l'efface, et le publier à nouveau la fixe à maintenant.
 // ---------------------------------------------------------------------
 $group->put('/actualites/{id:' . UUID . '}', function (ServerRequestInterface $request, ResponseInterface $response, array $args) {
-    verifierDroitSurActualite($args['id']);
+    $ancienneImage = verifierDroitSurActualite($args['id']);
     $champs = champsActualite(corps($request));
     // Notifier seulement au passage de brouillon à publié, pas à chaque modification d'un article déjà en ligne
     $dejaPublie = lireActualite($args['id'])['statut'] === 'publie';
@@ -185,6 +201,9 @@ $group->put('/actualites/{id:' . UUID . '}', function (ServerRequestInterface $r
     if ($champs['publie'] === 'true' && !$dejaPublie) {
         notifierPublication($champs['titre']);
     }
+    if ($ancienneImage !== $champs['image_url']) {
+        nettoyerImageActualite($ancienneImage);
+    }
 
     return json($response, ['actualite' => lireActualite($args['id'])]);
 })->add(requireRole('administrateur', 'direction', 'dev', 'professeur'));
@@ -193,10 +212,11 @@ $group->put('/actualites/{id:' . UUID . '}', function (ServerRequestInterface $r
 // DELETE /api/actualites/{id} : supprimer un article (204)
 // ---------------------------------------------------------------------
 $group->delete('/actualites/{id:' . UUID . '}', function (ServerRequestInterface $request, ResponseInterface $response, array $args) {
-    verifierDroitSurActualite($args['id']);
+    $image = verifierDroitSurActualite($args['id']);
 
     $stmt = db()->prepare('DELETE FROM actualite WHERE id = :id');
     $stmt->execute(['id' => $args['id']]);
+    nettoyerImageActualite($image);
 
     return $response->withStatus(204);
 })->add(requireRole('administrateur', 'direction', 'dev', 'professeur'));

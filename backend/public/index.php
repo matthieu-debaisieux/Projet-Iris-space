@@ -52,6 +52,7 @@ $app->group('/api', function ($group) {
     require __DIR__ . '/../routes/Controller/HealthController.php';
     require __DIR__ . '/../routes/auth.php';
     require __DIR__ . '/../routes/fichiers.php';
+    require __DIR__ . '/../routes/profil_photo.php';
     require __DIR__ . '/../routes/visiteur.php';
 
     // Actualités : routes communes à plusieurs rôles (pas de préfixe), chacune pose son requireRole
