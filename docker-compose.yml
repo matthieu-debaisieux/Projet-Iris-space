@@ -18,6 +18,7 @@ services:
     volumes:
       - ./backend:/var/www/html
     environment:
+      APP_ENV: ${APP_ENV:-dev}
       DB_HOST: db
       DB_PORT: 5432
       DB_NAME: iris_space

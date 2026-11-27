@@ -12,14 +12,32 @@ require __DIR__ . '/../routes/helpers.php';
 // « aujourd'hui » et les dates sans fuseau (ex. 2026-10-30T18:00) sont en heure de Paris
 date_default_timezone_set('Europe/Paris');
 
+$enDev = appEnDev();
+ini_set('display_errors', $enDev ? '1' : '0');
+
+// Cookie Secure en production ou si la requête arrive en HTTPS (direct ou derrière reverse proxy)
+$cookieSecure = !$enDev
+    || (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+    || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+
+ini_set('session.use_strict_mode', '1');
+ini_set('session.use_only_cookies', '1');
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path'     => '/',
+    'domain'   => '',
+    'secure'   => $cookieSecure,
+    'httponly' => true,
+    'samesite' => 'Lax',
+]);
 session_start();
 
 $app = AppFactory::create();
 
 $app->addBodyParsingMiddleware();
 $app->addRoutingMiddleware();
-// true : affiche le détail des erreurs (à passer à false en prod)
-$errorMiddleware = $app->addErrorMiddleware(true, true, true);
+// Détail des erreurs affiché seulement en dev (APP_ENV=dev|development|local)
+$errorMiddleware = $app->addErrorMiddleware($enDev, true, true);
 // Les autres erreurs (route inconnue, 500…) en JSON plutôt qu'en page HTML
 $errorMiddleware->getDefaultErrorHandler()->forceContentType('application/json');
 
