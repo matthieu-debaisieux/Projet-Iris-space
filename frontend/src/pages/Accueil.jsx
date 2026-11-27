@@ -69,9 +69,12 @@ export default function Accueil() {
 }
 
 // ── Emploi du temps du jour + raccourcis (utilisateur connecté) ─────────────
+// Élève ou prof : le service choisit la route selon le rôle
+// (cours : { id, start: '09h00', end: '10h30', subject, intervenant, room, annule })
 function MaJournee() {
+  const { user } = useAuth();
   const [date, setDate] = useState(() => new Date());
-  const emploi = useAsync(() => getEmploiDuJour(date), [date]);
+  const emploi = useAsync(() => getEmploiDuTemps(user, date, date), [user, date]);
   const raccourcis = useAsync(getRaccourcis);
 
   const shiftDay = n => setDate(d => {
@@ -93,29 +96,26 @@ function MaJournee() {
           </div>
         </div>
 
-        <DataState state={emploi}>{creneaux => {
-          const lignes = creneaux.filter(c => c.matiere || c.pause);
-          if (!lignes.length) return <p className="text-sm text-[#6B7185]">Aucun cours ce jour.</p>;
+        <DataState state={emploi}>{cours => {
+          if (!cours.length) return <p className="text-sm text-[#6B7185]">Aucun cours ce jour.</p>;
           return (
             <ul className="flex flex-col gap-5">
-              {lignes.map((c, i) => (
-                c.pause ? (
-                  <li key={c.heure} className="pl-[88px] text-sm italic text-[#6B7185]">{c.pause}</li>
-                ) : (
-                  <li key={c.heure} className="flex items-stretch gap-4">
-                    <div className="w-[56px] shrink-0 text-right">
-                      <p className="text-sm font-semibold text-[#001257]">{c.heure}</p>
-                      {c.heureFin && <p className="text-xs text-[#6B7185]">{c.heureFin}</p>}
-                    </div>
-                    <span className={`w-1 rounded-full ${BARRES[i % BARRES.length]}`} aria-hidden="true" />
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-[#1A1D2E]">{c.matiere}</p>
-                      <p className="text-xs text-[#6B7185]">
-                        {[c.prof, c.salle && `Salle ${c.salle}`].filter(Boolean).join(' · ')}
-                      </p>
-                    </div>
-                  </li>
-                )
+              {cours.map((c, i) => (
+                <li key={c.id} className="flex items-stretch gap-4">
+                  <div className="w-[56px] shrink-0 text-right">
+                    <p className="text-sm font-semibold text-[#001257]">{c.start}</p>
+                    <p className="text-xs text-[#6B7185]">{c.end}</p>
+                  </div>
+                  <span className={`w-1 rounded-full ${BARRES[i % BARRES.length]}`} aria-hidden="true" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-[#1A1D2E]">
+                      {c.subject}{c.annule && <span className="ml-1 text-xs font-normal text-[#B23A3A]">(annulé)</span>}
+                    </p>
+                    <p className="text-xs text-[#6B7185]">
+                      {[c.intervenant, c.room && `Salle ${c.room}`].filter(Boolean).join(' · ')}
+                    </p>
+                  </div>
+                </li>
               ))}
             </ul>
           );
@@ -278,115 +278,6 @@ function SuiviDuJour() {
           </div>
         </Modal>
       )}
-    </div>
-  );
-}
-
-// Un créneau par heure (de 8h à 20h, plus large si un cours dépasse) avec les cours qui l'occupent
-// cours : { start: '09h00', end: '10h30', … } → [{ heure: '09h00', cours: [...] }]
-function creneauxDuJour(cours) {
-  const enHeures = hhmm => Number(hhmm.slice(0, 2)) + Number(hhmm.slice(3)) / 60;
-  const premiere = Math.min(8, ...cours.map(c => Math.floor(enHeures(c.start))));
-  const derniere = Math.max(20, ...cours.map(c => Math.ceil(enHeures(c.end)) - 1));
-  return Array.from({ length: derniere - premiere + 1 }, (_, i) => {
-    const h = premiere + i;
-    return {
-      heure: `${String(h).padStart(2, '0')}h00`,
-      cours: cours.filter(c => enHeures(c.start) < h + 1 && enHeures(c.end) > h),
-    };
-  });
-}
-
-// ── Emploi du temps du jour + raccourcis (utilisateur connecté) ─────────────
-// Élève ou prof : le service choisit la route selon le rôle
-function MaJournee() {
-  const { user } = useAuth();
-  const [date, setDate] = useState(() => new Date());
-  const emploi = useAsync(() => getEmploiDuTemps(user, date, date), [user, date]);
-  const raccourcis = useAsync(getRaccourcis);
-
-  const shiftDay = n => setDate(d => {
-    const next = new Date(d);
-    next.setDate(next.getDate() + n);
-    return next;
-  });
-
-  return (
-    <div className="flex flex-col gap-8 shrink-0">
-      {/* navigation de date */}
-      <div className="flex items-center gap-4">
-        <ChevronButton direction="prev" label="Jour précédent" onClick={() => shiftDay(-1)} />
-        <div className="border border-gray-300 rounded-full px-6 py-2 text-sm font-medium text-[var(--color-titre)]">
-          {formatDate(date)}
-        </div>
-        <ChevronButton direction="next" label="Jour suivant" onClick={() => shiftDay(1)} />
-      </div>
-
-      <div className="flex flex-col xl:flex-row gap-8 items-start">
-        {/* emploi du temps du jour */}
-        <div className="w-full xl:w-72 shrink-0">
-          <div className="border border-gray-300 rounded-md overflow-hidden">
-            <DataState state={emploi}>{cours => (
-              <table className="w-full border-collapse text-xs">
-                <tbody>
-                  {creneauxDuJour(cours).map(creneau => (
-                    <tr key={creneau.heure}>
-                      <td className="border border-gray-500 align-top px-2 py-3 w-16 text-gray-600 font-medium">{creneau.heure}</td>
-                      <td className="border border-gray-500 bg-[var(--color-background)] h-16 px-2 py-1">
-                        {creneau.cours.map(c => (
-                          <div key={c.id}>
-                            <p className="text-xs font-semibold text-[var(--color-titre)] leading-tight mt-1">
-                              {c.subject}{c.annule && ' (annulé)'}
-                            </p>
-                            <p className="text-[11px] text-gray-500 leading-tight">{c.room}</p>
-                          </div>
-                        ))}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}</DataState>
-          </div>
-        </div>
-
-        {/* raccourcis */}
-        <div className="w-full xl:w-72 shrink-0 flex flex-col gap-6">
-          <DataState state={raccourcis}>{blocs => blocs.map(bloc => (
-            <div key={bloc.titre}>
-              <h2 className="text-lg font-bold text-[var(--color-titre)] text-center mb-2">{bloc.titre}</h2>
-              <div className="bg-[var(--color-background)] rounded-lg p-3 flex flex-col text-xs text-gray-700 divide-y divide-gray-400">
-                {bloc.lignes.map((ligne, i) => (
-                  <p key={i} className="py-1.5">
-                    {ligne.label && <><span className="font-semibold">{ligne.label}</span> — </>}
-                    {ligne.texte}
-                  </p>
-                ))}
-              </div>
-            </div>
-          ))}</DataState>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Dernières actualités publiées ───────────────────────────────────────────
-function DernieresActualites() {
-  const actualites = useAsync(getActualitesPubliees);
-
-  return (
-    <div className="flex-1 w-full min-w-0">
-      <h2 className={h2}>Actualité</h2>
-      <div className="bg-[var(--color-background)] rounded-lg h-[420px] p-4 flex flex-col text-sm text-gray-700 overflow-y-auto divide-y divide-gray-400">
-        <DataState state={actualites}>{liste => liste.map(actu => (
-          <div key={actu.id} className="py-4 first:pt-0 last:pb-0">
-            <p className="font-semibold text-[var(--color-titre)]">{actu.titre}</p>
-            <p className="text-xs text-gray-500 mb-1">Publié le {actu.date}</p>
-            <p>{actu.contenu}</p>
-          </div>
-        ))}</DataState>
-      </div>
     </div>
   );
 }

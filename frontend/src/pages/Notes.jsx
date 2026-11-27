@@ -132,90 +132,18 @@ function CarteMoyenne({ titre, valeur }) {
   );
 }
 
-function Contenu({ liste }) {
-  const [matiere, setMatiere] = useState('Toutes');
-  const [recherche, setRecherche] = useState('');
-
-  const matieres = useMemo(() => [...new Set(liste.map(n => n.matiere))], [liste]);
-  const avecMoyClasse = liste.some(n => n.moyenneClasse != null);
-  const avecAppreciation = liste.some(n => n.appreciation);
-
-  const visibles = useMemo(() => {
-    const q = norm(recherche.trim());
-    return liste.filter(n =>
-      (matiere === 'Toutes' || n.matiere === matiere) &&
-      (!q || [n.matiere, n.prof, n.date].some(v => norm(v).includes(q)))
-    );
-  }, [liste, matiere, recherche]);
-
-  // Moyennes calculées sur les notes affichées (elles suivent donc le filtre)
-  const maMoy = moyenne(visibles, 'note');
-  const moyClasse = avecMoyClasse ? moyenne(visibles, 'moyenneClasse') : null;
-
+function Pastille({ actif, onClick, children }) {
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <h1 className="text-3xl font-bold text-[#001257]">Mes notes</h1>
-        <div className="flex gap-3">
-          <Stat label="Ma moyenne" value={maMoy == null ? '–' : fmt(maMoy)} />
-          {avecMoyClasse && <Stat label="Moyenne de la classe" value={moyClasse == null ? '–' : fmt(moyClasse)} />}
-        </div>
-      </div>
-
-      {/* Recherche + filtres par cours */}
-      <div className="flex flex-col gap-3">
-        <form role="search" onSubmit={e => e.preventDefault()} className="relative max-w-sm">
-          <label htmlFor="recherche-notes" className="sr-only">Rechercher un cours ou un professeur</label>
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B7185]" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z" /><path d="m21 21-4.3-4.3" />
-          </svg>
-          <input
-            id="recherche-notes"
-            type="search"
-            value={recherche}
-            onChange={e => setRecherche(e.target.value)}
-            placeholder="Rechercher un cours, un professeur…"
-            className="w-full rounded-lg border border-[#E1E5EE] bg-white py-2.5 pl-9 pr-3 text-sm text-[#1A1D2E] placeholder:text-[#6B7185] focus:outline-none focus:border-[#001257] focus:ring-2 focus:ring-[#001257]/10"
-          />
-        </form>
-
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrer par cours">
-          {['Toutes', ...matieres].map(m => (
-            <Chip key={m} active={matiere === m} onClick={() => setMatiere(m)}>{m}</Chip>
-          ))}
-        </div>
-      </div>
-
-      {/* Tableau */}
-      <div className={`${card} p-3 overflow-x-auto`}>
-        <table className="w-full min-w-[560px] border-separate border-spacing-0 text-sm">
-          <thead>
-            <tr>
-              <th className={th}>Matière</th>
-              <th className={th}>Note</th>
-              {avecMoyClasse && <th className={th}>Moyenne classe</th>}
-              <th className={th}>Professeur</th>
-              <th className={th}>Date</th>
-              {avecAppreciation && <th className={th}>Appréciation</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {visibles.map(n => (
-              <tr key={n.id} className="hover:bg-[#F7F8FB]">
-                <td className={`${td} font-semibold text-[#001257]`}>{n.matiere}</td>
-                <td className={`${td} font-bold text-[#001257]`}>{n.note}</td>
-                {avecMoyClasse && <td className={`${td} text-[#6B7185]`}>{n.moyenneClasse}</td>}
-                <td className={`${td} text-[#1A1D2E]`}>{n.prof}</td>
-                <td className={`${td} text-[#6B7185]`}>{n.date}</td>
-                {avecAppreciation && <td className={`${td} text-[#1A1D2E]`}>{n.appreciation}</td>}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {!visibles.length && (
-          <p className="px-4 py-8 text-center text-sm text-[#6B7185]">Aucune note ne correspond à votre recherche.</p>
-        )}
-      </div>
-    </div>
+    <button
+      onClick={onClick}
+      aria-pressed={actif}
+      className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-medium border transition ${
+        actif
+          ? 'bg-[var(--color-principal)] border-[var(--color-principal)] text-white'
+          : 'bg-white border-gray-200 text-gray-800 hover:border-[var(--color-principal)]'
+      }`}
+    >
+      {children}
+    </button>
   );
 }
