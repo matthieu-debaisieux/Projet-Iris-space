@@ -1,5 +1,6 @@
 import { api, USE_MOCKS } from './api.js';
-import { PROFIL } from '@/mocks/eleve.js';
+import { LS_PROFIL, loadJSON } from './storage.js';
+import { PROFIL as PROFIL_DEFAUT } from '@/mocks/eleve.js';
 
 export async function getMonProfil(user) {
   if (!USE_MOCKS) {
@@ -68,6 +69,8 @@ export async function getMonProfil(user) {
     };
   }
 
+  // Élève : coordonnées modifiées dans la page Profil (services/eleve.js, updateProfil) gardées en localStorage
+  const PROFIL = loadJSON(LS_PROFIL, PROFIL_DEFAUT, { seed: false });
   return {
     ...PROFIL,
     role: 'eleve',

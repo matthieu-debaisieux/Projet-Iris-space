@@ -72,6 +72,8 @@ export const PROFIL = {
   age: 20,
   dateNaissance: '15/08/2006',
   email: 'Exemple@mediaschool.fr',
+  telephone: '06 12 34 56 78',
+  adresse: '12 rue des Lilas, 06000 Nice',
   lieuNaissance: 'Nice',
   paysNaissance: 'France',
   nationalite: 'Française',

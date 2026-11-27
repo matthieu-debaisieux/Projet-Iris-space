@@ -5,6 +5,7 @@ import Modal from '@/components/ui/Modal.jsx';
 import { useAuth } from '@/context/AuthContext.jsx';
 import { useAsync } from '@/hooks/useAsync.js';
 import { useProfilPhoto } from '@/hooks/useProfilPhoto.js';
+import { updateProfil } from '@/services/eleve.js';
 import { getMonProfil } from '@/services/profil.js';
 
 const card = 'bg-white rounded-2xl border border-[#E1E5EE] p-6';
@@ -54,19 +55,26 @@ function formaterDateHeure(valeur) {
   return date.toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
 }
 
-// Champ en lecture seule
-function Champ({ id, label, value, type = 'text', placeholder = 'Non renseigné' }) {
+// Champ en lecture seule, ou modifiable quand `onChange` est fourni
+function Champ({ id, label, value, type = 'text', placeholder = 'Non renseigné', onChange, multiligne = false, className = '', ...autres }) {
+  const Balise = multiligne ? 'textarea' : 'input';
+  const style = onChange
+    ? 'border-[#001257]/40 bg-white focus:border-[#001257]'
+    : 'border-[#E1E5EE] bg-[#F7F8FB]';
   return (
-    <div>
+    <div className={className}>
       <label htmlFor={id} className="block mb-1.5 text-xs font-semibold text-[#6B7185]">{label}</label>
-      <input
+      <Balise
         id={id}
         name={id}
-        type={type}
-        readOnly
+        {...(!multiligne && { type })}
+        readOnly={!onChange}
         value={value ?? ''}
+        onChange={onChange}
         placeholder={placeholder}
-        className="w-full rounded-lg border border-[#E1E5EE] bg-[#F7F8FB] px-3 py-2.5 text-sm text-[#1A1D2E] focus:outline-none"
+        {...(multiligne && { rows: 2 })}
+        {...autres}
+        className={`w-full rounded-lg border px-3 py-2.5 text-sm text-[#1A1D2E] focus:outline-none transition ${style} ${multiligne ? 'resize-none' : ''}`}
       />
     </div>
   );
@@ -81,12 +89,15 @@ const ICONES = {
   camera: 'M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
   aide: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3 M12 17h.01',
   sortie: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9',
+  crayon: 'M12 20h9 M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z',
   corbeille: 'M3 6h18 M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2 M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6',
 };
 
 export default function Profil() {
-  const { user, logout } = useAuth();
+  const { user, logout, can } = useAuth();
   const profil = useAsync(() => getMonProfil(user), [user?.id, user?.role]);
+  const coordonnees = useCoordonnees(profil);
+  const modifiable = can('profil_modifier'); // élève : email, téléphone, adresse (PATCH /eleve/profil)
   const navigate = useNavigate();
   const [contactOuvert, setContactOuvert] = useState(false);
 
@@ -147,29 +158,50 @@ export default function Profil() {
                 </aside>
 
                 {/* ── Colonne droite : informations adaptées au rôle (lecture seule) ── */}
-                <form className={card} onSubmit={e => e.preventDefault()}>
+                <form className={card} onSubmit={e => coordonnees.enregistrer(e, p)} noValidate>
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div>
                       <h2 className="text-base font-bold text-[#001257]">Informations personnelles</h2>
                       <p className="mt-1 mb-5 text-xs text-[#6B7185]">
-                        Ces informations ne sont pas modifiables ici. Pour une correction, contactez le service scolarité.
+                        {modifiable
+                          ? 'Vous pouvez modifier votre email, votre téléphone et votre adresse. Pour toute autre correction, contactez le service scolarité.'
+                          : 'Ces informations ne sont pas modifiables ici. Pour une correction, contactez le service scolarité.'}
                       </p>
                     </div>
+                    {modifiable && !coordonnees.edition && (
+                      <button type="button" onClick={() => coordonnees.modifier(p)} className={btnSecondaire}>
+                        <Icone d={ICONES.crayon} size={16} /> Modifier mes informations
+                      </button>
+                    )}
                   </div>
+
+                  {coordonnees.succes && !coordonnees.edition && (
+                    <p role="status" className="mb-5 rounded-lg bg-[#E3F5EC] px-4 py-3 text-sm font-semibold text-[#1E7F55]">
+                      Vos informations ont bien été enregistrées.
+                    </p>
+                  )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                     {p.civilite && <Champ id="civilite" label="Civilité" value={p.civilite} />}
                     <Champ id="nom" label="Nom" value={p.nom} />
                     <Champ id="prenom" label="Prénom" value={p.prenom} />
                     <Champ id="identifiant" label="Identifiant" value={p.identifiant} />
-                    <Champ id="email" label="Email" value={p.email} type="email" />
-                    <Champ id="telephone" label="Téléphone" value={p.telephone} />
+                    <Champ id="email" label="Email" type="email" autoComplete="email" maxLength={254}
+                      value={coordonnees.edition ? coordonnees.form.email : p.email}
+                      onChange={coordonnees.edition ? coordonnees.saisir('email') : undefined} />
+                    <Champ id="telephone" label="Téléphone" type="tel" autoComplete="tel" maxLength={30}
+                      value={coordonnees.edition ? coordonnees.form.telephone : p.telephone}
+                      onChange={coordonnees.edition ? coordonnees.saisir('telephone') : undefined} />
                     <Champ id="age" label="Âge" value={age} placeholder="—" />
                     <Champ id="naissance" label="Date de naissance" value={dateFormatee} />
                     <Champ id="lieu-naissance" label="Lieu de naissance" value={p.lieu_naissance ?? p.lieuNaissance} />
                     <Champ id="pays-naissance" label="Pays de naissance" value={p.pays_naissance ?? p.paysNaissance} />
                     <Champ id="nationalite" label="Nationalité" value={p.nationalite} />
-                    {p.adresse && <Champ id="adresse" label="Adresse" value={p.adresse} />}
+                    {(p.adresse || modifiable) && (
+                      <Champ id="adresse" label="Adresse" multiligne className="sm:col-span-2" autoComplete="street-address" maxLength={500}
+                        value={coordonnees.edition ? coordonnees.form.adresse : p.adresse}
+                        onChange={coordonnees.edition ? coordonnees.saisir('adresse') : undefined} />
+                    )}
 
                     {estEleve && (
                       <>
@@ -226,6 +258,18 @@ export default function Profil() {
                       </div>
                     </div>
                   )}
+
+                  {coordonnees.edition && (
+                    <div className="mt-6 flex flex-col gap-3 border-t border-[#E1E5EE] pt-5">
+                      {coordonnees.erreur && <p role="alert" className="text-xs font-medium text-[#B23A3A]">{coordonnees.erreur}</p>}
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <button type="button" onClick={coordonnees.annuler} disabled={coordonnees.enCours} className={`${btnSecondaire} disabled:opacity-60`}>Annuler</button>
+                        <button type="submit" disabled={coordonnees.enCours} className={`${btnPrincipal} disabled:opacity-60`}>
+                          {coordonnees.enCours ? 'Enregistrement…' : 'Enregistrer'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </form>
               </div>
             );
@@ -254,6 +298,60 @@ export default function Profil() {
       )}
     </>
   );
+}
+
+// ── Modification des coordonnées (droit `profil_modifier`) ──────────────────
+// Seuls l'email, le téléphone et l'adresse se modifient ; le reste (nom, naissance, classe…)
+// est corrigé par le service scolarité.
+function useCoordonnees(profil) {
+  const [edition, setEdition] = useState(false);
+  const [form, setForm] = useState({ email: '', telephone: '', adresse: '' });
+  const [erreur, setErreur] = useState('');
+  const [succes, setSucces] = useState(false);
+  const [enCours, setEnCours] = useState(false);
+
+  const saisir = cle => e => setForm(f => ({ ...f, [cle]: e.target.value }));
+
+  function modifier(p) {
+    setForm({ email: p.email ?? '', telephone: p.telephone ?? '', adresse: p.adresse ?? '' });
+    setErreur('');
+    setSucces(false);
+    setEdition(true);
+  }
+
+  function annuler() {
+    setEdition(false);
+    setErreur('');
+  }
+
+  async function enregistrer(e, p) {
+    e.preventDefault();
+    if (!edition || enCours) return;
+
+    // PATCH : on n'envoie que les champs réellement modifiés
+    const champs = Object.fromEntries(Object.entries(form).filter(([cle, valeur]) => valeur.trim() !== (p[cle] ?? '')));
+    if (Object.keys(champs).length === 0) {
+      setEdition(false);
+      return;
+    }
+
+    setErreur('');
+    setEnCours(true);
+    try {
+      const maj = await updateProfil(champs);
+      // On garde à l'écran les coordonnées renvoyées par le service
+      profil.setData(ancien => ({ ...ancien, email: maj.email, telephone: maj.telephone, adresse: maj.adresse }));
+      setEdition(false);
+      setSucces(true);
+    } catch (err) {
+      // Message du back (« Cet email est déjà utilisé »…) ; TypeError = serveur injoignable
+      setErreur(err instanceof TypeError ? 'Impossible de joindre le serveur. Réessayez dans un instant.' : err.message);
+    } finally {
+      setEnCours(false);
+    }
+  }
+
+  return { edition, form, erreur, succes, enCours, saisir, modifier, annuler, enregistrer };
 }
 
 // ── Photo de profil : aperçu + envoi d'une image depuis l'ordinateur ────────

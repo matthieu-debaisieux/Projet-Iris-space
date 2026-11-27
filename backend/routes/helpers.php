@@ -133,6 +133,7 @@ function droitsPourRole(string $role): array
             'emploi_du_temps',
             'documents',
             'messagerie',
+            'profil_modifier',
         ],
         default => [],
     };
