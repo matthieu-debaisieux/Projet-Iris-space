@@ -17,12 +17,35 @@ services:
     container_name: iris-api
     volumes:
       - ./backend:/var/www/html
+      # Garde le vendor/ installé dans l'image : sans cette ligne, le montage
+      # ci-dessus le remplace par celui du dépôt (absent une fois vendor/ sorti de Git).
+      # Après un changement de composer.json : docker compose up -d --build -V
+      - /var/www/html/vendor
     environment:
       DB_HOST: db
       DB_PORT: 5432
       DB_NAME: iris_space
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
+      # dev : détail des erreurs, double authentification facultative, lien de réinitialisation
+      # renvoyé par l'API. À ne pas mettre en production.
+      APP_ENV: ${APP_ENV:-dev}
+      APP_URL: ${APP_URL:-http://localhost:8080}   # adresse du front, pour les liens des e-mails
+      # E-mails : en dev, ils arrivent dans Mailpit (http://localhost:8025), rien ne part vraiment
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_SECURE: ${SMTP_SECURE:-none}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-no-reply@iris-space.fr}
+      # Double authentification : rôles concernés (vide = administrateur,direction,professeur).
+      # SEC-07, après la bêta : administrateur,direction,professeur,eleve
+      DOUBLE_AUTH_ROLES: ${DOUBLE_AUTH_ROLES:-}
+      # Notifications push (PWA-04) : vides = désactivées. Générer avec
+      # docker compose exec api php bin/generer-cles-vapid.php, puis les copier dans .env
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:admin@iris-space.fr}
     ports:
       - "3000:80"   # http://localhost:3000/api/health
     depends_on:
@@ -40,8 +63,12 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}   # défini dans .env (voir .env.example)
     volumes:
       - db_data:/var/lib/postgresql/data
-      # Les scripts de ce dossier ne sont exécutés qu'à l'init du volume
-      - ./backend/database/init_database.sql:/docker-entrypoint-initdb.d/init_database.sql:ro
+      # Ces scripts ne sont exécutés qu'à la création du volume db_data, dans l'ordre du nom.
+      # Pour les relancer : docker compose down -v puis docker compose up -d (efface la base).
+      - ./backend/database/init_database.sql:/docker-entrypoint-initdb.d/01_init_database.sql:ro
+      # Données de démo (comptes admin/admin, prof/prof, eleve/eleve…) : développement uniquement,
+      # à ne pas monter dans le compose de production (INF-01).
+      - ./backend/database/seed_demo.sql:/docker-entrypoint-initdb.d/02_seed_demo.sql:ro
     ports:
       - "5432:5432"
     healthcheck:
@@ -61,6 +88,14 @@ services:
       - "8081:8080"
     depends_on:
       - db
+    restart: unless-stopped
+
+  # Faux serveur d'e-mails pour le dev : boîte de réception sur http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: iris-mailpit
+    ports:
+      - "8025:8025"
     restart: unless-stopped
 
 volumes:
