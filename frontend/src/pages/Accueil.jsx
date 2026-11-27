@@ -71,7 +71,7 @@ export default function Accueil() {
 // ── Emploi du temps du jour + raccourcis (utilisateur connecté) ─────────────
 // Élève ou prof : le service choisit la route selon le rôle
 function MaJournee() {
-  const { user } = useAuth();
+  const { can, user } = useAuth();
   const [date, setDate] = useState(() => new Date());
   const emploi = useAsync(() => getEmploiDuTemps(user, date, date), [user, date]);
   const raccourcis = useAsync(getRaccourcis);
@@ -123,22 +123,25 @@ function MaJournee() {
 
       {/* Raccourcis : devoirs à rendre, vie scolaire… */}
       <div className="flex flex-col gap-6">
-        <DataState state={raccourcis}>{blocs => blocs.map(bloc => (
-          <section key={bloc.titre} className={card}>
-            <h2 className={cardTitle}>{bloc.titre}</h2>
-            <ul className="flex flex-col divide-y divide-[#E1E5EE]">
-              {bloc.lignes.map((ligne, i) => (
-                <li key={i} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
-                  <div className="min-w-0">
-                    {ligne.label && <p className="text-sm font-semibold text-[#1A1D2E]">{ligne.label}</p>}
-                    <p className="text-xs text-[#6B7185]">{ligne.texte}</p>
-                  </div>
-                  {ligne.badge && <Badge ton={ligne.badge.ton}>{ligne.badge.texte}</Badge>}
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}</DataState>
+        <DataState state={raccourcis}>{blocs => blocs
+          // Le bloc « Vie Scolaire » ne concerne que les élèves (droit 'absences')
+          .filter(b => b.titre !== 'Vie Scolaire' || can('absences'))
+          .map(bloc => (
+            <section key={bloc.titre} className={card}>
+              <h2 className={cardTitle}>{bloc.titre}</h2>
+              <ul className="flex flex-col divide-y divide-[#E1E5EE]">
+                {bloc.lignes.map((ligne, i) => (
+                  <li key={i} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                    <div className="min-w-0">
+                      {ligne.label && <p className="text-sm font-semibold text-[#1A1D2E]">{ligne.label}</p>}
+                      <p className="text-xs text-[#6B7185]">{ligne.texte}</p>
+                    </div>
+                    {ligne.badge && <Badge ton={ligne.badge.ton}>{ligne.badge.texte}</Badge>}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}</DataState>
       </div>
     </div>
   );
