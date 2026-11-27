@@ -232,20 +232,31 @@ $group->post('/devoirs', function (ServerRequestInterface $request, ResponseInte
         'moi'        => moi(),
     ];
 
-    try {
-        $stmt = db()->prepare(
-            'INSERT INTO devoir (classe_id, matiere_id, professeur_id, cours_id, type, titre, description,
-                                 a_rendre_le, rendu_en_ligne)
-             VALUES (:classe_id, :matiere_id, :moi, :cours_id, :type, :titre, :description,
-                     :a_rendre_le, :rendu_en_ligne)
-             RETURNING id'
-        );
-        $stmt->execute($champs);
-    } catch (PDOException $e) {
-        erreurClasseMatiere($e);
-    }
+    $devoirId = transaction(function (PDO $pdo) use ($champs) {
+        try {
+            $stmt = $pdo->prepare(
+                'INSERT INTO devoir (classe_id, matiere_id, professeur_id, cours_id, type, titre, description,
+                                     a_rendre_le, rendu_en_ligne)
+                 VALUES (:classe_id, :matiere_id, :moi, :cours_id, :type, :titre, :description,
+                         :a_rendre_le, :rendu_en_ligne)
+                 RETURNING id'
+            );
+            $stmt->execute($champs);
+        } catch (PDOException $e) {
+            erreurClasseMatiere($e);
+        }
+        $id = $stmt->fetchColumn();
 
-    return json($response, ['devoir' => lireDevoir($stmt->fetchColumn())], 201);
+        // Notification aux élèves de la classe (NTF-01)
+        $stmt = $pdo->prepare('SELECT nom FROM matiere WHERE id = :id');
+        $stmt->execute(['id' => $champs['matiere_id']]);
+        notifier($pdo, elevesDeLaClasse($pdo, $champs['classe_id']), 'devoir',
+            'Nouveau devoir en ' . $stmt->fetchColumn() . ' : ' . $champs['titre'], '/devoirs');
+
+        return $id;
+    });
+
+    return json($response, ['devoir' => lireDevoir($devoirId)], 201);
 });
 
 // La classe et la matière ne se modifient pas (les suivis des élèves en dépendent)
@@ -456,7 +467,12 @@ $group->put('/evaluations/{id:' . UUID . '}/notes', function (ServerRequestInter
         ];
     }
 
-    transaction(function (PDO $pdo) use ($args, $lignes) {
+    // Notes avant la saisie, pour ne prévenir que les élèves dont la note est nouvelle ou a changé
+    $stmt = db()->prepare('SELECT eleve_id, valeur FROM note WHERE evaluation_id = :id AND valeur IS NOT NULL');
+    $stmt->execute(['id' => $args['id']]);
+    $avant = array_map('floatval', $stmt->fetchAll(PDO::FETCH_KEY_PAIR));
+
+    transaction(function (PDO $pdo) use ($args, $lignes, $avant) {
         $enregistrer = $pdo->prepare(
             'INSERT INTO note (evaluation_id, eleve_id, valeur, absent, commentaire)
              VALUES (:evaluation, :eleve, :valeur, :absent, :commentaire)
@@ -471,6 +487,24 @@ $group->put('/evaluations/{id:' . UUID . '}/notes', function (ServerRequestInter
             } else {
                 $enregistrer->execute($ligne + ['evaluation' => $args['id']]);
             }
+        }
+
+        // Notification (NTF-01)
+        $aPrevenir = [];
+        foreach ($lignes as $ligne) {
+            $eleve = strtolower($ligne['eleve']);
+            if ($ligne['valeur'] !== null && ($avant[$eleve] ?? null) !== (float) $ligne['valeur']) {
+                $aPrevenir[] = $eleve;
+            }
+        }
+        if ($aPrevenir !== []) {
+            $stmt = $pdo->prepare(
+                'SELECT ev.titre, m.nom AS matiere FROM evaluation ev JOIN matiere m ON m.id = ev.matiere_id WHERE ev.id = :id'
+            );
+            $stmt->execute(['id' => $args['id']]);
+            $evaluation = $stmt->fetch();
+            notifier($pdo, $aPrevenir, 'note',
+                "Nouvelle note en {$evaluation['matiere']} : {$evaluation['titre']}", '/notes');
         }
     });
 

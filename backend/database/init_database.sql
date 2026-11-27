@@ -2,10 +2,8 @@
 --  IRIS SPACE - postgreSQL
 -- =====================================================================
 
--- Remise à zéro : permet de réimporter ce script (ex. via Adminer).
--- ATTENTION : efface toutes les tables et données du schéma public.
-DROP SCHEMA IF EXISTS public CASCADE;
-CREATE SCHEMA public;
+-- À lancer sur une base vide. Pour repartir de zéro en développement :
+-- reset_dev.sql (efface tout), puis ce script, puis seed_demo.sql (données de démo).
 
 CREATE EXTENSION IF NOT EXISTS citext;
 CREATE EXTENSION IF NOT EXISTS btree_gist;
@@ -408,6 +406,45 @@ CREATE TABLE demande_contact (
   traitee_par uuid REFERENCES utilisateur(id),
   created_at  timestamptz NOT NULL DEFAULT now()
 );
+
+-- ---------------------------------------------------------------------
+-- SÉCURITÉ : tentatives de connexion et double authentification
+-- ---------------------------------------------------------------------
+-- Une ligne par tentative (mot de passe ou code de double authentification).
+-- Sert à bloquer les essais en série (SEC-02) et de journal des connexions (SEC-04).
+CREATE TABLE tentative_connexion (
+  id             bigserial PRIMARY KEY,
+  type           varchar(20) NOT NULL DEFAULT 'mot_de_passe'
+                 CHECK (type IN ('mot_de_passe', 'double_auth')),
+  identifiant    citext NOT NULL,       -- tel que saisi (le compte peut ne pas exister)
+  utilisateur_id uuid REFERENCES utilisateur(id) ON DELETE SET NULL,
+  ip             inet,
+  reussie        boolean NOT NULL,
+  created_at     timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_tentative_identifiant ON tentative_connexion(type, identifiant, created_at DESC);
+CREATE INDEX idx_tentative_ip          ON tentative_connexion(type, ip, created_at DESC);
+
+-- Double authentification par application (TOTP, RFC 6238)
+ALTER TABLE utilisateur
+  ADD COLUMN totp_secret     text,        -- secret base32, posé à la configuration
+  ADD COLUMN totp_active_at  timestamptz, -- NULL tant que le premier code n'a pas été validé
+  ADD COLUMN totp_dernier_pas bigint;     -- dernier pas de 30 s accepté : un code ne sert qu'une fois
+
+-- ---------------------------------------------------------------------
+-- NOTIFICATIONS PUSH (PWA-04) : un abonnement par navigateur ou téléphone
+-- ---------------------------------------------------------------------
+CREATE TABLE push_abonnement (
+  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  utilisateur_id   uuid NOT NULL REFERENCES utilisateur(id) ON DELETE CASCADE,
+  endpoint         text NOT NULL UNIQUE,  -- adresse du service push du navigateur
+  p256dh           text NOT NULL,         -- clé publique du navigateur (base64url)
+  auth             text NOT NULL,         -- secret d'authentification (base64url)
+  user_agent       text,
+  created_at       timestamptz NOT NULL DEFAULT now(),
+  dernier_envoi_at timestamptz
+);
+CREATE INDEX idx_push_utilisateur ON push_abonnement(utilisateur_id);
 
 -- ---------------------------------------------------------------------
 -- VUES

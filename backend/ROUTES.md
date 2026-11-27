@@ -61,15 +61,98 @@ Les sections marquées **(fait)** plus bas sont aussi codées et testées :
 | POST | `/api/uploads` | Envoyer un fichier et récupérer son URL : image d'actualité (aujourd'hui en base64 dans le localStorage), documents, devoirs rendus | P1 |
 | GET | `/api/documents/{id}/telecharger` | Télécharger un document privé après vérification des droits | P2 |
 
-## Messagerie (admin, prof, élève)
+## Messagerie (fait)
 
-| Méthode | Route | Sert à | P |
+Fichier [messagerie.php](routes/messagerie.php). Toutes ces routes demandent d'être connecté, quel que soit le rôle.
+
+**Qui peut écrire à qui** (MSG-02, décision D10, à faire valider par Mme Hamidat) :
+- un élève écrit aux profs, à l'administration et à la direction, mais pas aux autres élèves ;
+- un prof, l'administration et la direction écrivent à tout le monde ;
+- seuls les profs, l'administration et la direction créent un groupe. Un élève peut répondre dans un groupe dont il fait partie.
+
+Pour changer ces règles, il suffit de modifier `peutEcrire()` et `peutCreerGroupe()`. La recherche d'utilisateurs applique les mêmes règles : un élève ne voit pas les autres élèves.
+
+Comportement :
+- `POST /conversations` reçoit `{ "participant_ids": ["uuid"], "contenu": "premier message", "titre": "…" }`. Le titre ne sert qu'aux groupes. Avec une seule personne, la conversation à deux qui existe déjà est reprise : la réponse est alors 200 au lieu de 201. Elle contient `{ conversation, messages }`.
+- Une conversation renvoie `participants` (les autres, pas soi), `dernier_message` (`de_moi` : envoyé par soi) et `non_lus`.
+- `GET …/messages?limit=50&avant=` renvoie les derniers messages du plus ancien au plus récent. Pour charger les précédents, passer dans `avant` le `envoye_at` du plus ancien message affiché. `encore` vaut `true` s'il en reste.
+- Envoyer un message : JSON `{ "contenu" }`, ou formulaire multipart avec `contenu` et `fichier` pour une pièce jointe (MSG-04). Le contenu peut être vide quand il y a un fichier.
+- Envoyer un message marque la conversation comme lue pour l'expéditeur et crée une notification `message` pour les autres. Il n'y a qu'une notification non lue par conversation, même pour 10 messages. `POST …/lu` la marque comme lue.
+- Une conversation où l'on n'est pas participant répond 404, comme une conversation qui n'existe pas.
+- Rafraîchissement (MSG-03) : appeler `GET /messages/non-lus` et la conversation ouverte toutes les 30 secondes.
+
+| Méthode | Route | Sert à |
+|---|---|---|
+| GET · POST | `/api/conversations` | Liste avec dernier message et non-lus / nouvelle conversation |
+| GET · POST | `/api/conversations/{id}/messages` | Fil de discussion / envoyer un message, avec ou sans pièce jointe |
+| POST | `/api/conversations/{id}/lu` | Marquer comme lu ; renvoie `{ non_lus, conversations }` |
+| GET | `/api/conversations/{id}/pieces-jointes/{pieceId}` | Télécharger une pièce jointe (participants seulement) |
+| GET | `/api/messages/non-lus` | Pastille des navbars : `{ non_lus, conversations }` |
+| GET | `/api/utilisateurs?recherche=&limit=` | Trouver à qui écrire : 2 caractères minimum, cherche dans le nom, le prénom et l'identifiant |
+
+## Sécurité de la connexion (fait)
+
+Fichiers [securite.php](routes/securite.php) (fonctions) et [double_authentification.php](routes/double_authentification.php) (routes).
+
+**Limite des tentatives (SEC-02).** Après 5 échecs en 15 minutes sur un même compte, la connexion répond 429 avec le temps d'attente dans le message, même avec le bon mot de passe. Le compte est reconnu par son identifiant comme par son e-mail. Le blocage vaut aussi après 20 échecs en 15 minutes depuis une même adresse IP, tous comptes confondus. Une connexion réussie remet le compteur du compte à zéro. Les codes de double authentification ont la même limite. Toutes les tentatives sont gardées dans la table `tentative_connexion`, qui sert aussi de journal des connexions pour le RGPD (SEC-04).
+
+**Double authentification (SEC-03).** Elle utilise un code à 6 chiffres donné par une application : Google Authenticator, Microsoft Authenticator, FreeOTP…
+- Elle est obligatoire pour les administrateurs, la direction et les profs, sauf quand `APP_ENV=dev` (pour que les comptes de démo marchent sans téléphone).
+- **SEC-07 (élèves, après la bêta)** : mettre `DOUBLE_AUTH_ROLES=administrateur,direction,professeur,eleve`. Rien d'autre à changer : le back et le front gèrent déjà tous les rôles (testé).
+- `DOUBLE_AUTH_OBLIGATOIRE=true|false` force le choix, et `DOUBLE_AUTH_ROLES` change la liste des rôles. Pour l'étendre aux élèves (SEC-07), il suffit d'y ajouter `eleve`.
+- Tant qu'un compte qui y est obligé ne l'a pas configurée, toutes les routes répondent 403, sauf celles qui servent à la configurer. Le login renvoie alors `double_authentification_a_configurer: true` : le front doit envoyer vers la page de configuration.
+- Configuration : `POST …/configurer` renvoie `secret` et `otpauth_url`. Le front affiche un QR code de `otpauth_url` et le secret pour une saisie à la main. Ensuite, `POST …/activer` avec `{ "code" }`.
+- Connexion : si `POST /auth/login` répond `{ "double_authentification": true }`, la session n'est pas encore ouverte. Demander le code et l'envoyer à `POST …/verifier` dans les 5 minutes : la réponse est `{ user }`, comme le login.
+- Un code ne sert qu'une fois : après l'activation, il faut attendre le code suivant (30 secondes) pour se connecter.
+
+| Méthode | Route | Sert à |
+|---|---|---|
+| GET | `/api/auth/double-authentification` | `{ active, active_le, obligatoire }` |
+| POST | `/api/auth/double-authentification/configurer` | Nouveau secret ; 409 si déjà activée |
+| POST | `/api/auth/double-authentification/activer` | `{ "code" }` : active la double authentification |
+| POST | `/api/auth/double-authentification/desactiver` | `{ "mot_de_passe" }` ; 403 quand elle est obligatoire |
+| POST | `/api/auth/double-authentification/verifier` | `{ "code" }` : deuxième étape de la connexion |
+| DELETE | `/api/admin/utilisateurs/{id}/double-authentification` | Admin ou direction : réinitialiser (téléphone perdu), 204 |
+
+## Notifications push (fait, côté back)
+
+Fichiers [push.php](routes/push.php) (envoi) et [abonnements_push.php](routes/abonnements_push.php) (routes). Tâche PWA-04, prévue après la bêta (décision D5).
+
+Comportement :
+- Une fois les clés VAPID configurées (voir le README), chaque notification créée par `notifier()` part aussi en push sur les appareils abonnés de son destinataire. L'envoi se fait à la fin de la requête, après la validation de la transaction.
+- Le message reçu par le service worker est le JSON `{ "titre", "lien", "type" }`, le même que celui de la cloche.
+- Un abonnement que le service push déclare expiré (404 ou 410) est supprimé.
+- Seuls les services push des navigateurs sont acceptés : Chrome, Edge, Firefox, Safari (`PUSH_HOTES_AUTORISES` pour en changer). Le serveur n'appelle donc jamais une adresse choisie par un utilisateur.
+- Sans clés VAPID, `GET /push/cle-publique` et `POST /push/abonnements` répondent 503 : le front n'affiche pas l'option.
+
+Côté front (PWA-05) :
+
+```js
+const { cle_publique } = await api.get('/push/cle-publique');
+const abonnement = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: cle_publique });
+await api.post('/push/abonnements', abonnement.toJSON());
+// service worker : self.addEventListener('push', e => { const { titre, lien } = e.data.json(); … showNotification(titre, { data: lien }) })
+```
+
+| Méthode | Route | Sert à |
+|---|---|---|
+| GET | `/api/push/cle-publique` | `{ cle_publique }` à passer à `pushManager.subscribe` ; 503 si le push est désactivé |
+| POST | `/api/push/abonnements` | Enregistrer l'abonnement du navigateur (`subscription.toJSON()`), 201 |
+| DELETE | `/api/push/abonnements` | `{ "endpoint" }` : se désabonner sur ce navigateur, 204 |
+
+## Notifications créées par le back (fait)
+
+Fonction commune `notifier()` dans [notifier.php](routes/notifier.php), à appeler dans la même transaction que la modification qui la déclenche (NTF-01). Une notification est créée dans ces cas :
+
+| Événement | Pour qui | Type | Lien |
 |---|---|---|---|
-| GET · POST | `/api/conversations` | Liste avec dernier message et non-lus / nouvelle conversation | P1 |
-| GET · POST | `/api/conversations/{id}/messages` | Fil de discussion / envoyer un message | P1 |
-| POST | `/api/conversations/{id}/lu` | Marquer comme lu (`dernier_lu_at`) | P1 |
-| GET | `/api/messages/non-lus` | Pastille rouge des navbars (aujourd'hui un compteur en localStorage) | P1 |
-| GET | `/api/utilisateurs?recherche=` | Trouver à qui écrire | P1 |
+| Nouveau message | les autres participants (une non lue par conversation) | `message` | `/messages?conversation={id}` |
+| Nouveau devoir | les élèves de la classe | `devoir` | `/devoirs` |
+| Devoir corrigé | l'élève | `devoir` | `/devoirs` |
+| Note saisie ou modifiée | l'élève, seulement si sa note est nouvelle ou a changé | `note` | `/notes` |
+| Cours annulé ou déplacé | les élèves de la classe et le prof | `systeme` | `/emploi-du-temps` |
+
+Pour le dernier cas, les routes admin de l'emploi du temps (EDT-01) doivent appeler `notifierCours($pdo, $coursId, 'annulé')` ou `notifierCours($pdo, $coursId, 'déplacé')` après la modification.
 
 ## Admin : tableau de bord et absences
 
@@ -181,18 +264,18 @@ Les actualités publiques sont dans la section Actualités.
 
 Ces routes ne sont pas nécessaires pour que le site tourne :
 
-- **Mot de passe :** `PUT /api/auth/mot-de-passe`, `POST /api/auth/mot-de-passe-oublie`, `POST /api/auth/reinitialiser-mot-de-passe` (table `reinitialisation_mdp`)
+- **Mot de passe :** `PUT /api/auth/mot-de-passe`, `POST /api/auth/mot-de-passe-oublie`, `POST /api/auth/reinitialiser-mot-de-passe` (table `reinitialisation_mdp`). L'e-mail part par SMTP ([email.php](routes/email.php), variables `SMTP_*`) ; en dev, il arrive dans Mailpit (http://localhost:8025) et l'API renvoie aussi le lien dans `lien_dev`. Le lien mène à la page `/reinitialiser-mot-de-passe?token=` du front (`APP_URL`).
 - **Élève :** `GET /api/eleve/moyennes` (la vue `v_moyenne_matiere` est déjà prête), `POST /api/eleve/absences/{id}/justificatif`
 - **Prof :** `PATCH /api/prof/devoirs/{id}/eleves/{eleveId}` pour corriger un devoir (note, appréciation)
 - **Textes publics** (« À propos », mentions légales) : `GET /api/pages/{slug}`, `PUT /api/admin/pages/{slug}` (table `page_publique`)
 - **Demandes de contact côté admin :** `GET /api/admin/contacts`, `PATCH /api/admin/contacts/{id}`
-- **Notifications** (table prête, aucune interface) : `GET /api/notifications`, `PATCH /api/notifications/{id}/lue`, `POST /api/notifications/tout-lire`
+- **Notifications** (lecture ; leur création est décrite plus haut) : `GET /api/notifications`, `PATCH /api/notifications/{id}/lue`, `POST /api/notifications/tout-lire`
 
 Les pages MediaSchool n'ont aucune table en base : leur contenu reste statique tant qu'on n'en crée pas.
 
 ## Hors routes, mais bloquant
 
-1. **La base est vide.** [init_database.sql](database/init_database.sql) ne crée aucun compte, donc le login répond toujours 401. Il faut un script de seed avec :
+1. **Réglé (SOC-01) : la base était vide.** Les données de démo sont dans [seed_demo.sql](database/seed_demo.sql). Ancien constat : [init_database.sql](database/init_database.sql) ne crée aucun compte, donc le login répond toujours 401. Il faut un script de seed avec :
    - des comptes de test admin, prof et élève (hash avec `password_hash`) ;
    - une année scolaire courante et un campus ;
    - des classes et des matières ;

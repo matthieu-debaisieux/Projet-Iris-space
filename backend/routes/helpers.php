@@ -40,16 +40,35 @@ function json(ResponseInterface $response, mixed $data, int $status = 200): Resp
 // ---------------------------------------------------------------------
 
 // Middleware à poser sur un groupe : ->add(requireRole('eleve'))
-// 401 si personne n'est connecté, 403 si le rôle ne correspond pas.
+// 401 si personne n'est connecté, 403 si le rôle ne correspond pas,
+// 403 aussi si la double authentification est obligatoire pour ce compte et pas encore configurée (SEC-03).
 function requireRole(string ...$roles): callable
 {
-    return function (ServerRequestInterface $request, RequestHandlerInterface $handler) use ($roles): ResponseInterface {
+    return verifierSession($roles, true);
+}
+
+// Middleware : n'importe quel utilisateur connecté, quel que soit son rôle
+function requireConnecte(): callable
+{
+    return requireRole('eleve', 'professeur', 'administrateur', 'direction');
+}
+
+// Comme requireConnecte(), mais laisse passer un compte qui doit encore configurer sa double
+// authentification : seulement pour les routes qui servent à la configurer.
+function requireConnecteSansDoubleAuth(): callable
+{
+    return verifierSession(['eleve', 'professeur', 'administrateur', 'direction'], false);
+}
+
+function verifierSession(array $roles, bool $exigerDoubleAuth): callable
+{
+    return function (ServerRequestInterface $request, RequestHandlerInterface $handler) use ($roles, $exigerDoubleAuth): ResponseInterface {
         if (empty($_SESSION['user_id'])) {
             throw new ApiException('Non connecté', 401);
         }
 
         // Relire le compte en base : il a pu être désactivé depuis la connexion
-        $stmt = db()->prepare('SELECT role, actif FROM utilisateur WHERE id = :id');
+        $stmt = db()->prepare('SELECT role, actif, totp_active_at FROM utilisateur WHERE id = :id');
         $stmt->execute(['id' => $_SESSION['user_id']]);
         $user = $stmt->fetch();
 
@@ -61,15 +80,12 @@ function requireRole(string ...$roles): callable
         if (!in_array($user['role'], $roles, true)) {
             throw new ApiException('Accès refusé', 403);
         }
+        if ($exigerDoubleAuth && $user['totp_active_at'] === null && doubleAuthObligatoire($user['role'])) {
+            throw new ApiException('Double authentification à configurer avant de continuer', 403);
+        }
 
         return $handler->handle($request);
     };
-}
-
-// Middleware : n'importe quel utilisateur connecté, quel que soit son rôle
-function requireConnecte(): callable
-{
-    return requireRole('eleve', 'professeur', 'administrateur', 'direction');
 }
 
 // Id de l'utilisateur connecté (le middleware requireRole a déjà vérifié qu'il existe)
@@ -372,17 +388,21 @@ function appEnDev(): bool
     return in_array(strtolower((string) getenv('APP_ENV')), ['dev', 'development', 'local'], true);
 }
 
-// Envoie le lien de réinitialisation. Aucune bibliothèque d'e-mail dans composer.json :
-// mail() ne marche que si le serveur a un MTA configuré. À remplacer par PHPMailer/SMTP.
+// Envoie le lien de réinitialisation par SMTP (CPT-06, voir email.php).
+// Un échec est écrit dans le journal PHP, sans erreur pour l'utilisateur :
+// la réponse de « mot de passe oublié » doit rester la même que le compte existe ou non.
 function envoyerEmailReinitialisation(string $email, string $lien): void
 {
     if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
         return;
     }
-    $sujet = '=?UTF-8?B?' . base64_encode('Réinitialisation de votre mot de passe') . '?=';
     $message = "Bonjour,\n\n"
-        . "Pour choisir un nouveau mot de passe, ouvrez ce lien (valable 1 heure) :\n"
+        . "Pour choisir un nouveau mot de passe sur Iris Space, ouvrez ce lien (valable 1 heure) :\n"
         . $lien . "\n\n"
-        . "Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.\n";
-    @mail($email, $sujet, $message, 'Content-Type: text/plain; charset=UTF-8');
+        . "Si vous n'êtes pas à l'origine de cette demande, ignorez ce message : votre mot de passe ne change pas.\n";
+    try {
+        envoyerEmail($email, 'Réinitialisation de votre mot de passe', $message);
+    } catch (SmtpException $e) {
+        error_log('[Iris Space] E-mail de réinitialisation non envoyé : ' . $e->getMessage());
+    }
 }

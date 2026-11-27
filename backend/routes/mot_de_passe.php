@@ -88,11 +88,10 @@ $group->post('/auth/mot-de-passe-oublie', function (ServerRequestInterface $requ
         $base = rtrim((string) (getenv('APP_URL') ?: 'http://localhost'), '/');
         $lien = $base . '/reinitialiser-mot-de-passe?token=' . $token;
 
+        envoyerEmailReinitialisation((string) $user['email'], $lien);
         if (appEnDev()) {
-            // Dev uniquement (APP_ENV=dev) : pas d'e-mail, on renvoie le lien pour pouvoir tester
+            // Dev uniquement (APP_ENV=dev) : on renvoie aussi le lien, pour tester sans boîte mail
             $reponse['lien_dev'] = $lien;
-        } else {
-            envoyerEmailReinitialisation((string) $user['email'], $lien);
         }
     }
 

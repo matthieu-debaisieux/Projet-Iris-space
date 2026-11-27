@@ -8,6 +8,10 @@ use Slim\Factory\AppFactory;
 
 require __DIR__ . '/../vendor/autoload.php';
 require __DIR__ . '/../routes/helpers.php';
+require __DIR__ . '/../routes/securite.php';
+require __DIR__ . '/../routes/notifier.php';
+require __DIR__ . '/../routes/push.php';
+require __DIR__ . '/../routes/email.php';
 
 // « aujourd'hui » et les dates sans fuseau (ex. 2026-10-30T18:00) sont en heure de Paris
 date_default_timezone_set('Europe/Paris');
@@ -33,6 +37,11 @@ $app->group('/api', function ($group) {
     require __DIR__ . '/../routes/Controller/HealthController.php';
     require __DIR__ . '/../routes/auth.php';
     require __DIR__ . '/../routes/visiteur.php';
+    require __DIR__ . '/../routes/double_authentification.php';
+
+    // Communes à tous les rôles connectés : chacune pose son requireConnecte
+    require __DIR__ . '/../routes/messagerie.php';
+    require __DIR__ . '/../routes/abonnements_push.php';
 
     // Routes Bonus (P3) : chacune pose elle-même son requireRole / requireConnecte
     require __DIR__ . '/../routes/mot_de_passe.php';

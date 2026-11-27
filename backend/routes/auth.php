@@ -21,37 +21,57 @@ $group->post('/auth/login', function (ServerRequestInterface $request, ResponseI
 
     // 3. Chercher l'utilisateur par identifiant ou par email (requête préparée : pas d'injection SQL)
     $stmt = db()->prepare(
-        'SELECT id, identifiant, email, mot_de_passe_hash, role, nom, prenom, photo_url, actif
+        'SELECT id, identifiant, email, mot_de_passe_hash, role, nom, prenom, photo_url, actif, totp_active_at
          FROM utilisateur
          WHERE identifiant = :login OR email = :login'
     );
-    $stmt->execute(['login' => trim($identifiant)]);
+    $identifiant = trim($identifiant);
+    $stmt->execute(['login' => $identifiant]);
     $user = $stmt->fetch();
 
-    // 4. Si pas trouvé OU mauvais mot de passe → 401 (même message : on ne révèle pas si le compte existe)
+    // 4. Trop d'échecs récents pour ce compte ou cette IP → 429 (SEC-02).
+    //    Même réponse que le compte existe ou non.
+    verifierBlocage('mot_de_passe', $identifiant, $user['id'] ?? null);
+
+    // 5. Si pas trouvé OU mauvais mot de passe → 401 (même message : on ne révèle pas si le compte existe)
     if (!$user || !password_verify($motDePasse, $user['mot_de_passe_hash'])) {
+        enregistrerTentative('mot_de_passe', $identifiant, $user['id'] ?? null, false);
         $response->getBody()->write(json_encode(['error' => 'Identifiant ou mot de passe incorrect']));
         return $response->withStatus(401)->withHeader('Content-Type', 'application/json');
     }
 
-    // 5. Si le compte n'est pas actif → 403
+    // 6. Si le compte n'est pas actif → 403
     if (!$user['actif']) {
         $response->getBody()->write(json_encode(['error' => 'Ce compte est désactivé']));
         return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
     }
 
-    // 6. Connexion OK : enregistrer en session, mettre à jour derniere_connexion
-    session_regenerate_id(true); // nouvel identifiant de session après connexion (sécurité)
-    $_SESSION['user_id'] = $user['id'];
-    $_SESSION['role']    = $user['role'];
+    enregistrerTentative('mot_de_passe', $identifiant, $user['id'], true);
 
-    $stmt = db()->prepare('UPDATE utilisateur SET derniere_connexion = now() WHERE id = :id');
-    $stmt->execute(['id' => $user['id']]);
+    // 7. Double authentification activée : la session ne s'ouvre qu'après le code (SEC-03),
+    //    avec POST /api/auth/double-authentification/verifier
+    if ($user['totp_active_at'] !== null) {
+        session_regenerate_id(true);
+        $_SESSION = ['double_auth_en_attente' => [
+            'id'     => $user['id'],
+            'expire' => time() + DOUBLE_AUTH_DELAI_MINUTES * 60,
+        ]];
+        $response->getBody()->write(json_encode(['double_authentification' => true]));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
 
-    // 7. Renvoyer l'utilisateur (SANS le hash ni le champ actif)
-    unset($user['mot_de_passe_hash'], $user['actif']);
+    // 8. Connexion OK : enregistrer en session, mettre à jour derniere_connexion
+    ouvrirSession($user);
 
-    $response->getBody()->write(json_encode(['user' => $user]));
+    // 9. Renvoyer l'utilisateur (SANS le hash ni le champ actif).
+    //    double_authentification_a_configurer : le front envoie vers la page de configuration (SEC-03).
+    $aConfigurer = doubleAuthObligatoire($user['role']);
+    unset($user['mot_de_passe_hash'], $user['actif'], $user['totp_active_at']);
+
+    $response->getBody()->write(json_encode([
+        'user' => $user,
+        'double_authentification_a_configurer' => $aConfigurer,
+    ]));
     return $response->withHeader('Content-Type', 'application/json');
 });
 

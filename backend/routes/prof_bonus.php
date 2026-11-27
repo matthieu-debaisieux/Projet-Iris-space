@@ -66,7 +66,14 @@ $group->patch('/prof/devoirs/{id:' . UUID . '}/eleves/{eleveId:' . UUID . '}', f
             'devoir'       => $args['id'],
             'eleve'        => $args['eleveId'],
         ]);
-        return $stmt->fetch();
+        $corrige = $stmt->fetch();
+
+        // Notification à l'élève (NTF-01)
+        $stmt = $pdo->prepare('SELECT titre FROM devoir WHERE id = :id');
+        $stmt->execute(['id' => $args['id']]);
+        notifier($pdo, [$args['eleveId']], 'devoir', 'Devoir corrigé : ' . $stmt->fetchColumn(), '/devoirs');
+
+        return $corrige;
     });
 
     $resultat['note'] = decimal($resultat['note']);
