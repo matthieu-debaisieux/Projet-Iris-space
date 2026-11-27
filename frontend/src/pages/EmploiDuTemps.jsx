@@ -3,9 +3,11 @@ import DataState from '@/components/ui/DataState.jsx';
 import Modal from '@/components/ui/Modal.jsx';
 import { useAuth } from '@/context/AuthContext.jsx';
 import { useAsync } from '@/hooks/useAsync.js';
+import { getEmploiDuTemps } from '@/services/emploiDuTemps.js';
 import { getPlanning } from '@/services/planning.js';
 
 // Données : services/planning.js → schedule[classe][jour] = tableau de cours
+// (consultation élève / prof : services/emploiDuTemps.js, mêmes cours rangés par jour)
 // Chaque cours : { start, end, subject, intervenant, room }
 const DAY_NAMES = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'];
 const MONTH_NAMES = [
@@ -126,13 +128,13 @@ function TimetableGrid({ classData, monday, onEditCourse, onAddCourse }) {
         cells.push(
           <div
             key={`c-${r}-${d}`}
-            className={`border-r ${isLastCol ? 'border-r-0' : ''} border-gray-800 p-0 cursor-pointer group`}
+            className={`border-r ${isLastCol ? 'border-r-0' : ''} border-gray-800 p-0 group${onEditCourse ? ' cursor-pointer' : ''}`}
             style={{ gridColumn, gridRow: `${gridRow} / span ${span}` }}
-            title="Cliquer pour modifier ce cours"
+            title={onEditCourse ? 'Cliquer pour modifier ce cours' : undefined}
             onClick={() => onEditCourse?.(day, index)}
           >
             <div className={`h-full w-full ${getColorForSubject(course.subject)} border-l-4 px-2 py-1 flex flex-col justify-center overflow-hidden group-hover:brightness-95 transition`}>
-              <p className="text-xs font-bold leading-tight truncate">{course.subject}</p>
+              <p className="text-xs font-bold leading-tight truncate">{course.subject}{course.annule && ' (annulé)'}</p>
               <p className="text-[11px] leading-tight truncate">{course.intervenant}</p>
               <p className="text-[11px] leading-tight opacity-75 truncate">{course.room}</p>
             </div>
@@ -148,9 +150,9 @@ function TimetableGrid({ classData, monday, onEditCourse, onAddCourse }) {
       cells.push(
         <div
           key={`e-${r}-${d}`}
-          className={`border-r border-gray-800 bg-gray-100 hover:bg-amber-50 cursor-pointer transition${isLastCol ? ' border-r-0' : ''}${isLastRow ? '' : ' border-b'}`}
+          className={`border-r border-gray-800 bg-gray-100 transition${onAddCourse ? ' hover:bg-amber-50 cursor-pointer' : ''}${isLastCol ? ' border-r-0' : ''}${isLastRow ? '' : ' border-b'}`}
           style={{ height: ROW_HEIGHT, gridColumn, gridRow }}
-          title="Cliquer pour ajouter un cours"
+          title={onAddCourse ? 'Cliquer pour ajouter un cours' : undefined}
           onClick={() => onAddCourse?.(day, hourLabelForHour(currentHour))}
         />,
       );
@@ -287,9 +289,61 @@ function CourseModal({ className, editing, rooms, onSave, onDelete, onClose }) {
   );
 }
 
-// ── Page ────────────────────────────────────────────────────────────────────
-// Consultation pour tous ; modification avec le droit `emploi_du_temps_gerer`
-export default function EmploiDuTemps() {
+// ── Navigation d'une semaine à l'autre (consultation) ───────────────────────
+function SemaineNav({ monday, onChange }) {
+  const friday = addDays(monday, 4);
+  const bouton = 'w-9 h-9 flex items-center justify-center rounded-full bg-amber-400 hover:bg-amber-500 text-white shadow transition';
+  const icone = { className: 'w-5 h-5', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2.5, strokeLinecap: 'round', strokeLinejoin: 'round' };
+
+  return (
+    <div className="flex items-center justify-center gap-3 mb-6">
+      <button onClick={() => onChange(-7)} className={bouton} aria-label="Semaine précédente">
+        <svg xmlns="http://www.w3.org/2000/svg" {...icone}><polyline points="15 18 9 12 15 6" /></svg>
+      </button>
+      <div className="px-6 py-2 rounded-full bg-amber-400 text-white font-semibold shadow text-sm">
+        {`Semaine du ${monday.getDate()} au ${friday.getDate()} ${MONTH_NAMES[friday.getMonth()]}`}
+      </div>
+      <button onClick={() => onChange(7)} className={bouton} aria-label="Semaine suivante">
+        <svg xmlns="http://www.w3.org/2000/svg" {...icone}><polyline points="9 18 15 12 9 6" /></svg>
+      </button>
+    </div>
+  );
+}
+
+// Cours de la semaine → { Lundi: [...], …, Vendredi: [...] } comme attend TimetableGrid
+function coursParJour(cours) {
+  const parJour = Object.fromEntries(DAY_NAMES.map(nom => [nom, []]));
+  for (const c of cours) {
+    // getDay() : 0 = dimanche ; (… + 6) % 7 donne 0 pour lundi, et 5 / 6 (non affichés) le week-end
+    const nom = DAY_NAMES[(new Date(`${c.jour}T12:00:00`).getDay() + 6) % 7];
+    if (nom) parJour[nom].push(c);
+  }
+  return parJour;
+}
+
+// ── Consultation : emploi du temps personnel de l'élève ou du prof ──────────
+// La semaine affichée est demandée d'un coup (lundi → vendredi) ; aucune modification possible
+function MonEmploiDuTemps() {
+  const { user } = useAuth();
+  const [monday, setMonday] = useState(() => getMonday(new Date()));
+  const emploi = useAsync(() => getEmploiDuTemps(user, monday, addDays(monday, 4)), [user, monday]);
+
+  return (
+    <div className="flex-1 overflow-y-auto p-6 bg-[var(--color-page)]">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-2xl font-bold text-[var(--color-titre)] mb-4">Emploi du temps</h1>
+        <SemaineNav monday={monday} onChange={n => setMonday(m => addDays(m, n))} />
+        <DataState state={emploi}>{cours => (
+          <TimetableGrid classData={coursParJour(cours)} monday={monday} />
+        )}</DataState>
+      </div>
+    </div>
+  );
+}
+
+// ── Planning de toutes les classes (administration) ─────────────────────────
+// Modification avec le droit `emploi_du_temps_gerer`
+function PlanningClasses() {
   const { can } = useAuth();
   const gerer = can('emploi_du_temps_gerer');
   const planning = useAsync(getPlanning);
@@ -449,4 +503,13 @@ export default function EmploiDuTemps() {
       )}
     </>
   );
+}
+
+// ── Page ────────────────────────────────────────────────────────────────────
+// Qui gère l'emploi du temps (droit `emploi_du_temps_gerer`) : planning de toutes les classes.
+// Les autres (élève, prof) : leur propre emploi du temps (le service choisit la route selon le rôle).
+// Règle du projet : la page décide avec les droits, jamais avec `user.role`.
+export default function EmploiDuTemps() {
+  const { can } = useAuth();
+  return can('emploi_du_temps_gerer') ? <PlanningClasses /> : <MonEmploiDuTemps />;
 }

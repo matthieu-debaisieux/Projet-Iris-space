@@ -93,7 +93,8 @@ Routes attendues par le front :
 | GET     | `/api/espaces`                     | `getEspaces`             |
 | GET     | `/api/conversations`               | `getConversations`       |
 | POST    | `/api/conversations/:id/messages`  | `sendMessage`            |
-| GET     | `/api/eleve/emploi-du-temps?date=` | `getEmploiDuJour`        |
+| GET     | `/api/eleve/emploi-du-temps?du=&au=` | `getEmploiDuTemps` (élève) |
+| GET     | `/api/prof/emploi-du-temps?du=&au=` | `getEmploiDuTemps` (prof) |
 | GET     | `/api/eleve/raccourcis`            | `getRaccourcis`          |
 | GET     | `/api/eleve/notes`                 | `getNotes`               |
 | GET     | `/api/eleve/profil`                | `getProfil`              |
