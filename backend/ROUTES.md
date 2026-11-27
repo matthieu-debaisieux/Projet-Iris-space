@@ -16,6 +16,7 @@ Les sections marquées **(fait)** plus bas sont aussi codées :
 - fichiers (`/uploads`, `/documents/{id}/telecharger`) ;
 - admin documents ;
 - admin comptes et programme ;
+- admin emploi du temps (classes, salles, menus, cours) ;
 - élève (dont « Mes documents ») ;
 - professeur ;
 - visiteur ;
@@ -27,7 +28,7 @@ Les sections marquées **(fait)** plus bas sont aussi codées :
 - Les routes communes n'ont pas de préfixe : auth, actualités, messagerie.
 - Les routes propres à un espace vont sous `/api/admin`, `/api/prof` et `/api/eleve`. Chaque groupe est protégé par le middleware `requireRole()` de [helpers.php](routes/helpers.php) : 401 si personne n'est connecté, 403 si le rôle ne correspond pas.
 - Côté élève, l'id vient de la session et jamais de l'URL, pour qu'un élève ne puisse pas lire les notes d'un autre.
-- Un fichier de routes par espace : [admin/documents.php](routes/admin/documents.php), [admin/utilisateurs.php](routes/admin/utilisateurs.php), [eleve.php](routes/eleve.php), [prof.php](routes/prof.php), [visiteur.php](routes/visiteur.php), [rgpd.php](routes/rgpd.php) et [admin/rgpd.php](routes/admin/rgpd.php). Les actualités, partagées entre plusieurs rôles, ont leur propre fichier sans préfixe : [actualites.php](routes/actualites.php). Ils sont branchés dans [index.php](public/index.php).
+- Un fichier de routes par espace : [admin/documents.php](routes/admin/documents.php), [admin/utilisateurs.php](routes/admin/utilisateurs.php), [admin/emploi_du_temps.php](routes/admin/emploi_du_temps.php), [eleve.php](routes/eleve.php), [prof.php](routes/prof.php), [visiteur.php](routes/visiteur.php), [rgpd.php](routes/rgpd.php) et [admin/rgpd.php](routes/admin/rgpd.php). Les actualités, partagées entre plusieurs rôles, ont leur propre fichier sans préfixe : [actualites.php](routes/actualites.php). Ils sont branchés dans [index.php](public/index.php).
 
 ## Conventions de l'API (pour le front)
 
@@ -133,16 +134,78 @@ Réponse : `{ "actualite": {...} }` pour `POST` et `PUT`, `{ "actualites": [...]
 | POST | `/api/admin/absences` | Saisir une absence ou un retard (pas encore de formulaire) | P2 |
 | PATCH · DELETE | `/api/admin/absences/{id}` | Justifier (`justifie`, `motif`) / supprimer | P2 |
 
-## Admin : emploi du temps
+## Admin : emploi du temps (fait)
+
+Les routes sont dans [admin/emploi_du_temps.php](routes/admin/emploi_du_temps.php), sous `/api/admin` : admin, direction et dev y ont les mêmes droits (401 sans session, 403 pour un professeur ou un élève). Les listes renvoient une clé au pluriel (`{ "cours": [...] }`), un objet une clé au singulier (`{ "cours": {...} }`, `{ "salle": {...} }`).
 
 | Méthode | Route | Sert à | P |
 |---|---|---|---|
-| GET · POST | `/api/admin/classes` | Sélecteur de classe / « Ajouter une classe » | P1 |
-| GET · POST | `/api/admin/salles` | Liste des salles / « Ajouter une salle » | P1 |
-| GET | `/api/admin/matieres` | Menu « Matière » du cours (texte libre aujourd'hui) | P1 |
-| GET | `/api/admin/professeurs?matiere_id=` | Menu « Intervenant » (texte libre aujourd'hui) | P1 |
-| GET · POST | `/api/admin/cours` | Semaine affichée (`?classe_id=&du=&au=`), sert aussi pour « Cours aujourd'hui » du Dashboard / ajouter un cours | P1 |
-| PUT · DELETE | `/api/admin/cours/{id}` | Modifier / supprimer | P1 |
+| GET | `/api/admin/classes` | Sélecteur de classe (route des comptes, voir plus haut) | P1 |
+| POST | `/api/admin/classes` | « Ajouter une classe » (201) | P1 |
+| GET · POST | `/api/admin/salles` | Menu des salles (`?campus_id=`) / « Ajouter une salle » (201) | P1 |
+| GET | `/api/admin/matieres?classe_id=` | Menu « Matière » : toutes les matières, ou le programme de la classe avec son coefficient | P1 |
+| GET | `/api/admin/professeurs?matiere_id=` | Menu « Intervenant » : profs actifs qui enseignent la matière | P1 |
+| GET | `/api/admin/cours?classe_id=&du=&au=` | Semaine affichée ; sans `classe_id`, toutes les classes (bloc « Cours aujourd'hui » du tableau de bord) | P1 |
+| POST | `/api/admin/cours` | Ajouter un cours (201) | P1 |
+| PUT | `/api/admin/cours/{id}` | Modifier un cours | P1 |
+| DELETE | `/api/admin/cours/{id}` | Supprimer un cours (204) | P1 |
+
+Un cours est un créneau daté, pas une semaine type : pour répéter un cours chaque semaine, il faut le créer à chaque date. Un cours :
+
+```json
+{
+  "id": "uuid",
+  "classe_id": 2,
+  "classe": "BTS SIO 2",
+  "matiere_id": 1,
+  "matiere": "Développement",
+  "professeur_id": "uuid",
+  "prof_nom": "Leroy",
+  "prof_prenom": "Paul",
+  "salle_id": 3,
+  "salle": "Labo 1",
+  "debut": "2026-11-30 11:00:00+01",
+  "fin": "2026-11-30 12:00:00+01",
+  "annule": false,
+  "commentaire": null
+}
+```
+
+`salle_id` et `salle` valent `null` sans salle. `debut` et `fin` sont au même format que dans `/eleve/emploi-du-temps` et `/prof/emploi-du-temps`.
+
+Corps de `POST` et `PUT /api/admin/cours` :
+
+```json
+{
+  "classe_id": 2,
+  "matiere_id": 1,
+  "professeur_id": "uuid",
+  "salle_id": 3,
+  "debut": "2026-11-30T11:00",
+  "fin": "2026-11-30T12:00",
+  "annule": false,
+  "commentaire": "Apporter un PC"
+}
+```
+
+`classe_id`, `matiere_id`, `professeur_id`, `debut` et `fin` sont obligatoires. `salle_id` et `commentaire` (500 caractères) sont facultatifs, `annule` vaut `false` par défaut. Un `PUT` remplace tout le cours (une salle absente retire la salle). Les heures sans fuseau sont en heure de Paris.
+
+Comportement :
+- `GET cours` : `du` et `au` sont des jours `AAAA-MM-JJ`, bornes incluses (par défaut : aujourd'hui). Il renvoie `{ "du", "au", "cours": [...] }`, triés par heure de début. Un `classe_id` inconnu répond 404.
+- `GET matieres` sans `classe_id` renvoie `{ id, code, nom }` pour chaque matière. Avec `classe_id`, seulement le programme de cette classe, avec `coefficient` (en texte, `"4.00"`) ; classe inconnue : 404.
+- `GET professeurs` ne renvoie que les comptes actifs, chacun avec toutes ses matières : `{ id, nom, prenom, matieres: [{ id, nom }] }`. `id` est l'identifiant à envoyer comme `professeur_id`. Sans `matiere_id`, tous les professeurs actifs.
+- `POST classes` : `{ "nom": "BTS SIO 3" }` (50 caractères). L'année est l'année scolaire courante sauf `annee_scolaire_id`. Le campus est le seul campus s'il n'y en a qu'un, sinon `campus_id` est obligatoire (400 « Précisez le campus »). Réponse : `{ "classe": { id, nom, annee_scolaire, campus } }`.
+- `POST salles` : `{ "nom": "B205", "capacite": 30 }` (`nom` 50 caractères, `capacite` facultative, entre 1 et 10000, même règle pour le campus). Réponse : `{ "salle": { id, nom, capacite, campus_id, campus } }`.
+- Un cours doit finir après son début et le même jour (heure de Paris), sur une vraie date du calendrier.
+- Les références sont contrôlées avant l'écriture : classe, matière, professeur et salle existent, la matière est au programme de la classe, et le professeur l'enseigne. Chaque cas répond 400 avec un message précis (« La matière Anglais n'est pas au programme de la classe … », « Paul Leroy n'enseigne pas la matière Anglais »).
+- La classe d'un cours ne se modifie pas : `PUT` répond 400 si `classe_id` est différent (il est facultatif dans ce cas). Pour changer de classe, supprimer le cours et le recréer.
+- Chevauchement : un professeur, une classe ou une salle ne peut pas avoir deux cours en même temps. Un cours annulé (`annule: true`) ne compte pas, et deux cours bout à bout (fin 11h, début 11h) ne se chevauchent pas. Le refus répond 409 avec un message qui nomme ce qui est déjà pris, par exemple « Le professeur Paul Leroy a déjà cours le 30/11 de 09h00 à 11h00 (BTS SIO 2, Développement). » ; plusieurs causes s'ajoutent dans le même message. Repasser un cours annulé à `annule: false` peut donc répondre 409.
+- Supprimer un cours ne supprime pas les devoirs, ressources et absences qui s'y rapportaient : ils perdent seulement leur lien avec le cours.
+
+Erreurs :
+- 400 : champ manquant ou invalide, fin avant le début, cours sur plusieurs jours, référence inconnue, matière hors programme, professeur qui n'enseigne pas la matière, classe modifiée, campus à préciser, capacité invalide.
+- 404 : cours ou classe introuvable.
+- 409 : chevauchement ; nom de classe (même année et même campus) ou de salle (même campus) déjà pris.
 
 ## Admin : documents (fait)
 
