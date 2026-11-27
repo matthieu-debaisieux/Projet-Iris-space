@@ -64,10 +64,14 @@ $app->group('/api', function ($group) {
     require __DIR__ . '/../routes/eleve_bonus.php';
     require __DIR__ . '/../routes/prof_bonus.php';
 
+    // RGPD : export de ses propres données (et fonctions partagées avec admin/rgpd.php)
+    require __DIR__ . '/../routes/rgpd.php';
+
     // Chaque espace n'est accessible qu'aux rôles indiqués (401 si non connecté, 403 sinon)
     $group->group('/admin', function ($group) {
         require __DIR__ . '/../routes/admin/documents.php';
         require __DIR__ . '/../routes/admin/utilisateurs.php';
+        require __DIR__ . '/../routes/admin/rgpd.php';
     })->add(requireRole('administrateur', 'direction', 'dev'));
 
     $group->group('/eleve', function ($group) {

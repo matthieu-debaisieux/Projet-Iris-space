@@ -19,14 +19,15 @@ Les sections marquées **(fait)** plus bas sont aussi codées :
 - élève (dont « Mes documents ») ;
 - professeur ;
 - visiteur ;
-- actualités.
+- actualités ;
+- RGPD (journal des connexions, export et suppression des données).
 
 ## Organisation
 
 - Les routes communes n'ont pas de préfixe : auth, actualités, messagerie.
 - Les routes propres à un espace vont sous `/api/admin`, `/api/prof` et `/api/eleve`. Chaque groupe est protégé par le middleware `requireRole()` de [helpers.php](routes/helpers.php) : 401 si personne n'est connecté, 403 si le rôle ne correspond pas.
 - Côté élève, l'id vient de la session et jamais de l'URL, pour qu'un élève ne puisse pas lire les notes d'un autre.
-- Un fichier de routes par espace : [admin/documents.php](routes/admin/documents.php), [admin/utilisateurs.php](routes/admin/utilisateurs.php), [eleve.php](routes/eleve.php), [prof.php](routes/prof.php), [visiteur.php](routes/visiteur.php). Les actualités, partagées entre plusieurs rôles, ont leur propre fichier sans préfixe : [actualites.php](routes/actualites.php). Ils sont branchés dans [index.php](public/index.php).
+- Un fichier de routes par espace : [admin/documents.php](routes/admin/documents.php), [admin/utilisateurs.php](routes/admin/utilisateurs.php), [eleve.php](routes/eleve.php), [prof.php](routes/prof.php), [visiteur.php](routes/visiteur.php), [rgpd.php](routes/rgpd.php) et [admin/rgpd.php](routes/admin/rgpd.php). Les actualités, partagées entre plusieurs rôles, ont leur propre fichier sans préfixe : [actualites.php](routes/actualites.php). Ils sont branchés dans [index.php](public/index.php).
 
 ## Conventions de l'API (pour le front)
 
@@ -236,6 +237,88 @@ Toutes les pages front sont encore vides, sauf Messages. Comportement des routes
 | POST | `/api/contact` | Formulaire de contact : le lien « Contact » du menu visiteur ne mène encore nulle part, alors que la table `demande_contact` est prête | P2 |
 
 Les actualités publiques sont dans la section Actualités.
+
+## RGPD (fait)
+
+### Durées de conservation
+
+| Donnée | Durée |
+|---|---|
+| Journal des connexions (table `journal_connexion`) | **12 mois**, puis purgé |
+| Compte et données scolaires | Tant que le compte existe ; supprimées sur demande de la personne (voir plus bas) |
+
+### Journal des connexions
+
+- Chaque `POST /api/auth/login` ajoute une ligne, réussie ou non : date, utilisateur (vide si l'identifiant n'existe pas), identifiant ou e-mail saisi, adresse IP, User-Agent tronqué à 200 caractères, et pour un échec le motif (`identifiant_inconnu`, `mot_de_passe_incorrect`, `compte_desactive`). Le motif n'est jamais renvoyé au client : la réponse reste « Identifiant ou mot de passe incorrect ».
+- L'écriture ne bloque jamais la connexion : si elle échoue (par exemple base pas encore migrée), l'erreur va dans le journal PHP et le login continue.
+- L'adresse IP est `REMOTE_ADDR`. Derrière le nginx du front (`X-Real-IP`), c'est l'en-tête `X-Real-IP` qui est lu, mais seulement si la requête arrive d'une adresse privée ou locale.
+- **Base existante :** jouer une fois [database/migrations/2026-11-27_sec04_journal_connexion.sql](database/migrations/2026-11-27_sec04_journal_connexion.sql). Une base neuve créée avec `init_database.sql` a déjà la table.
+
+### Purge à planifier (équipe SISR)
+
+Le script [scripts/purger_journal_connexions.php](scripts/purger_journal_connexions.php) supprime les lignes de plus de 12 mois (constante `JOURNAL_CONNEXIONS_MOIS` dans [helpers.php](routes/helpers.php)). Il ne se lance qu'en ligne de commande, affiche le nombre de lignes supprimées et sort avec le code 1 en cas d'erreur. L'option `--simulation` compte sans rien supprimer.
+
+À lancer **une fois par jour** par une tâche planifiée sur le serveur, par exemple (cron, tous les jours à 3 h 15) :
+
+```
+15 3 * * * docker exec iris-api php /var/www/html/scripts/purger_journal_connexions.php >> /var/log/iris-purge-journal.log 2>&1
+```
+
+Sans PHP, le même effet en SQL (`psql`, `pg_cron`…) :
+
+```sql
+DELETE FROM journal_connexion WHERE created_at < now() - interval '12 months';
+```
+
+Filet de sécurité : environ une connexion réussie sur cent déclenche aussi cette purge. Elle ne remplace pas la tâche planifiée.
+
+À prévoir aussi côté SISR : les **sauvegardes** de la base contiennent encore les lignes purgées ou supprimées jusqu'à leur propre expiration. Leur durée de rétention ne doit pas dépasser celle des données.
+
+### Routes
+
+| Méthode | Route | Droits | Sert à | P |
+|---|---|---|---|---|
+| GET | `/api/auth/me/export` | Tout utilisateur connecté | Télécharger ses propres données | P2 |
+| GET | `/api/admin/utilisateurs/{id}/export` | Administrateur, direction | Télécharger les données d'un compte (demande d'accès d'une personne) | P2 |
+| DELETE | `/api/admin/utilisateurs/{id}/donnees` | Administrateur, direction | Supprimer ou anonymiser un compte et ses données (demande d'effacement) | P2 |
+
+**Export :** réponse 200 en JSON lisible, avec `Content-Disposition: attachment` (le front peut aussi le lire avec `fetch`). Les dates et les nombres suivent les conventions de l'API (texte pour les décimaux). Il ne contient **jamais** le hash du mot de passe ni les jetons de réinitialisation. Clés :
+
+- `genere_le`, `utilisateur` (profil complet) ;
+- `eleve` (numéro d'étudiant, classe, `notes`, `devoirs`, `fichiers_rendus`, `absences`), `null` si le compte n'est pas un élève ;
+- `professeur` (`matieres`, `cours`, `devoirs_donnes`, `evaluations`, `ressources`), `null` si le compte n'est pas un professeur ;
+- `actualites_ecrites`, `conversations`, `messages_envoyes` (avec le nom de leurs pièces jointes), `notifications`, `documents`, `demandes_contact` (retrouvées par e-mail), `reinitialisations_mdp` (dates seulement), `journal_connexions`.
+
+Les messages **reçus** ne sont pas inclus : ils appartiennent à leurs expéditeurs. Les fichiers eux-mêmes (devoirs rendus, justificatifs…) ne sont pas joints, seulement leurs noms : à fournir à part si la personne les demande.
+
+**Suppression :** irréversible, dans une transaction (tout ou rien) ; les fichiers sont effacés du disque une fois la base validée. Réponse 200 avec le nombre de lignes supprimées par table, et le nombre de fichiers effacés :
+
+```json
+{ "supprime": { "notes": 3, "devoirs": 12, "absences": 1, "fiche_eleve": 1, "...": 0 }, "fichiers_supprimes": 4 }
+```
+
+Erreurs :
+- 400 : on ne peut pas supprimer son propre compte par cette route ;
+- 404 : compte introuvable ;
+- 409 : les données de ce compte ont déjà été supprimées.
+
+Le compte supprimé ne peut plus se connecter (sa session en cours est refusée au prochain appel) et n'apparaît plus qu'en « Utilisateur supprimé ».
+
+### Ce que devient chaque donnée à la suppression
+
+Le compte est **anonymisé** et non effacé : plusieurs tables le référencent sans `ON DELETE` (messages, actualités, absences saisies, cours et devoirs d'un professeur…). Supprimer la ligne serait refusé par la base ou détruirait des données qui appartiennent aux autres utilisateurs ou à l'établissement. Tout ce qui ne concerne que la personne est supprimé.
+
+| Donnée | Traitement |
+|---|---|
+| `utilisateur` | Anonymisée : identifiant `supprime-<uuid sans tirets>`, e-mail `supprime-<uuid sans tirets>@anonyme.invalid`, nom « supprimé », prénom « Utilisateur », naissance, lieu, pays, nationalité, téléphone, adresse et photo vidés, compte désactivé, mot de passe remplacé par un hash aléatoire, dernière connexion effacée |
+| `eleve`, `note`, `devoir_eleve`, `devoir_rendu_fichier`, `absence` (de l'élève) | Supprimées, avec les fichiers rendus et les justificatifs sur le disque |
+| `professeur`, `professeur_matiere`, `cours`, `devoir`, `evaluation`, `ressource` | Conservés, attribués au compte anonyme : les élèves en ont besoin (emploi du temps, devoirs, notes) et les clés étrangères composites vers `professeur_matiere` l'imposent |
+| `message`, `conversation_participant` | Les messages envoyés sont conservés (les autres participants gardent leur fil), avec l'auteur anonymisé. Leurs pièces jointes (`message_piece_jointe`) et les fichiers sont supprimés. `dernier_lu_at` est effacé |
+| `actualite` | Les actualités publiées sont conservées, auteur anonymisé. Les brouillons (non publiés) sont supprimés |
+| `notification`, `reinitialisation_mdp`, `journal_connexion` | Supprimées |
+| `document` destinés au compte | Supprimés, avec les fichiers. Les documents que le compte a déposés pour d'autres sont conservés |
+| `demande_contact` | Supprimées si l'e-mail du formulaire est celui du compte ; celles qu'il a traitées sont conservées |
+| `absence.saisi_par`, `document.depose_par`, `conversation.created_by`, `demande_contact.traitee_par` | Référence conservée vers le compte anonyme |
 
 ## Bonus (P3)
 

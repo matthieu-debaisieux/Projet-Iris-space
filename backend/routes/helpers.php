@@ -543,6 +543,80 @@ function supprimerFichier(?string $url): void
 }
 
 // ---------------------------------------------------------------------
+// JOURNAL DES CONNEXIONS (RGPD)
+// ---------------------------------------------------------------------
+
+// Durée de conservation du journal, en mois : au-delà, les lignes sont purgées
+const JOURNAL_CONNEXIONS_MOIS = 12;
+
+// Adresse IP du client, ou null. Derrière le nginx du front, REMOTE_ADDR est celle du proxy :
+// on lit alors X-Real-IP, mais seulement si la requête arrive d'une adresse privée ou locale
+// (un client venu d'Internet ne peut pas choisir l'IP qui s'inscrit au journal).
+function adresseIp(ServerRequestInterface $request): ?string
+{
+    $ip = $request->getServerParams()['REMOTE_ADDR'] ?? null;
+    if (!is_string($ip) || filter_var($ip, FILTER_VALIDATE_IP) === false) {
+        return null;
+    }
+    if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+        $relais = trim($request->getHeaderLine('X-Real-IP'));
+        if (filter_var($relais, FILTER_VALIDATE_IP) !== false) {
+            return $relais;
+        }
+    }
+    return $ip;
+}
+
+// Texte venu du client (identifiant saisi, User-Agent) : UTF-8 valide, sans caractère de contrôle, tronqué
+function texteJournal(string $valeur, int $max): string
+{
+    $valeur = mb_convert_encoding($valeur, 'UTF-8', 'UTF-8');
+    return mb_substr(preg_replace('/[\x00-\x1F\x7F]/', '', $valeur) ?? '', 0, $max);
+}
+
+// Enregistre une tentative de connexion. $echec vaut null si elle a réussi, sinon le motif :
+// identifiant_inconnu, mot_de_passe_incorrect ou compte_desactive.
+// Ne lève jamais d'exception : un journal en panne (ou une base pas encore migrée) ne doit pas empêcher de se connecter.
+function journaliserConnexion(ServerRequestInterface $request, string $identifiant, ?string $utilisateurId, ?string $echec): void
+{
+    try {
+        $agent = texteJournal($request->getHeaderLine('User-Agent'), 200);
+
+        $stmt = db()->prepare(
+            'INSERT INTO journal_connexion (utilisateur_id, identifiant, reussie, motif, ip, user_agent)
+             VALUES (:utilisateur, :identifiant, :reussie, :motif, CAST(:ip AS inet), :agent)'
+        );
+        $stmt->execute([
+            'utilisateur' => $utilisateurId,
+            'identifiant' => texteJournal($identifiant, 254),
+            'reussie'     => $echec === null ? 'true' : 'false',
+            'motif'       => $echec,
+            'ip'          => adresseIp($request),
+            'agent'       => $agent === '' ? null : $agent,
+        ]);
+
+        // Purge « opportuniste » : environ une connexion réussie sur cent nettoie les vieilles lignes,
+        // au cas où la tâche planifiée (scripts/purger_journal_connexions.php) ne tournerait pas
+        if ($echec === null && random_int(1, 100) === 1) {
+            purgerJournalConnexions();
+        }
+    } catch (Throwable $e) {
+        error_log('Journal des connexions : ' . $e->getMessage());
+    }
+}
+
+// Supprime les lignes de plus de JOURNAL_CONNEXIONS_MOIS mois et renvoie leur nombre.
+// Avec $simulation = true, compte sans rien supprimer.
+function purgerJournalConnexions(bool $simulation = false): int
+{
+    $debut = $simulation ? 'SELECT count(*) FROM journal_connexion' : 'DELETE FROM journal_connexion';
+    $stmt = db()->prepare($debut . ' WHERE created_at < now() - make_interval(months => CAST(:mois AS int))');
+    $stmt->execute(['mois' => JOURNAL_CONNEXIONS_MOIS]);
+
+    return $simulation ? (int) $stmt->fetchColumn() : $stmt->rowCount();
+}
+
+// ---------------------------------------------------------------------
 // E-MAILS ET ENVIRONNEMENT (réinitialisation du mot de passe)
 // ---------------------------------------------------------------------
 
