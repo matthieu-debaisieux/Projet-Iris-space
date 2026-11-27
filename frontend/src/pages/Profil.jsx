@@ -4,17 +4,64 @@ import DataState from '@/components/ui/DataState.jsx';
 import Modal from '@/components/ui/Modal.jsx';
 import { useAuth } from '@/context/AuthContext.jsx';
 import { useAsync } from '@/hooks/useAsync.js';
-import { getProfil } from '@/services/eleve.js';
+import { getMonProfil } from '@/services/profil.js';
 
 const inputClass = 'rounded-md border border-gray-300 bg-white py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-principal)]';
 const labelClass = 'text-[var(--color-principal)] font-semibold text-sm';
 
+const ROLE_LABELS = {
+  eleve: 'Élève',
+  prof: 'Professeur',
+  professeur: 'Professeur',
+  admin: 'Administrateur',
+  administrateur: 'Administrateur',
+  direction: 'Direction',
+};
+
+function decomposerDate(valeur) {
+  if (!valeur || typeof valeur !== 'string') return ['', '', ''];
+  const iso = valeur.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return [iso[3], iso[2], iso[1]];
+  const fr = valeur.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (fr) return [fr[1], fr[2], fr[3]];
+  return ['', '', ''];
+}
+
+function calculerAge(valeur) {
+  const [jj, mm, aaaa] = decomposerDate(valeur);
+  if (!jj || !mm || !aaaa) return '';
+  const naissance = new Date(Number(aaaa), Number(mm) - 1, Number(jj));
+  if (Number.isNaN(naissance.getTime())) return '';
+  const today = new Date();
+  let age = today.getFullYear() - naissance.getFullYear();
+  const diffMois = today.getMonth() - naissance.getMonth();
+  if (diffMois < 0 || (diffMois === 0 && today.getDate() < naissance.getDate())) {
+    age--;
+  }
+  return age >= 0 ? String(age) : '';
+}
+
+function formaterDateHeure(valeur) {
+  if (!valeur) return '';
+  const date = new Date(valeur);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
+}
+
 // Champ en lecture seule
-function Champ({ id, label, value, type = 'text', width = 'w-full px-3' }) {
+function Champ({ id, label, value, type = 'text', width = 'w-full px-3', placeholder = 'Non renseigné' }) {
   return (
     <div className="flex flex-col gap-1">
       <label htmlFor={id} className={labelClass}>{label}</label>
-      <input type={type} id={id} name={id} className={`${width} ${inputClass}`} value={value} readOnly />
+      <input
+        type={type}
+        id={id}
+        name={id}
+        className={`${width} ${inputClass}`}
+        value={value ?? ''}
+        placeholder={placeholder}
+        readOnly
+      />
     </div>
   );
 }
@@ -22,8 +69,8 @@ function Champ({ id, label, value, type = 'text', width = 'w-full px-3' }) {
 export default function Profil() {
   const [contactOpen, setContactOpen] = useState(false);
   const closeContact = () => setContactOpen(false);
-  const profil = useAsync(getProfil);
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
+  const profil = useAsync(() => getMonProfil(user), [user?.id, user?.role]);
   const navigate = useNavigate();
 
   async function deconnexion() {
@@ -70,16 +117,58 @@ export default function Profil() {
         </aside>
 
         <main className="flex-1 overflow-auto p-6 md:p-10">
+          {/* Actions mobiles (sidebar masquée sous md) */}
+          <div className="flex md:hidden items-center justify-between gap-3 max-w-4xl mx-auto mb-4">
+            <button
+              type="button"
+              onClick={() => setContactOpen(true)}
+              className="btn btn-sm btn-outline text-[var(--color-principal)]"
+            >
+              Nous contacter
+            </button>
+            <button
+              type="button"
+              onClick={deconnexion}
+              className="btn btn-sm bg-[var(--color-button)] text-white border-0"
+            >
+              Déconnexion
+            </button>
+          </div>
+
           <DataState state={profil}>{p => {
-            const [jour, mois, annee] = p.dateNaissance.split('/');
+            const role = p.role ?? user?.role ?? 'eleve';
+            const dateBrute = p.date_naissance ?? p.dateNaissance;
+            const [jour, mois, annee] = decomposerDate(dateBrute);
+            const age = p.age != null ? String(p.age) : calculerAge(dateBrute);
+            const estEleve = role === 'eleve';
+            const estProf = role === 'professeur' || role === 'prof';
+            const estAdmin = role === 'administrateur' || role === 'direction' || role === 'admin';
+
             return (
-              <form className="bg-gray-200/70 rounded-2xl p-8 max-w-4xl mx-auto">
+              <form className="bg-gray-200/70 rounded-2xl p-6 md:p-8 max-w-4xl mx-auto">
+                <div className="flex flex-wrap items-center justify-between gap-3 pb-6 mb-6 border-b border-gray-300">
+                  <div>
+                    <h1 className="text-xl font-bold text-[var(--color-principal)]">
+                      {[p.prenom, p.nom].filter(Boolean).join(' ') || p.identifiant}
+                    </h1>
+                    {p.identifiant && (
+                      <p className="text-xs text-gray-500 mt-0.5">Identifiant : {p.identifiant}</p>
+                    )}
+                  </div>
+                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--color-principal)] text-white">
+                    {ROLE_LABELS[role] ?? 'Utilisateur'}
+                  </span>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-x-10 gap-y-6">
-                  <Champ id="civilite" label="Civilité" value={p.civilite} width="w-20 px-2" />
                   <Champ id="nom" label="Nom" value={p.nom} />
                   <Champ id="prenom" label="Prénom" value={p.prenom} />
+                  <Champ id="identifiant" label="Identifiant" value={p.identifiant} />
 
-                  <Champ id="age" label="Âge" value={p.age} type="number" width="w-20 px-2" />
+                  <Champ id="email" label="Email" value={p.email} type="email" />
+                  <Champ id="telephone" label="Téléphone" value={p.telephone} />
+                  <Champ id="age" label="Âge" value={age} width="w-24 px-3" placeholder="—" />
+
                   <div className="flex flex-col gap-1">
                     <label className={labelClass}>Date de naissance</label>
                     <div className="flex gap-2">
@@ -88,15 +177,67 @@ export default function Profil() {
                       <input type="text" name="annee" placeholder="AAAA" maxLength={4} className={`w-16 px-2 text-center ${inputClass}`} value={annee} readOnly />
                     </div>
                   </div>
-                  <Champ id="email" label="Email" value={p.email} type="email" />
+                  <Champ id="lieu-naissance" label="Lieu de naissance" value={p.lieu_naissance ?? p.lieuNaissance} />
+                  <Champ id="pays-naissance" label="Pays de naissance" value={p.pays_naissance ?? p.paysNaissance} />
 
-                  <Champ id="lieu-naissance" label="Lieu de Naissance" value={p.lieuNaissance} />
-                  <Champ id="pays-naissance" label="Pays de Naissance" value={p.paysNaissance} />
                   <Champ id="nationalite" label="Nationalité" value={p.nationalite} />
+                  {p.adresse && <Champ id="adresse" label="Adresse" value={p.adresse} />}
 
-                  <Champ id="classe" label="Classe" value={p.classe} />
-                  <Champ id="annee-scolaire" label="Année Scolaire" value={p.anneeScolaire} />
+                  {estEleve && (
+                    <>
+                      <Champ id="classe" label="Classe" value={p.classe} />
+                      <Champ id="annee-scolaire" label="Année scolaire" value={p.annee_scolaire ?? p.anneeScolaire} />
+                      {p.numero_etudiant && (
+                        <Champ id="numero-etudiant" label="Numéro étudiant" value={p.numero_etudiant} />
+                      )}
+                    </>
+                  )}
+
+                  {estAdmin && (
+                    <>
+                      <Champ id="role-label" label="Fonction" value={ROLE_LABELS[role] ?? role} />
+                      <Champ
+                        id="derniere-connexion"
+                        label="Dernière connexion"
+                        value={formaterDateHeure(p.derniere_connexion)}
+                        placeholder="Première connexion"
+                      />
+                    </>
+                  )}
                 </div>
+
+                {estProf && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-6 border-t border-gray-300">
+                    <div>
+                      <p className={`${labelClass} mb-2`}>Matières enseignées</p>
+                      {Array.isArray(p.matieres) && p.matieres.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {p.matieres.map(m => (
+                            <span key={m.id ?? m.nom} className="px-3 py-1 rounded-full text-xs font-medium bg-white border border-gray-300 text-gray-700">
+                              {m.nom}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-gray-500">Aucune matière rattachée.</p>
+                      )}
+                    </div>
+                    <div>
+                      <p className={`${labelClass} mb-2`}>Classes</p>
+                      {Array.isArray(p.classes) && p.classes.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {p.classes.map(c => (
+                            <span key={c.id ?? c.nom} className="px-3 py-1 rounded-full text-xs font-medium bg-white border border-gray-300 text-gray-700">
+                              {c.nom}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-gray-500">Aucun cours planifié pour le moment.</p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </form>
             );
           }}</DataState>

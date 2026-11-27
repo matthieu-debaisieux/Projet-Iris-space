@@ -110,3 +110,59 @@ $group->get('/auth/me', function (ServerRequestInterface $request, ResponseInter
     $response->getBody()->write(json_encode(['user' => $user]));
     return $response->withHeader('Content-Type', 'application/json');
 });
+
+// Profil détaillé de l'utilisateur connecté, adapté à son rôle (élève, professeur, admin/direction)
+$group->get('/profil', function (ServerRequestInterface $request, ResponseInterface $response) {
+    $stmt = db()->prepare(
+        'SELECT id, identifiant, email, role, nom, prenom, date_naissance, lieu_naissance,
+                pays_naissance, nationalite, telephone, adresse, photo_url,
+                derniere_connexion, created_at
+         FROM utilisateur
+         WHERE id = :id'
+    );
+    $stmt->execute(['id' => moi()]);
+    $profil = $stmt->fetch();
+
+    if (!$profil) {
+        throw new ApiException('Utilisateur introuvable', 404);
+    }
+
+    if ($profil['role'] === 'eleve') {
+        $stmt = db()->prepare(
+            'SELECT e.numero_etudiant, e.classe_id, c.nom AS classe, a.libelle AS annee_scolaire
+             FROM eleve e
+             LEFT JOIN classe c         ON c.id = e.classe_id
+             LEFT JOIN annee_scolaire a ON a.id = c.annee_scolaire_id
+             WHERE e.utilisateur_id = :id'
+        );
+        $stmt->execute(['id' => moi()]);
+        $profil += $stmt->fetch() ?: [
+            'numero_etudiant' => null,
+            'classe_id'       => null,
+            'classe'          => null,
+            'annee_scolaire'  => null,
+        ];
+    } elseif ($profil['role'] === 'professeur') {
+        $stmt = db()->prepare(
+            'SELECT m.id, m.code, m.nom
+             FROM professeur_matiere pm
+             JOIN matiere m ON m.id = pm.matiere_id
+             WHERE pm.professeur_id = :id
+             ORDER BY m.nom'
+        );
+        $stmt->execute(['id' => moi()]);
+        $profil['matieres'] = $stmt->fetchAll();
+
+        $stmt = db()->prepare(
+            'SELECT DISTINCT c.id, c.nom
+             FROM cours co
+             JOIN classe c ON c.id = co.classe_id
+             WHERE co.professeur_id = :id
+             ORDER BY c.nom'
+        );
+        $stmt->execute(['id' => moi()]);
+        $profil['classes'] = $stmt->fetchAll();
+    }
+
+    return json($response, ['profil' => $profil]);
+})->add(requireConnecte());
