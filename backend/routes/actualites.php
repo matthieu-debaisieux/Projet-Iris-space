@@ -71,6 +71,14 @@ function verifierDroitSurActualite(string $id): void
     }
 }
 
+// À la publication d'un article : une notification « actualite » pour tous les comptes actifs
+// sauf l'auteur. Tout utilisateur connecté lit les articles publiés, publics ou non : tous sont
+// concernés. Appelée après l'écriture, une fois l'article enregistré (voir notifications_service.php).
+function notifierPublication(string $titre): void
+{
+    notifierTous('actualite', 'Nouvelle actualité : ' . $titre, '/actualites', moi());
+}
+
 // ---------------------------------------------------------------------
 // GET /api/actualites/publiques?limit= : articles publiés et publics, sans connexion
 // ---------------------------------------------------------------------
@@ -145,8 +153,13 @@ $group->post('/actualites', function (ServerRequestInterface $request, ResponseI
          RETURNING id'
     );
     $stmt->execute($champs + ['moi' => moi()]);
+    $id = $stmt->fetchColumn();
 
-    return json($response, ['actualite' => lireActualite($stmt->fetchColumn())], 201);
+    if ($champs['publie'] === 'true') {
+        notifierPublication($champs['titre']);
+    }
+
+    return json($response, ['actualite' => lireActualite($id)], 201);
 })->add(requireRole('administrateur', 'direction', 'dev', 'professeur'));
 
 // ---------------------------------------------------------------------
@@ -157,6 +170,8 @@ $group->post('/actualites', function (ServerRequestInterface $request, ResponseI
 $group->put('/actualites/{id:' . UUID . '}', function (ServerRequestInterface $request, ResponseInterface $response, array $args) {
     verifierDroitSurActualite($args['id']);
     $champs = champsActualite(corps($request));
+    // Notifier seulement au passage de brouillon à publié, pas à chaque modification d'un article déjà en ligne
+    $dejaPublie = lireActualite($args['id'])['statut'] === 'publie';
 
     $stmt = db()->prepare(
         'UPDATE actualite
@@ -166,6 +181,10 @@ $group->put('/actualites/{id:' . UUID . '}', function (ServerRequestInterface $r
          WHERE id = :id'
     );
     $stmt->execute($champs + ['id' => $args['id']]);
+
+    if ($champs['publie'] === 'true' && !$dejaPublie) {
+        notifierPublication($champs['titre']);
+    }
 
     return json($response, ['actualite' => lireActualite($args['id'])]);
 })->add(requireRole('administrateur', 'direction', 'dev', 'professeur'));

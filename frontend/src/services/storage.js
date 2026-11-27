@@ -10,6 +10,7 @@ export const LS_MES_DOCUMENTS = 'iris_mes_documents_v1';
 export const LS_UTILISATEURS  = 'iris_utilisateurs_v1';
 export const LS_DEVOIRS       = 'iris_devoirs';
 export const LS_PROFIL        = 'iris_profil';
+export const LS_NOTIFICATIONS = 'iris_notifications_v1'; // { [id du compte]: notifications } : mode mocks
 
 // Lit une valeur JSON ; si absente ou corrompue, enregistre (quand `seed` est
 // vrai) et renvoie une copie de `fallback`.
@@ -29,5 +30,5 @@ export function saveJSON(key, data) {
 
 // Panel DEV : remet les données de démonstration à zéro
 export function resetDemoData() {
-  [LS_ABSENCES, LS_COURS, LS_ACTUALITES, LS_DOCUMENTS, LS_MES_DOCUMENTS, LS_UTILISATEURS, LS_DEVOIRS, LS_PROFIL].forEach(key => localStorage.removeItem(key));
+  [LS_ABSENCES, LS_COURS, LS_ACTUALITES, LS_DOCUMENTS, LS_MES_DOCUMENTS, LS_UTILISATEURS, LS_DEVOIRS, LS_PROFIL, LS_NOTIFICATIONS].forEach(key => localStorage.removeItem(key));
 }

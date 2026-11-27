@@ -7,6 +7,7 @@ import logo from '@/assets/img/Logo_IRIS_SPACE.svg';
 import msLogo from '@/assets/img/ms_logo_cmjn_blanc_1.png';
 import { BurgerButton, MobileMenu } from '@/components/layout/MobileMenu.jsx';
 import MessageBadge from '@/components/layout/MessageBadge.jsx';
+import NotificationBell from '@/components/layout/NotificationBell.jsx';
 
 const navLinkBase = 'text-base font-medium hover:-translate-y-0.5 transition-transform duration-200';
 // Page courante : lien en jaune pour se repérer
@@ -65,6 +66,9 @@ export default function Navbar({ links, menuLinks, mediaschool = false }) {
         </nav>
 
         <div className="flex items-center gap-3">
+          {/* notifications */}
+          {can('notifications') && <NotificationBell />}
+
           {/* messagerie */}
           {can('messagerie') && (
             <NavLink
