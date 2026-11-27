@@ -1,11 +1,20 @@
 import { useEffect, useState } from 'react';
 import Modal from '@/components/ui/Modal.jsx';
 import { useAuth } from '@/context/AuthContext.jsx';
+import { ecrireDemo, lireDemo } from '@/services/demoStore.js';
+import RessourcesProf from './documents/RessourcesProf.jsx';
+import {
+  ACCEPT, Dialogue, ICONES, Svg, btnPrincipal, btnSecondaire, champ,
+  nettoyerNom, taille, telechargerFichier, verifierFichier,
+} from './documents/commun.jsx';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Droits :
-//   - tout utilisateur autorisé à voir la page : consulter + TÉLÉCHARGER
-//   - droit `documents_gerer` (administration) : déposer, renommer, supprimer
+//   - tout utilisateur autorisé à voir la page (`documents`) : consulter + TÉLÉCHARGER
+//     les espaces de l'établissement
+//   - droit `documents_gerer` (administration) : déposer, renommer, supprimer dans ces espaces
+//   - droit `documents_deposer` (professeurs) : bloc « Mes ressources de cours » (documents/RessourcesProf.jsx),
+//     pour déposer et supprimer SES ressources ; les espaces de l'établissement restent en lecture seule
 //
 // ⚠ Masquer les boutons n'est PAS une sécurité. Le serveur doit refuser lui-même
 //   tout dépôt / suppression sans le droit `documents_gerer` (voir la liste en bas).
@@ -47,94 +56,13 @@ const creerDonneesTest = () => [
   { id: 2, name: 'Cours – BTS SIO 1', docs: [docDemo(21, 'Programme de la formation.pdf')] },
 ];
 
-// ── Règles de dépôt ─────────────────────────────────────────────────────────
-const TAILLE_MAX = 10 * 1024 * 1024; // 10 Mo
-const TYPES = {
-  pdf: ['application/pdf'],
-  docx: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
-  xlsx: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
-  pptx: ['application/vnd.openxmlformats-officedocument.presentationml.presentation'],
-  png: ['image/png'],
-  jpg: ['image/jpeg'],
-  jpeg: ['image/jpeg'],
-};
-const ACCEPT = Object.keys(TYPES).map(e => `.${e}`).join(',');
-
-const extension = nom => (nom.includes('.') ? nom.split('.').pop().toLowerCase() : '');
-// Retire chemins, caractères de contrôle et caractères interdits dans un nom de fichier
-const nettoyerNom = nom => nom
-  .replace(/[\u0000-\u001f\u007f]/g, '')
-  .replace(/[\\/:*?"<>|]/g, '_')
-  .replace(/^\.+/, '')
-  .trim()
-  .slice(0, 100);
-const taille = o => (o < 1024 * 1024 ? `${Math.max(1, Math.round(o / 1024))} Ko` : `${(o / 1024 / 1024).toFixed(1)} Mo`);
-
-// Renvoie un message d'erreur, ou '' si le fichier est acceptable
-function verifierFichier(file) {
-  if (!file) return 'Choisissez un fichier.';
-  const ext = extension(file.name);
-  if (!TYPES[ext]) return `Format non autorisé. Formats acceptés : ${Object.keys(TYPES).join(', ')}.`;
-  if (file.type && !TYPES[ext].includes(file.type)) return "Le contenu du fichier ne correspond pas à son extension.";
-  if (file.size === 0) return 'Le fichier est vide.';
-  if (file.size > TAILLE_MAX) return `Fichier trop lourd (${taille(file.size)}). Maximum : 10 Mo.`;
-  return '';
-}
-
 const nouvelId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-
-// ── Stockage de démonstration (IndexedDB) ───────────────────────────────────
-// Garde les espaces ET les fichiers dans le navigateur : ils survivent au rechargement et sont
-// partagés entre les onglets / comptes utilisés sur CE navigateur (admin puis élève, par exemple).
-// Ce n'est pas partagé entre deux ordinateurs : pour ça, il faut la vraie base de données.
-// À supprimer (avec les deux useEffect plus bas) quand l'API sera branchée.
-const ouvrirDb = () => new Promise((ok, ko) => {
-  const r = indexedDB.open('iris-demo', 1);
-  r.onupgradeneeded = () => r.result.createObjectStore('kv');
-  r.onsuccess = () => ok(r.result);
-  r.onerror = () => ko(r.error);
-});
-const lireDemo = async cle => {
-  const db = await ouvrirDb();
-  return new Promise((ok, ko) => {
-    const q = db.transaction('kv').objectStore('kv').get(cle);
-    q.onsuccess = () => ok(q.result);
-    q.onerror = () => ko(q.error);
-  });
-};
-const ecrireDemo = async (cle, valeur) => {
-  const db = await ouvrirDb();
-  return new Promise((ok, ko) => {
-    const t = db.transaction('kv', 'readwrite');
-    t.objectStore('kv').put(valeur, cle);
-    t.oncomplete = () => ok();
-    t.onerror = () => ko(t.error);
-  });
-};
-
-// ── Icônes ──────────────────────────────────────────────────────────────────
-const Svg = ({ d, size = 16, className = '' }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true"><path d={d} /></svg>
-);
-const ICONES = {
-  fichier: 'M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z M14 2v6h6',
-  telecharger: 'M12 3v12 M7 10l5 5 5-5 M5 21h14',
-  deposer: 'M12 15V3 M7 8l5-5 5 5 M5 21h14',
-  corbeille: 'M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V5a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2',
-  chevron: 'M19 9l-7 7-7-7',
-  plus: 'M12 5v14 M5 12h14',
-  bouclier: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
-};
-
-const btnPrincipal = 'inline-flex items-center gap-1.5 rounded-lg bg-[#EC6F6F] px-4 py-2 text-sm font-bold text-[#001257] hover:opacity-90 disabled:opacity-50 transition';
-const btnSecondaire = 'inline-flex items-center gap-1.5 rounded-lg border border-[#E1E5EE] bg-white px-4 py-2 text-sm font-semibold text-[#001257] hover:bg-[#EEF1F7] transition';
-const champ = 'w-full rounded-lg border border-[#E1E5EE] bg-white px-3 py-2.5 text-sm focus:outline-none focus:border-[#001257]';
 
 // ── Page ────────────────────────────────────────────────────────────────────
 export default function Documents() {
   const { can, user } = useAuth();
   const gerer = can('documents_gerer');
+  const deposerRessources = can('documents_deposer'); // professeur : ses propres ressources de cours
 
   const [espaces, setEspaces] = useState(creerDonneesTest);
   const [ouverts, setOuverts] = useState(() => new Set([1, 2])); // tous les espaces ouverts au départ
@@ -174,16 +102,7 @@ export default function Documents() {
 
   // Téléchargement : disponible pour tout le monde. Toujours en pièce jointe (jamais ouvert dans la page).
   const telecharger = doc => {
-    if (!doc.file) return;
-    const url = URL.createObjectURL(doc.file);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = doc.name;
-    a.rel = 'noopener';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    if (doc.file) telechargerFichier(doc.file, doc.name);
   };
 
   // Dépôt : réservé à l'administration. Plus tard : envoyer `file` à l'API.
@@ -211,7 +130,9 @@ export default function Documents() {
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-[#001257]">Documents</h1>
               <p className="mt-1 text-sm text-[#6B7185]">
-                {gerer ? 'Déposez et organisez les documents de l’établissement.' : 'Retrouvez et téléchargez les documents de l’établissement.'}
+                {gerer && 'Déposez et organisez les documents de l’établissement.'}
+                {!gerer && deposerRessources && 'Déposez vos ressources de cours et retrouvez les documents de l’établissement.'}
+                {!gerer && !deposerRessources && 'Retrouvez et téléchargez les documents de l’établissement.'}
               </p>
             </div>
             {gerer && (
@@ -220,6 +141,10 @@ export default function Documents() {
               </button>
             )}
           </div>
+
+          {deposerRessources && <RessourcesProf />}
+
+          {deposerRessources && <h2 className="-mb-2 mt-2 text-lg font-bold text-[#001257]">Documents de l’établissement</h2>}
 
           {!gerer && (
             <p className="flex items-start gap-2 rounded-xl bg-[#EEF1F7] px-4 py-3 text-xs text-[#1A1D2E]">
@@ -320,28 +245,6 @@ export default function Documents() {
         <DepotModal noms={espaceModal.docs.map(d => d.name.toLowerCase())} onDeposer={f => deposer(modal.spaceId, f)} onClose={fermer} />
       )}
     </>
-  );
-}
-
-// ── Modale de saisie / confirmation ─────────────────────────────────────────
-function Dialogue({ titre, champLabel, valeur = '', confirmer, danger = false, onConfirm, onClose, children }) {
-  const [texte, setTexte] = useState(valeur);
-  const valider = e => { e.preventDefault(); onConfirm(texte.trim().slice(0, 100)); };
-
-  return (
-    <Modal onClose={onClose} className="max-w-sm rounded-2xl p-6" label={titre}>
-      <form onSubmit={valider} className="flex flex-col gap-4">
-        <h3 className="text-lg font-bold text-[#001257]">{titre}</h3>
-        {children}
-        {champLabel && (
-          <input autoFocus type="text" value={texte} maxLength={100} onChange={e => setTexte(e.target.value)} placeholder={champLabel} aria-label={champLabel} className={champ} />
-        )}
-        <div className="flex justify-end gap-2">
-          <button type="button" onClick={onClose} className={btnSecondaire}>Annuler</button>
-          <button type="submit" className={danger ? 'rounded-lg bg-[#B23A3A] px-4 py-2 text-sm font-bold text-white hover:opacity-90 transition' : btnPrincipal}>{confirmer}</button>
-        </div>
-      </form>
-    </Modal>
   );
 }
 
