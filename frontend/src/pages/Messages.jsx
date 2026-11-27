@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { DevTools } from '@/components/layout/DevPanel.jsx';
+import { MessageErreur } from '@/components/ui/DataState.jsx';
 import { useAuth } from '@/context/AuthContext.jsx';
 import { useAsync } from '@/hooks/useAsync.js';
+import { USE_MOCKS } from '@/services/api.js';
 import { nomComplet } from '@/services/utilisateur.js';
 import { devAddConversation, devResetConversations, getConversations, sendMessage } from '@/services/conversations.js';
 
@@ -26,7 +28,7 @@ const loremName = () => `${rand(LOREM_FIRST)} ${rand(LOREM_LAST)}`;
 
 // ── État des conversations ──────────────────────────────────────────────────
 function useConversations() {
-  const { data: conversations = [], setData } = useAsync(getConversations);
+  const { data: conversations = [], error, setData } = useAsync(getConversations);
   const [selectedId, setSelectedId] = useState(null);
   const activeId = selectedId ?? conversations[0]?.id ?? null;
 
@@ -40,6 +42,7 @@ function useConversations() {
 
   return {
     conversations,
+    error,
     activeId,
     setActiveId: setSelectedId,
     send(text) {
@@ -222,13 +225,21 @@ function Messagerie({ chat }) {
 }
 
 // ── Page ────────────────────────────────────────────────────────────────────
+// Messagerie sans back pour l'instant (tâche MSG-01) : en mode API, `chat.error` dit « pas encore disponible »
+// et on affiche ce message à la place des conversations. Les boutons DEV ne servent qu'en mode mocks.
 export default function Messages() {
   const chat = useConversations();
 
   return (
     <div className="flex flex-1 overflow-hidden">
-      <Messagerie chat={chat} />
-      <MessagerieDevTools chat={chat} />
+      {chat.error ? (
+        <div className="flex flex-1 items-center justify-center bg-[var(--color-page)] px-6">
+          <MessageErreur error={chat.error} />
+        </div>
+      ) : (
+        <Messagerie chat={chat} />
+      )}
+      {USE_MOCKS && <MessagerieDevTools chat={chat} />}
     </div>
   );
 }

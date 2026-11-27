@@ -3,9 +3,9 @@ import DataState from '@/components/ui/DataState.jsx';
 import Modal from '@/components/ui/Modal.jsx';
 import { useAuth } from '@/context/AuthContext.jsx';
 import { useAsync } from '@/hooks/useAsync.js';
-import { getAbsences, STATUT_ABSENCE_LABEL } from '@/services/absences.js';
+import { getAbsencesDuJour, STATUT_ABSENCE_LABEL } from '@/services/absences.js';
+import { blocsAccueil } from '@/services/accueil.js';
 import { dateActualite, getActualites } from '@/services/actualites.js';
-import { getRaccourcis } from '@/services/eleve.js';
 import { getEmploiDuTemps } from '@/services/emploiDuTemps.js';
 import { getCoursDuJour } from '@/services/planning.js';
 
@@ -74,7 +74,6 @@ function MaJournee() {
   const { can, user } = useAuth();
   const [date, setDate] = useState(() => new Date());
   const emploi = useAsync(() => getEmploiDuTemps(user, date, date), [user, date]);
-  const raccourcis = useAsync(getRaccourcis);
 
   const shiftDay = n => setDate(d => {
     const next = new Date(d);
@@ -121,29 +120,38 @@ function MaJournee() {
         }}</DataState>
       </section>
 
-      {/* Raccourcis : devoirs à rendre, vie scolaire… */}
+      {/* Raccourcis : devoirs, ressources, vie scolaire, notes (élève) / devoirs, évaluations (prof).
+          Un bloc par route du back, affiché selon les droits ; chacun se charge seul. */}
       <div className="flex flex-col gap-6">
-        <DataState state={raccourcis}>{blocs => blocs
-          // Le bloc « Vie Scolaire » ne concerne que les élèves (droit 'absences')
-          .filter(b => b.titre !== 'Vie Scolaire' || can('absences'))
-          .map(bloc => (
-            <section key={bloc.titre} className={card}>
-              <h2 className={cardTitle}>{bloc.titre}</h2>
-              <ul className="flex flex-col divide-y divide-[#E1E5EE]">
-                {bloc.lignes.map((ligne, i) => (
-                  <li key={i} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
-                    <div className="min-w-0">
-                      {ligne.label && <p className="text-sm font-semibold text-[#1A1D2E]">{ligne.label}</p>}
-                      <p className="text-xs text-[#6B7185]">{ligne.texte}</p>
-                    </div>
-                    {ligne.badge && <Badge ton={ligne.badge.ton}>{ligne.badge.texte}</Badge>}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}</DataState>
+        {blocsAccueil(can).map(bloc => <BlocRaccourci key={bloc.titre} bloc={bloc} />)}
       </div>
     </div>
+  );
+}
+
+// Un bloc de la colonne de droite : son titre reste affiché même si sa route échoue
+function BlocRaccourci({ bloc }) {
+  const etat = useAsync(bloc.charger, [bloc.charger]);
+
+  return (
+    <section className={card}>
+      <h2 className={cardTitle}>{bloc.titre}</h2>
+      <DataState state={etat}>{({ lignes }) => (lignes.length ? (
+        <ul className="flex flex-col divide-y divide-[#E1E5EE]">
+          {lignes.map((ligne, i) => (
+            <li key={i} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+              <div className="min-w-0">
+                {ligne.label && <p className="text-sm font-semibold text-[#1A1D2E]">{ligne.label}</p>}
+                <p className="text-xs text-[#6B7185]">{ligne.texte}</p>
+              </div>
+              {ligne.badge && <Badge ton={ligne.badge.ton}>{ligne.badge.texte}</Badge>}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-[#6B7185]">{bloc.vide ?? 'Rien à afficher pour le moment.'}</p>
+      ))}</DataState>
+    </section>
   );
 }
 
@@ -174,7 +182,7 @@ const th = 'px-3 py-2.5 text-left text-xs font-semibold text-[#6B7185] bg-[#EEF1
 const td = 'px-3 py-3 text-sm text-[#1A1D2E] border-b border-[#E1E5EE]';
 
 function SuiviDuJour() {
-  const absences = useAsync(getAbsences);
+  const absences = useAsync(getAbsencesDuJour);
   const cours = useAsync(getCoursDuJour);
   const [contact, setContact] = useState(null);
 

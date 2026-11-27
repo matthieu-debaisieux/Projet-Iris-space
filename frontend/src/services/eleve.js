@@ -1,13 +1,8 @@
 import { api, USE_MOCKS } from './api.js';
 import { LS_PROFIL, loadJSON, saveJSON } from './storage.js';
-import { NOTES, PROFIL, RACCOURCIS } from '@/mocks/eleve.js';
+import { NOTES, PROFIL } from '@/mocks/eleve.js';
 
 // Données de l'élève connecté
-
-export async function getRaccourcis() {
-  if (!USE_MOCKS) return api.get('/eleve/raccourcis');
-  return RACCOURCIS;
-}
 
 export async function getNotes() {
   if (!USE_MOCKS) return api.get('/eleve/notes');
