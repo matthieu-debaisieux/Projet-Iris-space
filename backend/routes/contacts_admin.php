@@ -37,7 +37,7 @@ $group->get('/admin/contacts', function (ServerRequestInterface $request, Respon
     $total = (int) db()->query("SELECT count(*) FROM demande_contact d $where")->fetchColumn();
 
     return json($response, ['contacts' => $contacts, 'total' => $total]);
-})->add(requireRole('administrateur', 'direction'));
+})->add(requireRole('administrateur', 'direction', 'dev'));
 
 // ---------------------------------------------------------------------
 // PATCH /api/admin/contacts/{id} : marquer une demande comme traitée (ou la rouvrir)
@@ -68,4 +68,4 @@ $group->patch('/admin/contacts/{id:' . UUID . '}', function (ServerRequestInterf
     }
 
     return json($response, ['contact' => $contact]);
-})->add(requireRole('administrateur', 'direction'));
+})->add(requireRole('administrateur', 'direction', 'dev'));

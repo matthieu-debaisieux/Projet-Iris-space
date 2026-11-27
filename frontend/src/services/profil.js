@@ -34,6 +34,23 @@ export async function getMonProfil(user) {
     };
   }
 
+  if (role === 'dev') {
+    return {
+      role: 'dev',
+      identifiant: user?.identifiant ?? 'dev',
+      nom: 'DÉVELOPPEUR',
+      prenom: 'Équipe Technique',
+      email: 'dev@iris-space.fr',
+      telephone: '01 23 45 67 00',
+      date_naissance: null,
+      lieu_naissance: 'Paris',
+      pays_naissance: 'France',
+      nationalite: 'Française',
+      adresse: 'Campus IRIS, Paris',
+      derniere_connexion: '2026-11-27T10:00:00+01:00',
+    };
+  }
+
   if (role === 'admin' || role === 'administrateur' || role === 'direction') {
     return {
       role: role === 'direction' ? 'direction' : 'administrateur',

@@ -16,6 +16,7 @@ const ROLE_LABELS = {
   admin: 'Administrateur',
   administrateur: 'Administrateur',
   direction: 'Direction',
+  dev: 'Développeur',
 };
 
 function decomposerDate(valeur) {
@@ -142,7 +143,7 @@ export default function Profil() {
             const age = p.age != null ? String(p.age) : calculerAge(dateBrute);
             const estEleve = role === 'eleve';
             const estProf = role === 'professeur' || role === 'prof';
-            const estAdmin = role === 'administrateur' || role === 'direction' || role === 'admin';
+            const estAdmin = role === 'administrateur' || role === 'direction' || role === 'admin' || role === 'dev';
 
             return (
               <form className="bg-gray-200/70 rounded-2xl p-6 md:p-8 max-w-4xl mx-auto">

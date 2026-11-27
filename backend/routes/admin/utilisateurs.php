@@ -5,9 +5,9 @@ declare(strict_types=1);
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
-// Comptes, matières et programme (pas encore de page front).
+// Comptes, matières et programme.
 
-const ROLES = ['eleve', 'professeur', 'administrateur', 'direction'];
+const ROLES = ['eleve', 'professeur', 'administrateur', 'direction', 'dev'];
 
 // Champs du profil communs à la création et à la modification
 function champsUtilisateur(array $data): array
@@ -67,12 +67,40 @@ function lireUtilisateur(string $id): array|false
     return $stmt->fetch();
 }
 
+function verifierDroitSurCompte(string $id): string
+{
+    $stmt = db()->prepare('SELECT role FROM utilisateur WHERE id = :id');
+    $stmt->execute(['id' => $id]);
+    $role = $stmt->fetchColumn();
+    if ($role === false) {
+        throw new ApiException('Utilisateur introuvable', 404);
+    }
+    if ($role === 'dev' && ($_SESSION['role'] ?? '') !== 'dev') {
+        throw new ApiException('Seul un compte dev peut modifier un compte dev', 403);
+    }
+    return $role;
+}
+
+$group->get('/classes', function (ServerRequestInterface $request, ResponseInterface $response) {
+    $classes = db()->query(
+        'SELECT c.id, c.nom, a.libelle AS annee_scolaire, ca.nom AS campus
+         FROM classe c
+         JOIN annee_scolaire a ON a.id = c.annee_scolaire_id
+         JOIN campus ca ON ca.id = c.campus_id
+         ORDER BY a.courante DESC, c.nom'
+    )->fetchAll();
+
+    return json($response, ['classes' => $classes]);
+});
+
 $group->get('/utilisateurs', function (ServerRequestInterface $request, ResponseInterface $response) {
     $role = choix($request->getQueryParams(), 'role', ROLES);
 
     $stmt = db()->prepare(
-        'SELECT u.id, u.identifiant, u.email, u.role, u.nom, u.prenom, u.telephone,
-                u.actif, u.derniere_connexion, e.numero_etudiant, e.classe_id, c.nom AS classe
+        'SELECT u.id, u.identifiant, u.email, u.role, u.nom, u.prenom, u.date_naissance,
+                u.lieu_naissance, u.pays_naissance, u.nationalite, u.telephone, u.adresse,
+                u.actif, u.derniere_connexion, u.created_at,
+                e.numero_etudiant, e.classe_id, c.nom AS classe
          FROM utilisateur u
          LEFT JOIN eleve e  ON e.utilisateur_id = u.id
          LEFT JOIN classe c ON c.id = e.classe_id
@@ -84,11 +112,23 @@ $group->get('/utilisateurs', function (ServerRequestInterface $request, Response
     return json($response, ['utilisateurs' => $stmt->fetchAll()]);
 });
 
+$group->get('/utilisateurs/{id:' . UUID . '}', function (ServerRequestInterface $request, ResponseInterface $response, array $args) {
+    $utilisateur = lireUtilisateur($args['id']);
+    if (!$utilisateur) {
+        throw new ApiException('Utilisateur introuvable', 404);
+    }
+
+    return json($response, ['utilisateur' => $utilisateur]);
+});
+
 // Crée l'utilisateur et, selon le rôle, sa ligne dans eleve ou professeur
 $group->post('/utilisateurs', function (ServerRequestInterface $request, ResponseInterface $response) {
     $data = corps($request);
     $champs = champsUtilisateur($data);
     $champs['role'] = choix($data, 'role', ROLES) ?? throw new ApiException('Le champ « role » est requis', 400);
+    if ($champs['role'] === 'dev' && ($_SESSION['role'] ?? '') !== 'dev') {
+        throw new ApiException('Seul un compte dev peut créer un compte dev', 403);
+    }
     $champs['mot_de_passe_hash'] = hashMotDePasse($data, true);
     $classeId = entier($data, 'classe_id');
     $numeroEtudiant = texte($data, 'numero_etudiant', 30);
@@ -125,6 +165,8 @@ $group->post('/utilisateurs', function (ServerRequestInterface $request, Respons
 // Le rôle ne se modifie pas (il faudrait déplacer les lignes eleve / professeur).
 // mot_de_passe facultatif : s'il est fourni, il remplace l'ancien.
 $group->put('/utilisateurs/{id:' . UUID . '}', function (ServerRequestInterface $request, ResponseInterface $response, array $args) {
+    verifierDroitSurCompte($args['id']);
+
     $data = corps($request);
     $champs = champsUtilisateur($data);
     $hash = hashMotDePasse($data, false);
@@ -161,6 +203,8 @@ $group->put('/utilisateurs/{id:' . UUID . '}', function (ServerRequestInterface 
 });
 
 $group->patch('/utilisateurs/{id:' . UUID . '}/actif', function (ServerRequestInterface $request, ResponseInterface $response, array $args) {
+    verifierDroitSurCompte($args['id']);
+
     $actif = booleen(corps($request), 'actif') ?? throw new ApiException('Le champ « actif » est requis', 400);
     if (!$actif && $args['id'] === moi()) {
         throw new ApiException('Vous ne pouvez pas désactiver votre propre compte', 400);
@@ -173,6 +217,34 @@ $group->patch('/utilisateurs/{id:' . UUID . '}/actif', function (ServerRequestIn
     }
 
     return json($response, ['utilisateur' => lireUtilisateur($args['id'])]);
+});
+
+$group->delete('/utilisateurs/{id:' . UUID . '}', function (ServerRequestInterface $request, ResponseInterface $response, array $args) {
+    if (($_SESSION['role'] ?? '') !== 'dev') {
+        throw new ApiException('Seul un compte dev peut supprimer un compte', 403);
+    }
+    if ($args['id'] === moi()) {
+        throw new ApiException('Vous ne pouvez pas supprimer votre propre compte', 400);
+    }
+
+    try {
+        $stmt = db()->prepare('DELETE FROM utilisateur WHERE id = :id');
+        $stmt->execute(['id' => $args['id']]);
+    } catch (PDOException $e) {
+        if (codeSql($e) === '23503') {
+            throw new ApiException(
+                'Impossible de supprimer ce compte : des données y sont encore rattachées (désactivez-le plutôt)',
+                409
+            );
+        }
+        throw $e;
+    }
+
+    if ($stmt->rowCount() === 0) {
+        throw new ApiException('Utilisateur introuvable', 404);
+    }
+
+    return $response->withStatus(204);
 });
 
 $group->post('/matieres', function (ServerRequestInterface $request, ResponseInterface $response) {

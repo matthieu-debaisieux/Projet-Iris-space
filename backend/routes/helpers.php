@@ -72,7 +72,7 @@ function requireRole(string ...$roles): callable
 // Middleware : n'importe quel utilisateur connecté, quel que soit son rôle
 function requireConnecte(): callable
 {
-    return requireRole('eleve', 'professeur', 'administrateur', 'direction');
+    return requireRole('eleve', 'professeur', 'administrateur', 'direction', 'dev');
 }
 
 // Id de l'utilisateur connecté (le middleware requireRole a déjà vérifié qu'il existe)
@@ -85,6 +85,20 @@ function moi(): string
 function droitsPourRole(string $role): array
 {
     $droits = match ($role) {
+        'dev' => [
+            'menu_lateral',
+            'tableau_de_bord',
+            'comptes_gerer',
+            'absences',
+            'actualites',
+            'actualites_gerer',
+            'emploi_du_temps',
+            'emploi_du_temps_gerer',
+            'documents',
+            'documents_gerer',
+            'messagerie',
+            'outils_dev',
+        ],
         'administrateur', 'direction' => [
             'menu_lateral',
             'tableau_de_bord',

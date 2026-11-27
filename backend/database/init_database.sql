@@ -10,7 +10,7 @@ CREATE SCHEMA public;
 CREATE EXTENSION IF NOT EXISTS citext;
 CREATE EXTENSION IF NOT EXISTS btree_gist;
 
-CREATE TYPE role_utilisateur  AS ENUM ('eleve', 'professeur', 'administrateur', 'direction');
+CREATE TYPE role_utilisateur  AS ENUM ('eleve', 'professeur', 'administrateur', 'direction', 'dev');
 CREATE TYPE type_devoir       AS ENUM ('travail_a_faire', 'controle', 'projet', 'lecture');
 CREATE TYPE statut_devoir     AS ENUM ('a_faire', 'fait', 'rendu', 'corrige');
 CREATE TYPE type_absence      AS ENUM ('absence', 'retard');

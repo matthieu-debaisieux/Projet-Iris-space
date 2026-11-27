@@ -67,7 +67,7 @@ $group->get('/documents/{id:' . UUID . '}/telecharger', function (ServerRequestI
 
     $role = $_SESSION['role'] ?? '';
     $autorise = match ($role) {
-        'administrateur', 'direction' => true,
+        'administrateur', 'direction', 'dev' => true,
         'eleve' => $doc['utilisateur_id'] === null || $doc['utilisateur_id'] === moi(),
         'professeur' => $doc['utilisateur_id'] === null
             || $doc['utilisateur_id'] === moi()

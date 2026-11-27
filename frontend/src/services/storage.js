@@ -7,6 +7,7 @@ export const LS_ACTUALITES    = 'iris_actualites';
 export const LS_CONVERSATIONS = 'iris_conversations';
 export const LS_DOCUMENTS     = 'iris_documents_v2';
 export const LS_MES_DOCUMENTS = 'iris_mes_documents_v1';
+export const LS_UTILISATEURS  = 'iris_utilisateurs_v1';
 
 // Lit une valeur JSON ; si absente ou corrompue, enregistre (quand `seed` est
 // vrai) et renvoie une copie de `fallback`.
@@ -26,5 +27,5 @@ export function saveJSON(key, data) {
 
 // Panel DEV : remet les données de démonstration à zéro
 export function resetDemoData() {
-  [LS_ABSENCES, LS_COURS, LS_ACTUALITES, LS_DOCUMENTS, LS_MES_DOCUMENTS].forEach(key => localStorage.removeItem(key));
+  [LS_ABSENCES, LS_COURS, LS_ACTUALITES, LS_DOCUMENTS, LS_MES_DOCUMENTS, LS_UTILISATEURS].forEach(key => localStorage.removeItem(key));
 }

@@ -107,12 +107,14 @@ Un « espace » de la page correspond à une ligne de la table `type_document`. 
 
 ## Admin : comptes et programme (fait)
 
-Il n'y a pas encore de page front pour ça, mais sans ces routes tout se crée à la main en SQL. Et tant que `professeur_matiere` et `classe_matiere` sont vides, les clés étrangères font refuser à la base tout cours, devoir, évaluation ou ressource.
+Le rôle `dev` dispose du droit `comptes_gerer` (accès à la page `/comptes` de gestion et création des comptes) ainsi que de tous les droits d'administration et des outils de développement.
+Seul un compte `dev` peut créer, modifier, désactiver ou supprimer un compte `dev`, et supprimer un utilisateur (si aucune donnée bloquante n'y est rattachée ; sinon utiliser la désactivation).
+Tant que `professeur_matiere` et `classe_matiere` sont vides, les clés étrangères font refuser à la base tout cours, devoir, évaluation ou ressource.
 
 Comportement :
 - Le mot de passe fait au moins 8 caractères.
-- Le rôle ne se modifie pas après la création.
-- Un admin ne peut pas désactiver son propre compte.
+- Les rôles acceptés sont `eleve`, `professeur`, `administrateur`, `direction` et `dev`. Le rôle ne se modifie pas après la création.
+- Un utilisateur ne peut pas désactiver ni supprimer son propre compte.
 - Les deux routes `PUT …/matieres` remplacent toute la liste :
   - `{ "matiere_ids": [1, 4] }` pour un prof ;
   - `{ "matieres": [{ "matiere_id": 1, "coefficient": 2 }] }` pour une classe.
@@ -122,8 +124,10 @@ Comportement :
 | Méthode | Route | Sert à | P |
 |---|---|---|---|
 | GET · POST | `/api/admin/utilisateurs` | Lister (`?role=`) / créer un compte : utilisateur + ligne `eleve` ou `professeur`, mot de passe hashé | P2 |
-| PUT | `/api/admin/utilisateurs/{id}` | Modifier, dont la classe d'un élève | P2 |
+| GET · PUT | `/api/admin/utilisateurs/{id}` | Lire un compte / modifier, dont la classe d'un élève | P2 |
 | PATCH | `/api/admin/utilisateurs/{id}/actif` | Désactiver / réactiver un compte | P2 |
+| DELETE | `/api/admin/utilisateurs/{id}` | Supprimer un compte (rôle `dev` uniquement ; répond 409 si des données y sont liées) | P2 |
+| GET | `/api/admin/classes` | Lister les classes existantes (pour le menu « Classe » lors de la création/édition d'un élève) | P1 |
 | POST | `/api/admin/matieres` | Créer une matière | P2 |
 | PUT | `/api/admin/professeurs/{id}/matieres` | Matières qu'un prof enseigne | P2 |
 | PUT | `/api/admin/classes/{id}/matieres` | Programme d'une classe et coefficients | P2 |

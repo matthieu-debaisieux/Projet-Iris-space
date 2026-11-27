@@ -51,4 +51,4 @@ $group->put('/admin/pages/{slug:' . SLUG . '}', function (ServerRequestInterface
     ]);
 
     return json($response, ['page' => $stmt->fetch()]);
-})->add(requireRole('administrateur', 'direction'));
+})->add(requireRole('administrateur', 'direction', 'dev'));

@@ -27,7 +27,7 @@ npm run dev     # serveur de développement
 npm run build   # build de production dans dist/
 ```
 
-Comptes de test (mode mock) : `admin` / `admin`, `prof` / `prof`, `eleve` / `eleve`.
+Comptes de test (mode mock) : `admin` / `admin`, `prof` / `prof`, `eleve` / `eleve`, `dev` / `dev`.
 Les espaces `/visiteur` et `/mediaschool` sont publics.
 
 ## Lancer le back (API Slim) sans Docker
