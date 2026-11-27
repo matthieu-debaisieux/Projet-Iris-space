@@ -224,7 +224,16 @@ $group->post('/absences', function (ServerRequestInterface $request, ResponseInt
         'moi'      => moi(),
     ]);
 
-    return json($response, ['absence' => lireAbsence($stmt->fetchColumn())], 201);
+    $absence = lireAbsence($stmt->fetchColumn());
+    notifierSansEchec(fn () => notifierUtilisateurs(
+        [$eleveId],
+        'absence',
+        ($type === 'retard' ? 'Retard enregistré le ' : 'Absence enregistrée le ') . date('d/m/Y', strtotime($jour)),
+        '/absences',
+        moi()
+    ));
+
+    return json($response, ['absence' => $absence], 201);
 });
 
 // ---------------------------------------------------------------------

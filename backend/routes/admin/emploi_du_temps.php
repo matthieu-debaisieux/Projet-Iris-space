@@ -367,6 +367,36 @@ function erreurCours(PDOException $e, array $c, ?string $ignorer): never
     };
 }
 
+// Notification « systeme » (voir notifications_service.php) quand un cours à venir est annulé ou déplacé :
+// les élèves de la classe et le professeur (l'ancien aussi s'il change) sauf l'auteur du changement.
+// $avant et $apres : le cours lu avant et après la modification (lireCours()), $apres = null quand le cours
+// est supprimé ; $destinataires : ids à prévenir, à lire AVANT la suppression (destinatairesCours()).
+// Ni les cours déjà passés, ni les cours déjà annulés ne notifient (les élèves ont déjà été prévenus).
+function notifierChangementCours(array $avant, ?array $apres, ?array $destinataires = null): void
+{
+    if ($avant['annule']) {
+        return;
+    }
+
+    if ($apres === null || $apres['annule']) {
+        if (strtotime($avant['debut']) <= time()) {
+            return;
+        }
+        $titre = 'Cours annulé : ' . $avant['matiere'] . ' ' . creneauTexte($avant['debut'], $avant['fin']);
+    } else {
+        $deplace = strtotime($apres['debut']) !== strtotime($avant['debut']) || strtotime($apres['fin']) !== strtotime($avant['fin']);
+        if (!$deplace || strtotime($apres['debut']) <= time()) {
+            return;
+        }
+        $titre = 'Cours déplacé : ' . $apres['matiere'] . ', désormais ' . creneauTexte($apres['debut'], $apres['fin'])
+            . ' (initialement ' . creneauTexte($avant['debut'], $avant['fin']) . ')';
+    }
+
+    $destinataires ??= destinatairesCours($avant['id']);
+    $destinataires[] = $avant['professeur_id']; // l'ancien professeur, si le cours change de main
+    notifier($destinataires, 'systeme', $titre, '/emploi-du-temps', moi());
+}
+
 // Cours entre `du` et `au` inclus (par défaut : aujourd'hui) ; `classe_id` facultatif (sans lui : toutes les classes)
 $group->get('/cours', function (ServerRequestInterface $request, ResponseInterface $response) {
     $query = $request->getQueryParams();
@@ -444,16 +474,28 @@ $group->put('/cours/{id:' . UUID . '}', function (ServerRequestInterface $reques
         throw new ApiException('Cours introuvable', 404);
     }
 
-    return json($response, ['cours' => lireCours($args['id'])]);
+    $apres = lireCours($args['id']);
+    notifierSansEchec(fn () => notifierChangementCours($existant, $apres));
+
+    return json($response, ['cours' => $apres]);
 });
 
 // Les devoirs, ressources et absences liés au cours gardent leurs données (ON DELETE SET NULL)
 $group->delete('/cours/{id:' . UUID . '}', function (ServerRequestInterface $request, ResponseInterface $response, array $args) {
+    $existant = lireCours($args['id']);
+    if (!$existant) {
+        throw new ApiException('Cours introuvable', 404);
+    }
+    // Les élèves et le professeur à prévenir se lisent avant la suppression : après, la classe du cours n'existe plus
+    $destinataires = $existant['annule'] ? [] : destinatairesCours($args['id']);
+
     $stmt = db()->prepare('DELETE FROM cours WHERE id = :id');
     $stmt->execute(['id' => $args['id']]);
     if ($stmt->rowCount() === 0) {
         throw new ApiException('Cours introuvable', 404);
     }
+
+    notifierSansEchec(fn () => notifierChangementCours($existant, null, $destinataires));
 
     return $response->withStatus(204);
 });

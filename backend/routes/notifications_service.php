@@ -130,16 +130,22 @@ function notifierConversation(string $conversationId, string $type, string $titr
     return notifier($ids, $type, $titre, $lien, $exclure);
 }
 
-// Les élèves de la classe d'un cours et son professeur (cours annulé ou déplacé)
-function notifierCours(string $coursId, string $type, string $titre, ?string $lien = null, array|string|null $exclure = null): int
+// Ids des élèves de la classe d'un cours et de son professeur. À lire AVANT de supprimer le cours
+// (une fois la ligne partie, on ne retrouve plus la classe), puis à passer à notifier().
+function destinatairesCours(string $coursId): array
 {
-    $ids = destinatairesDe(
+    return destinatairesDe(
         'SELECT e.utilisateur_id FROM cours c JOIN eleve e ON e.classe_id = c.classe_id WHERE c.id = :cours
          UNION
          SELECT c.professeur_id FROM cours c WHERE c.id = :cours_prof',
         ['cours' => $coursId, 'cours_prof' => $coursId]
     );
-    return notifier($ids, $type, $titre, $lien, $exclure);
+}
+
+// Les élèves de la classe d'un cours et son professeur (cours annulé ou déplacé)
+function notifierCours(string $coursId, string $type, string $titre, ?string $lien = null, array|string|null $exclure = null): int
+{
+    return notifier(destinatairesCours($coursId), $type, $titre, $lien, $exclure);
 }
 
 // Tous les comptes actifs (annonce générale, actualité publiée)
@@ -147,4 +153,16 @@ function notifierTous(string $type, string $titre, ?string $lien = null, array|s
 {
     $ids = destinatairesDe('SELECT id FROM utilisateur WHERE actif', []);
     return notifier($ids, $type, $titre, $lien, $exclure);
+}
+
+// Exécute l'envoi de notifications d'une route (y compris la lecture des données du titre) sans
+// jamais la faire échouer : toute erreur va dans le journal PHP (error_log).
+//   notifierSansEchec(fn () => notifierClasse($classeId, 'devoir', 'Nouveau devoir…', '/devoirs', moi()));
+function notifierSansEchec(callable $envoi): void
+{
+    try {
+        $envoi();
+    } catch (Throwable $e) {
+        error_log('Notification non envoyée : ' . $e->getMessage());
+    }
 }

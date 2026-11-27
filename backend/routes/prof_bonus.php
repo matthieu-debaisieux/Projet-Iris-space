@@ -31,10 +31,11 @@ $group->patch('/prof/devoirs/{id:' . UUID . '}/eleves/{eleveId:' . UUID . '}', f
     }
     $appreciation = texte($data, 'appreciation', 4000);
 
-    $resultat = transaction(function (PDO $pdo) use ($args, $aNote, $aAppreciation, $note, $appreciation) {
+    $aChange = false; // la correction apporte-t-elle du nouveau à l'élève ?
+    $resultat = transaction(function (PDO $pdo) use ($args, $aNote, $aAppreciation, $note, $appreciation, &$aChange) {
         // Le JOIN sur d.professeur_id garantit que le devoir est bien celui de ce prof
         $stmt = $pdo->prepare(
-            'SELECT de.note, de.appreciation
+            'SELECT de.note, de.appreciation, de.statut
              FROM devoir_eleve de
              JOIN devoir d ON d.id = de.devoir_id
              WHERE de.devoir_id = :devoir AND de.eleve_id = :eleve AND d.professeur_id = :prof
@@ -54,6 +55,10 @@ $group->patch('/prof/devoirs/{id:' . UUID . '}/eleves/{eleveId:' . UUID . '}', f
             throw new ApiException('Une note ou une appréciation doit rester renseignée', 400);
         }
 
+        $aChange = $actuel['statut'] !== 'corrige'
+            || $noteFinale !== decimal($actuel['note'])
+            || $appreciationFinale !== $actuel['appreciation'];
+
         $stmt = $pdo->prepare(
             "UPDATE devoir_eleve
              SET note = :note, appreciation = :appreciation, statut = 'corrige', corrige_at = now()
@@ -70,6 +75,24 @@ $group->patch('/prof/devoirs/{id:' . UUID . '}/eleves/{eleveId:' . UUID . '}', f
     });
 
     $resultat['note'] = decimal($resultat['note']);
+
+    // L'élève est prévenu de la correction (de sa note, s'il y en a une)
+    if ($aChange) {
+        notifierSansEchec(function () use ($args, $resultat) {
+            $stmt = db()->prepare(
+                'SELECT d.titre, m.nom AS matiere FROM devoir d JOIN matiere m ON m.id = d.matiere_id WHERE d.id = :id'
+            );
+            $stmt->execute(['id' => $args['id']]);
+            $devoir = $stmt->fetch();
+            notifierUtilisateurs(
+                [$args['eleveId']],
+                $resultat['note'] !== null ? 'note' : 'devoir',
+                'Devoir corrigé en ' . $devoir['matiere'] . ' : ' . $devoir['titre'],
+                '/devoirs',
+                moi()
+            );
+        });
+    }
 
     return json($response, ['devoir_eleve' => $resultat]);
 })->add(requireRole('professeur'));
