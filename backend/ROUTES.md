@@ -117,6 +117,8 @@ Réponse : `{ "actualite": {...} }` pour `POST` et `PUT`, `{ "actualites": [...]
 | POST | `/api/uploads` | Envoyer un fichier (`fichier`, `categorie` facultative : `general`, `actualites`, `avatars`, `messages`) et récupérer `{ url, fichier }` (`actualites` réservé à admin, direction, dev, prof ; `actualites` et `avatars` limités aux images) | P1 |
 | GET | `/api/uploads/{categorie}/{nom}` | Servir un fichier déposé via `/api/uploads` (public sans connexion pour `actualites`, tout utilisateur connecté pour `general`, `avatars`, `messages`) | P1 |
 | GET | `/api/documents/{id}/telecharger` | Télécharger un document après vérification des droits (admin/direction : tout ; élève : généraux et les siens ; prof : généraux, les siens ou déposés par lui) | P2 |
+| GET | `/api/devoirs/fichiers/{id}/telecharger` | Télécharger une pièce jointe d'un devoir (prof auteur, élèves du devoir, administration) | P2 |
+| GET | `/api/devoirs/rendus/{id}/telecharger` | Télécharger un fichier rendu par un élève (élève auteur ou prof du devoir) | P2 |
 
 ## Messagerie (admin, prof, élève)
 
@@ -228,9 +230,11 @@ Toutes les pages front sont encore vides, sauf Messages. Comportement des routes
 | GET | `/api/prof/emploi-du-temps?du=&au=` | Accueil et page Emploi du temps | P2 |
 | GET | `/api/prof/classes` | Ses classes et matières, pour les menus | P2 |
 | GET | `/api/prof/classes/{id}/eleves` | Élèves d'une classe, pour la saisie des notes | P2 |
-| GET · POST | `/api/prof/devoirs` | Lister / donner un devoir | P2 |
+| GET · POST | `/api/prof/devoirs` | Lister (avec `description` et `fichiers`) / donner un devoir | P2 |
 | PUT · DELETE | `/api/prof/devoirs/{id}` | Modifier / supprimer | P2 |
+| POST | `/api/prof/devoirs/{id}/fichiers` | Joindre un fichier à un devoir (multipart, champ `fichier`, prof auteur uniquement) | P2 |
 | GET | `/api/prof/devoirs/{id}/suivi` | Qui a fait ou rendu le devoir, avec les fichiers | P2 |
+| PATCH | `/api/prof/devoirs/{id}/eleves/{eleveId}` | Corriger un rendu (note et/ou appréciation → statut `corrige`) | P3 |
 | GET · POST | `/api/prof/evaluations` | Lister / créer une évaluation | P2 |
 | PUT · DELETE | `/api/prof/evaluations/{id}` | Modifier / supprimer | P2 |
 | GET · PUT | `/api/prof/evaluations/{id}/notes` | Notes de toute la classe, saisies en une fois | P2 |

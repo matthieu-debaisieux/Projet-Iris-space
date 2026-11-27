@@ -121,19 +121,26 @@ $group->get('/notes', function (ServerRequestInterface $request, ResponseInterfa
     return json($response, ['notes' => $stmt->fetchAll()]);
 });
 
-// ?statut=a_faire pour le bloc « Travail à faire » ; les plus proches échéances d'abord
+// ?statut=a_faire pour le bloc « Travail à faire » ; les plus proches échéances d'abord.
+// `fichiers` : pièces jointes du prof (GET /api/devoirs/fichiers/{id}/telecharger) ;
+// `fichiers_rendus` : ce que l'élève a déjà rendu (GET /api/devoirs/rendus/{id}/telecharger)
 $group->get('/devoirs', function (ServerRequestInterface $request, ResponseInterface $response) {
     $statut = choix($request->getQueryParams(), 'statut', ['a_faire', 'fait', 'rendu', 'corrige']);
 
     $stmt = db()->prepare(
         "SELECT d.id, d.type, d.titre, d.description, d.donne_le, d.a_rendre_le, d.rendu_en_ligne,
                 m.id AS matiere_id, m.nom AS matiere, up.nom AS prof_nom, up.prenom AS prof_prenom,
-                de.statut, de.fait_at, de.rendu_at, de.commentaire_eleve, de.note, de.appreciation,
+                de.statut, de.fait_at, de.rendu_at, de.commentaire_eleve, de.note, de.appreciation, de.corrige_at,
                 COALESCE(
-                  (SELECT json_agg(json_build_object('id', f.id, 'nom', f.nom, 'taille_o', f.taille_o))
+                  (SELECT json_agg(json_build_object('id', f.id, 'nom', f.nom, 'taille_o', f.taille_o) ORDER BY f.nom, f.id)
                    FROM devoir_fichier f WHERE f.devoir_id = d.id),
                   '[]'
-                ) AS fichiers
+                ) AS fichiers,
+                COALESCE(
+                  (SELECT json_agg(json_build_object('id', r.id, 'nom', r.nom, 'depose_at', r.depose_at) ORDER BY r.depose_at)
+                   FROM devoir_rendu_fichier r WHERE r.devoir_id = d.id AND r.eleve_id = de.eleve_id),
+                  '[]'
+                ) AS fichiers_rendus
          FROM devoir_eleve de
          JOIN devoir d       ON d.id = de.devoir_id
          JOIN matiere m      ON m.id = d.matiere_id
@@ -147,6 +154,8 @@ $group->get('/devoirs', function (ServerRequestInterface $request, ResponseInter
 
     foreach ($devoirs as &$devoir) {
         $devoir['fichiers'] = json_decode($devoir['fichiers'], true);
+        $devoir['fichiers_rendus'] = json_decode($devoir['fichiers_rendus'], true);
+        $devoir['note'] = decimal($devoir['note']);
     }
 
     return json($response, ['devoirs' => $devoirs]);
