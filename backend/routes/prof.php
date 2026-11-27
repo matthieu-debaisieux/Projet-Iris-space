@@ -115,6 +115,54 @@ function lireNotes(string $evaluationId): array
     return $stmt->fetchAll();
 }
 
+// Notes déjà saisies pour une évaluation, par élève (id en minuscules)
+function notesDeLEvaluation(string $evaluationId): array
+{
+    $stmt = db()->prepare('SELECT eleve_id, valeur, absent, commentaire FROM note WHERE evaluation_id = :id');
+    $stmt->execute(['id' => $evaluationId]);
+
+    $notes = [];
+    foreach ($stmt->fetchAll() as $note) {
+        $notes[strtolower($note['eleve_id'])] = $note;
+    }
+    return $notes;
+}
+
+// Après une saisie en lot : prévient chaque élève dont la note vient d'être saisie ou a changé
+// (valeur, absence ou commentaire). Les notes effacées et les lignes identiques à l'existant ne
+// notifient personne. $lignes = lignes validées de la saisie, $avant = notesDeLEvaluation() avant l'écriture.
+function notifierNotes(string $evaluationId, array $lignes, array $avant): void
+{
+    $nouvelles = [];
+    $modifiees = [];
+    foreach ($lignes as $ligne) {
+        if ($ligne['valeur'] === null && $ligne['absent'] === 'false' && $ligne['commentaire'] === null) {
+            continue; // note effacée
+        }
+        $ancienne = $avant[strtolower($ligne['eleve'])] ?? null;
+        if ($ancienne === null) {
+            $nouvelles[] = $ligne['eleve'];
+            continue;
+        }
+        $ancienneValeur = $ancienne['valeur'] === null ? null : round((float) $ancienne['valeur'], 2);
+        $nouvelleValeur = $ligne['valeur'] === null ? null : round($ligne['valeur'], 2);
+        $ancienAbsent = in_array($ancienne['absent'], [true, 't', 'true', 1, '1'], true);
+        if ($ancienneValeur !== $nouvelleValeur
+            || $ancienAbsent !== ($ligne['absent'] === 'true')
+            || $ancienne['commentaire'] !== $ligne['commentaire']) {
+            $modifiees[] = $ligne['eleve'];
+        }
+    }
+    if ($nouvelles === [] && $modifiees === []) {
+        return;
+    }
+
+    $evaluation = lireEvaluation($evaluationId);
+    $suite = ' en ' . $evaluation['matiere'] . ' : ' . $evaluation['titre'];
+    notifierUtilisateurs($nouvelles, 'note', 'Nouvelle note' . $suite, '/notes', moi());
+    notifierUtilisateurs($modifiees, 'note', 'Note modifiée' . $suite, '/notes', moi());
+}
+
 // Champs modifiables d'un devoir (création et modification)
 function champsDevoir(array $data): array
 {
@@ -262,7 +310,16 @@ $group->post('/devoirs', function (ServerRequestInterface $request, ResponseInte
         erreurClasseMatiere($e);
     }
 
-    return json($response, ['devoir' => lireDevoir($stmt->fetchColumn())], 201);
+    $devoir = lireDevoir($stmt->fetchColumn());
+    notifierSansEchec(fn () => notifierClasse(
+        (int) $devoir['classe_id'],
+        'devoir',
+        'Nouveau devoir en ' . $devoir['matiere'] . ' : ' . $devoir['titre'],
+        '/devoirs',
+        moi()
+    ));
+
+    return json($response, ['devoir' => $devoir], 201);
 });
 
 // La classe et la matière ne se modifient pas (les suivis des élèves en dépendent)
@@ -502,6 +559,8 @@ $group->put('/evaluations/{id:' . UUID . '}/notes', function (ServerRequestInter
         ];
     }
 
+    $avant = notesDeLEvaluation($args['id']); // pour ne prévenir que les élèves dont la note change
+
     transaction(function (PDO $pdo) use ($args, $lignes) {
         $enregistrer = $pdo->prepare(
             'INSERT INTO note (evaluation_id, eleve_id, valeur, absent, commentaire)
@@ -519,6 +578,8 @@ $group->put('/evaluations/{id:' . UUID . '}/notes', function (ServerRequestInter
             }
         }
     });
+
+    notifierSansEchec(fn () => notifierNotes($args['id'], $lignes, $avant));
 
     return json($response, ['evaluation' => lireEvaluation($args['id']), 'notes' => lireNotes($args['id'])]);
 });

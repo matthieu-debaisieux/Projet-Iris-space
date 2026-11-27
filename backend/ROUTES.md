@@ -457,83 +457,41 @@ Fonctions disponibles :
 - `notifierConversation(string $conversationId, string $type, string $titre, ?string $lien = null, array|string|null $exclure = null): int`
 - `notifierCours(string $coursId, string $type, string $titre, ?string $lien = null, array|string|null $exclure = null): int`
 - `notifierTous(string $type, string $titre, ?string $lien = null, array|string|null $exclure = null): int`
+- `destinatairesCours(string $coursId): array` : ids des élèves et du professeur d'un cours, à lire avant de le supprimer
+- `notifierSansEchec(callable $envoi): void` : exécute un envoi sans jamais lever d'erreur (voir plus bas)
 
 Comportement :
 - Les doublons, UUID invalides, comptes désactivés/supprimés et les ids passés dans `$exclure` (en général `moi()`) sont ignorés ; le titre est tronqué à 200 caractères.
 - Toujours appeler **après** l'écriture principale (hors transaction ou après `commit`, même si `notifier()` pose un `SAVEPOINT` en cas de transaction active) : les erreurs SQL éventuelles sont journalisées (`error_log`) sans bloquer l'action de l'utilisateur.
-- **Déjà branché :** publication d'une actualité dans [actualites.php](routes/actualites.php) (`POST /api/actualites` si `statut === 'publie'`, et `PUT /api/actualites/{id}` uniquement au passage de `brouillon` à `publie`) via `notifierTous('actualite', 'Nouvelle actualité : ' . $titre, '/actualites', moi())`.
 
-### Appels à ajouter ailleurs
+### Où les notifications sont envoyées
 
-1. **Nouveau message** (`POST /api/conversations/{id}/messages`, route messagerie à créer) — après l'insertion du message :
+Toujours après l'écriture principale, dans `notifierSansEchec(fn () => …)` (enveloppe de [notifications_service.php](routes/notifications_service.php) : toute erreur, y compris de lecture du titre, va dans le journal PHP et ne fait jamais échouer la route). L'auteur de l'action n'est jamais notifié (`moi()` passé en `$exclure`).
+
+| Événement | Route | Destinataires | Type, titre, lien |
+|---|---|---|---|
+| Actualité publiée | `POST /api/actualites` (si `publie`), `PUT /api/actualites/{id}` (brouillon vers publié) — [actualites.php](routes/actualites.php) | Tous les comptes actifs | `actualite`, « Nouvelle actualité : … », `/actualites` |
+| Nouveau devoir | `POST /api/prof/devoirs` — [prof.php](routes/prof.php) | Élèves de la classe du devoir | `devoir`, « Nouveau devoir en {matière} : {titre} », `/devoirs` |
+| Note saisie ou modifiée | `PUT /api/prof/evaluations/{id}/notes` — [prof.php](routes/prof.php) | Seulement les élèves dont la ligne est nouvelle ou a changé (valeur, absence ou commentaire). Une note effacée ou une ligne identique à l'existant ne notifie personne | `note`, « Nouvelle note en {matière} : {évaluation} » ou « Note modifiée en … », `/notes` |
+| Devoir corrigé | `PATCH /api/prof/devoirs/{id}/eleves/{eleveId}` — [prof_bonus.php](routes/prof_bonus.php) | L'élève corrigé, si la correction apporte du nouveau (premier passage à `corrige`, ou note ou appréciation différente) | `note` si une note est attribuée, sinon `devoir` ; « Devoir corrigé en {matière} : {titre} » ; `/devoirs` |
+| Cours annulé | `PUT /api/admin/cours/{id}` quand `annule` passe à `true`, `DELETE /api/admin/cours/{id}` — [admin/emploi_du_temps.php](routes/admin/emploi_du_temps.php) | Élèves de la classe et professeur du cours (et l'ancien professeur si le cours change de main) | `systeme`, « Cours annulé : {matière} le 30/11 de 09h00 à 11h00 », `/emploi-du-temps` |
+| Cours déplacé | `PUT /api/admin/cours/{id}` quand `debut` ou `fin` change | Mêmes destinataires | `systeme`, « Cours déplacé : {matière}, désormais le … (initialement le …) », `/emploi-du-temps` |
+| Absence ou retard saisi | `POST /api/admin/absences` — [admin/absences.php](routes/admin/absences.php) | L'élève | `absence`, « Absence enregistrée le 27/11/2026 » ou « Retard enregistré le … », `/absences` |
+
+Règles propres aux cours : seuls les cours **à venir** notifient (un cours déjà commencé ou passé, modifié ou supprimé, ne prévient personne), un cours déjà annulé ne notifie plus (ni déplacement, ni suppression), et un changement de salle, de commentaire ou de matière seul ne notifie pas. Rétablir un cours annulé (`annule` repasse à `false`) ne notifie pas non plus. Pour `DELETE`, les destinataires sont lus avant la suppression avec `destinatairesCours($coursId)`, car la classe du cours n'existe plus après.
+
+### Reste à brancher
+
+**Nouveau message** : `POST /api/conversations/{id}/messages` dans [messagerie.php](routes/messagerie.php) (en cours sur une autre branche, non branché ici). Après l'insertion du message :
 
 ```php
-notifierConversation(
-    $args['id'],
+notifierSansEchec(fn () => notifierConversation(
+    $conversationId,
     'message',
     'Nouveau message de ' . trim($expediteur['prenom'] . ' ' . $expediteur['nom']),
     '/messages',
     moi()
-);
-```
-
-2. **Nouvelle note** (`PUT /api/prof/evaluations/{id}/notes` dans [prof.php](routes/prof.php)) — après `transaction(...)` :
-
-```php
-$elevesNotifies = array_column(
-    array_filter($lignes, fn (array $l) => $l['valeur'] !== null || $l['absent'] === 'true' || $l['commentaire'] !== null),
-    'eleve'
-);
-if ($elevesNotifies !== []) {
-    $eval = lireEvaluation($args['id']);
-    notifierUtilisateurs(
-        $elevesNotifies,
-        'note',
-        'Nouvelle note en ' . $eval['matiere'] . ' : ' . $eval['titre'],
-        '/notes',
-        moi()
-    );
-}
-```
-
-3. **Nouveau devoir** (`POST /api/prof/devoirs` dans [prof.php](routes/prof.php)) — après l'insertion du devoir :
-
-```php
-$devoir = lireDevoir($stmt->fetchColumn());
-notifierClasse(
-    (int) $devoir['classe_id'],
-    'devoir',
-    'Nouveau devoir en ' . $devoir['matiere'] . ' : ' . $devoir['titre'],
-    '/devoirs',
-    moi()
-);
-return json($response, ['devoir' => $devoir], 201);
-```
-
-4. **Cours annulé ou déplacé** (`PUT /api/admin/cours/{id}` et `DELETE /api/admin/cours/{id}`, routes emploi du temps à créer) — après `UPDATE` (si `annule` passe à `true` ou si `debut`/`fin`/`salle_id` changent), ou **avant** `DELETE` :
-
-```php
-$libelle = $annule ? 'Cours annulé : ' : 'Cours déplacé : ';
-notifierCours(
-    $args['id'],
-    'systeme',
-    $libelle . $matiereNom . ' (' . date('d/m H:i', strtotime($debut)) . ')',
-    '/emploi-du-temps',
-    moi()
-);
-```
-
-5. **Nouvelle absence** (`POST /api/admin/absences`, route absences à créer) — après `INSERT INTO absence` :
-
-```php
-$libelle = $type === 'retard' ? 'Retard enregistré le ' : 'Absence enregistrée le ';
-notifierUtilisateurs(
-    [$eleveId],
-    'absence',
-    $libelle . date('d/m/Y', strtotime($dateAbsence)),
-    '/absences',
-    moi()
-);
+));
 ```
 
 ## RGPD (fait)
