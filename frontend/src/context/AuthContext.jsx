@@ -52,7 +52,17 @@ export function AuthProvider({ children }) {
   }, []);
 
   async function login(identifiant, motDePasse) {
-    const u = await authService.login(identifiant, motDePasse);
+    const res = await authService.login(identifiant, motDePasse);
+    if (res?.doubleAuthentificationRequise) {
+      return res;
+    }
+    saveJSON(LS_SESSION, res);
+    setUser(res);
+    return res;
+  }
+
+  async function verifierDoubleAuthentification(code) {
+    const u = await authService.verifierDoubleAuthentification(code);
     saveJSON(LS_SESSION, u);
     setUser(u);
     return u;
@@ -83,7 +93,11 @@ export function AuthProvider({ children }) {
   // Vrai si l'utilisateur possède le droit (toujours faux si déconnecté)
   const can = droit => user?.droits?.includes(droit) ?? false;
 
-  return <AuthContext.Provider value={{ user, loading, login, logout, can, updateUser }}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, loading, login, verifierDoubleAuthentification, logout, can, updateUser }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

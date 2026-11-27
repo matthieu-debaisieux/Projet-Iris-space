@@ -10,12 +10,12 @@
 //   - `notifications` : cloche de notifications dans la navbar
 export const DROITS_ADMIN = [
   'menu_lateral', 'tableau_de_bord', 'absences', 'actualites', 'actualites_gerer', 'actualites_gerer_tout',
-  'emploi_du_temps', 'emploi_du_temps_gerer', 'documents', 'documents_gerer', 'messagerie', 'outils_dev', 'notifications',
+  'emploi_du_temps', 'emploi_du_temps_gerer', 'documents', 'documents_gerer', 'messagerie', 'double_authentification', 'outils_dev', 'notifications',
   'programme_gerer', 'classe_voir', 'classe_voir_tout',
 ];
 export const DROITS_PROF = [
   'journee', 'devoirs', 'devoirs_gerer', 'notes', 'notes_gerer', 'actualites', 'actualites_gerer', 'emploi_du_temps',
-  'messagerie', 'outils_dev', 'documents', 'documents_deposer', 'notifications',
+  'messagerie', 'double_authentification', 'outils_dev', 'documents', 'documents_deposer', 'notifications',
   'classe_voir', 'classe_voir_ses_classes',
 ];
 export const DROITS_ELEVE = [
@@ -24,7 +24,7 @@ export const DROITS_ELEVE = [
 ];
 export const DROITS_DEV = [
   'menu_lateral', 'tableau_de_bord', 'comptes_gerer', 'absences', 'actualites', 'actualites_gerer', 'actualites_gerer_tout',
-  'emploi_du_temps', 'emploi_du_temps_gerer', 'documents', 'documents_gerer', 'messagerie', 'outils_dev', 'notifications',
+  'emploi_du_temps', 'emploi_du_temps_gerer', 'documents', 'documents_gerer', 'messagerie', 'double_authentification', 'outils_dev', 'notifications',
   'programme_gerer', 'classe_voir', 'classe_voir_tout',
 ];
 

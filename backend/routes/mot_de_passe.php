@@ -15,7 +15,7 @@ $group->put('/auth/mot-de-passe', function (ServerRequestInterface $request, Res
     if (!is_string($ancien) || $ancien === '') {
         throw new ApiException('Le champ « ancien_mot_de_passe » est requis', 400);
     }
-    $nouveau = motDePasse($data, 'nouveau_mot_de_passe');
+    $nouveau = motDePasseRobuste($data, 'nouveau_mot_de_passe');
     if ($ancien === $nouveau) {
         throw new ApiException("Le nouveau mot de passe doit être différent de l'ancien", 400);
     }
@@ -61,9 +61,9 @@ $group->post('/auth/mot-de-passe-oublie', function (ServerRequestInterface $requ
 
     $stmt = db()->prepare(
         'SELECT id, email FROM utilisateur
-         WHERE (identifiant = :login OR email = :login) AND actif'
+         WHERE (identifiant = :login OR email = :login2) AND actif'
     );
-    $stmt->execute(['login' => $identifiant]);
+    $stmt->execute(['login' => $identifiant, 'login2' => $identifiant]);
     $user = $stmt->fetch();
 
     if ($user) {
@@ -85,15 +85,10 @@ $group->post('/auth/mot-de-passe-oublie', function (ServerRequestInterface $requ
             $stmt->execute(['id' => $user['id'], 'hash' => hash('sha256', $token)]);
         });
 
-        $base = rtrim((string) (getenv('APP_URL') ?: 'http://localhost'), '/');
+        $base = rtrim((string) (getenv('APP_URL') ?: 'http://localhost:8080'), '/');
         $lien = $base . '/reinitialiser-mot-de-passe?token=' . $token;
 
-        if (appEnDev()) {
-            // Dev uniquement (APP_ENV=dev) : pas d'e-mail, on renvoie le lien pour pouvoir tester
-            $reponse['lien_dev'] = $lien;
-        } else {
-            envoyerEmailReinitialisation((string) $user['email'], $lien);
-        }
+        envoyerEmailReinitialisation((string) $user['email'], $lien);
     }
 
     return json($response, $reponse);
@@ -106,7 +101,7 @@ $group->post('/auth/mot-de-passe-oublie', function (ServerRequestInterface $requ
 $group->post('/auth/reinitialiser-mot-de-passe', function (ServerRequestInterface $request, ResponseInterface $response) {
     $data    = corps($request);
     $token   = texte($data, 'token', 200, true);
-    $nouveau = motDePasse($data, 'nouveau_mot_de_passe');
+    $nouveau = motDePasseRobuste($data, 'nouveau_mot_de_passe');
 
     transaction(function (PDO $pdo) use ($token, $nouveau) {
         // Un seul UPDATE vérifie le jeton ET le consomme : impossible de l'utiliser deux fois

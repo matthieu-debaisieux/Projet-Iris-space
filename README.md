@@ -58,6 +58,22 @@ VALUES ('dev', 'dev@iris-space.fr', '<hash affiché ci-dessus>', 'dev', 'Dévelo
 
 Ce compte crée ensuite tous les autres depuis la page `/comptes`.
 
+### Variables d'environnement SMTP et réinitialisation de mot de passe
+
+L'envoi d'e-mails (lien de réinitialisation du mot de passe) utilise un client SMTP intégré configuré par variables d'environnement (ne jamais mettre de secret dans le dépôt) :
+
+- `APP_URL` : URL publique du front pour construire le lien (par défaut `http://localhost:8080`)
+- `SMTP_HOST` : hôte du serveur SMTP (si vide en `APP_ENV=dev`, le lien est écrit dans `error_log` PHP ; hors dev, repli sur `mail()`)
+- `SMTP_PORT` : port SMTP (`587` par défaut avec STARTTLS, `465` pour TLS direct, `25` ou `1025` en local)
+- `SMTP_USER` / `SMTP_PASSWORD` : identifiants SMTP (facultatifs)
+- `SMTP_FROM` : adresse d'expéditeur (par défaut `SMTP_USER` ou `noreply@iris-space.local`)
+
+Sur une base créée avant l'ajout de la double authentification TOTP (`SEC-03`), exécuter la migration idempotente :
+
+```bash
+docker compose exec -T db psql -U iris -d iris_space < backend/database/migrations/2026-11-27_sec03_totp_2fa.sql
+```
+
 ## Lancer le front sans Docker
 
 ```bash

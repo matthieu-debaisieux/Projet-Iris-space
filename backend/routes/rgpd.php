@@ -25,7 +25,7 @@ function exporterDonnees(string $id): array
 {
     $utilisateur = rgpdLignes(
         'SELECT id, identifiant, email, role, nom, prenom, date_naissance, lieu_naissance, pays_naissance,
-                nationalite, telephone, adresse, photo_url, actif, derniere_connexion, created_at, updated_at
+                nationalite, telephone, adresse, photo_url, actif, totp_actif, derniere_connexion, created_at, updated_at
          FROM utilisateur WHERE id = :id',
         ['id' => $id]
     )[0] ?? throw new ApiException('Utilisateur introuvable', 404);
@@ -290,7 +290,8 @@ function effacerDonnees(string $id): array
              SET identifiant = :identifiant, email = :email, mot_de_passe_hash = :hash,
                  nom = :nom, prenom = :prenom, date_naissance = NULL, lieu_naissance = NULL,
                  pays_naissance = NULL, nationalite = NULL, telephone = NULL, adresse = NULL,
-                 photo_url = NULL, actif = false, derniere_connexion = NULL
+                 photo_url = NULL, actif = false, totp_actif = false, totp_secret = NULL,
+                 totp_dernier_pas = NULL, derniere_connexion = NULL
              WHERE id = :id'
         );
         $stmt->execute([

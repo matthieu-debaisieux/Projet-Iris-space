@@ -7,12 +7,19 @@ Ce document est l'**unique contrat d'API** entre le front-end et le back-end : t
 | Méthode | Route | Remarque |
 |---|---|---|
 | GET | `/api/health` | Test de vie de l'API |
-| POST | `/api/auth/login` | Reçoit `{ identifiant, mot_de_passe }`, renvoie `{ user }` avec `droits` et pose le cookie de session (`HttpOnly`, `SameSite=Lax`, `Secure` hors dev) |
+| POST | `/api/auth/login` | Reçoit `{ identifiant, mot_de_passe }`. Renvoie `{ user }` avec `droits` et pose le cookie de session (`HttpOnly`, `SameSite=Lax`, `Secure` hors dev), ou `{ double_authentification_requise: true, expire_dans }` si la 2FA TOTP est activée (sans ouvrir la session). Après 5 échecs pour le même identifiant en 15 min (ou 20 pour une même IP), répond 429 `{ error: "Trop de tentatives. Réessayez dans N minutes." }` (en-tête `Retry-After`) |
+| POST | `/api/auth/2fa/verifier` | Étape 2 de la connexion 2FA : reçoit `{ code }` (6 chiffres, RFC 6238, ±1 pas de 30 s), vérifie la session temporaire et ouvre la session (`{ user }` avec `droits`), ou 401/429 si invalide ou expiré |
 | POST | `/api/auth/logout` | Vide et détruit la session, supprime le cookie, répond 204 |
 | GET | `/api/auth/me` | Renvoie `{ user }` avec `droits`, ou 401 si pas de session ou compte désactivé |
-| GET | `/api/profil` | Profil complet de l'utilisateur connecté selon son rôle (élève, professeur, administrateur/direction) |
+| GET | `/api/profil` | Profil complet de l'utilisateur connecté selon son rôle (élève, professeur, administrateur/direction), avec `totp_actif` |
 | POST | `/api/profil/photo` | Envoyer ou remplacer sa photo de profil (`fichier` multipart, JPG/PNG/WebP, 2 Mo max ; met à jour `utilisateur.photo_url` et renvoie `{ photo_url }`) |
 | DELETE | `/api/profil/photo` | Retirer sa photo de profil (supprime le fichier et remet `utilisateur.photo_url` à `null`, 204) |
+| PUT | `/api/auth/mot-de-passe` | Connecté : change son mot de passe (`{ ancien_mot_de_passe, nouveau_mot_de_passe }` ; ≥ 8 caractères avec au moins une lettre et un chiffre) |
+| POST | `/api/auth/mot-de-passe-oublie` | Public : reçoit `{ identifiant }` (identifiant ou e-mail) et répond toujours 200 `{ message }`. Envoie un lien valable 1 h via SMTP si `SMTP_HOST` est défini, sinon écrit le lien dans `error_log` en dev (`APP_ENV=dev`) ou utilise `mail()` |
+| POST | `/api/auth/reinitialiser-mot-de-passe` | Public : reçoit `{ token, nouveau_mot_de_passe }` (≥ 8 caractères avec au moins une lettre et un chiffre), valide et consomme le jeton |
+| POST | `/api/auth/2fa/preparer` | `administrateur`, `direction`, `professeur`, `dev` : génère un secret TOTP en session et renvoie `{ secret, otpauth_url }` (409 si déjà activée) |
+| POST | `/api/auth/2fa/confirmer` | `administrateur`, `direction`, `professeur`, `dev` : reçoit `{ code }` (6 chiffres), active la 2FA en base et renvoie `{ message, totp_actif: true }` |
+| POST | `/api/auth/2fa/desactiver` | `administrateur`, `direction`, `professeur`, `dev` : reçoit `{ mot_de_passe }`, désactive la 2FA et renvoie `{ message, totp_actif: false }` |
 
 Les sections marquées **(fait)** plus bas sont aussi codées :
 - fichiers (`/uploads`, `/documents/{id}/telecharger`) ;
@@ -42,7 +49,8 @@ Les sections marquées **(fait)** plus bas sont aussi codées :
   - 401 : pas connecté ;
   - 403 : mauvais rôle ;
   - 404 : introuvable, ou pas à vous ;
-  - 409 : doublon, ou élément encore utilisé.
+  - 409 : doublon, ou élément encore utilisé ;
+  - 429 : trop de tentatives (limitation sur la connexion).
 
   Le message peut s'afficher tel quel.
 - **Dates :** `AAAA-MM-JJ` pour un jour, ISO `AAAA-MM-JJTHH:MM` pour une date et heure. Une heure sans fuseau compte en heure de Paris. Les dates renvoyées incluent le décalage (`2026-10-30 18:00:00+01`) et se lisent avec `new Date()`.
@@ -476,10 +484,16 @@ notifierUtilisateurs(
 
 ### Journal des connexions
 
-- Chaque `POST /api/auth/login` ajoute une ligne, réussie ou non : date, utilisateur (vide si l'identifiant n'existe pas), identifiant ou e-mail saisi, adresse IP, User-Agent tronqué à 200 caractères, et pour un échec le motif (`identifiant_inconnu`, `mot_de_passe_incorrect`, `compte_desactive`). Le motif n'est jamais renvoyé au client : la réponse reste « Identifiant ou mot de passe incorrect ».
+- Chaque `POST /api/auth/login` ajoute une ligne, réussie ou non : date, utilisateur (vide si l'identifiant n'existe pas), identifiant ou e-mail saisi, adresse IP, User-Agent tronqué à 200 caractères, et pour un échec le motif (`identifiant_inconnu`, `mot_de_passe_incorrect`, `compte_desactive`, `code_2fa_incorrect`). Le motif n'est jamais renvoyé au client : la réponse reste « Identifiant ou mot de passe incorrect ».
 - L'écriture ne bloque jamais la connexion : si elle échoue (par exemple base pas encore migrée), l'erreur va dans le journal PHP et le login continue.
 - L'adresse IP est `REMOTE_ADDR`. Derrière le nginx du front (`X-Real-IP`), c'est l'en-tête `X-Real-IP` qui est lu, mais seulement si la requête arrive d'une adresse privée ou locale.
 - **Base existante :** jouer une fois [database/migrations/2026-11-27_sec04_journal_connexion.sql](database/migrations/2026-11-27_sec04_journal_connexion.sql). Une base neuve créée avec `init_database.sql` a déjà la table.
+
+### Limite de tentatives (SEC-02) et double authentification (SEC-03)
+
+- **Limite :** 5 échecs pour un même identifiant (ou compte) en 15 minutes, ou 20 pour une même adresse IP, refusent la connexion avec 429 `{ "error": "Trop de tentatives. Réessayez dans N minutes." }` et l'en-tête `Retry-After`. Le calcul se fait sur `journal_connexion` (pas de table en plus) et repart à zéro après une connexion réussie du compte. Les tentatives refusées ne sont pas journalisées.
+- **Double authentification :** TOTP (RFC 6238, SHA-1, 6 chiffres, pas de 30 s, ±1 pas) pour `administrateur`, `direction`, `professeur`, `dev` (droit `double_authentification`). Colonnes `utilisateur.totp_actif`, `totp_secret`, `totp_dernier_pas` (un code déjà utilisé est refusé). Après le mot de passe, `/auth/login` répond `double_authentification_requise` sans ouvrir la session ; `/auth/2fa/verifier` l'ouvre (5 codes faux : 429 et retour à l'étape 1).
+- **Base existante :** jouer une fois [database/migrations/2026-11-27_sec03_totp_2fa.sql](database/migrations/2026-11-27_sec03_totp_2fa.sql) (idempotente : colonnes TOTP et motif `code_2fa_incorrect`).
 
 ### Purge à planifier (équipe SISR)
 
@@ -551,7 +565,6 @@ Le compte est **anonymisé** et non effacé : plusieurs tables le référencent 
 
 Ces routes ne sont pas nécessaires pour que le site tourne :
 
-- **Mot de passe :** `PUT /api/auth/mot-de-passe`, `POST /api/auth/mot-de-passe-oublie`, `POST /api/auth/reinitialiser-mot-de-passe` (table `reinitialisation_mdp`)
 - **Élève :** `GET /api/eleve/moyennes` (la vue `v_moyenne_matiere` est déjà prête), `POST /api/eleve/absences/{id}/justificatif`
 - **Prof :** `PATCH /api/prof/devoirs/{id}/eleves/{eleveId}` pour corriger un devoir (note, appréciation)
 - **Textes publics** (« À propos », mentions légales) : `GET /api/pages/{slug}`, `PUT /api/admin/pages/{slug}` (table `page_publique`)

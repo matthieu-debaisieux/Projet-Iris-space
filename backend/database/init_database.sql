@@ -36,6 +36,9 @@ CREATE TABLE utilisateur (
   adresse            text,
   photo_url          text,
   actif              boolean      NOT NULL DEFAULT true,
+  totp_actif         boolean      NOT NULL DEFAULT false,
+  totp_secret        text,
+  totp_dernier_pas   bigint,
   derniere_connexion timestamptz,
   created_at         timestamptz  NOT NULL DEFAULT now(),
   updated_at         timestamptz  NOT NULL DEFAULT now(),
@@ -61,7 +64,7 @@ CREATE TABLE journal_connexion (
   utilisateur_id uuid REFERENCES utilisateur(id) ON DELETE CASCADE, -- null si l'identifiant saisi n'existe pas
   identifiant    varchar(254) NOT NULL,                              -- identifiant ou e-mail saisi
   reussie        boolean NOT NULL,
-  motif          varchar(30) CHECK (motif IN ('identifiant_inconnu', 'mot_de_passe_incorrect', 'compte_desactive')),
+  motif          varchar(30) CHECK (motif IN ('identifiant_inconnu', 'mot_de_passe_incorrect', 'compte_desactive', 'code_2fa_incorrect')),
   ip             inet,
   user_agent     varchar(200),                                       -- tronqué
   created_at     timestamptz NOT NULL DEFAULT now()

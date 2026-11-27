@@ -13,6 +13,11 @@ export async function deletePhotoProfil() {
   await api.delete('/profil/photo');
 }
 
+function mockTotpActif(user) {
+  const map = loadJSON('iris_mock_2fa_v1', {}, { seed: false });
+  return Boolean(user?.id && map[user.id]);
+}
+
 export async function getMonProfil(user) {
   if (!USE_MOCKS) {
     const data = await api.get('/profil');
@@ -20,6 +25,7 @@ export async function getMonProfil(user) {
   }
 
   const role = user?.role ?? 'eleve';
+  const totp_actif = mockTotpActif(user);
 
   if (role === 'prof' || role === 'professeur') {
     return {
@@ -34,6 +40,7 @@ export async function getMonProfil(user) {
       pays_naissance: 'France',
       nationalite: 'Française',
       adresse: null,
+      totp_actif,
       matieres: [
         { id: 1, code: 'DEV', nom: 'Développement web' },
         { id: 2, code: 'BDD', nom: 'Bases de données' },
@@ -59,6 +66,7 @@ export async function getMonProfil(user) {
       pays_naissance: 'France',
       nationalite: 'Française',
       adresse: 'Campus IRIS, Paris',
+      totp_actif,
       derniere_connexion: '2026-11-27T10:00:00+01:00',
     };
   }
@@ -76,6 +84,7 @@ export async function getMonProfil(user) {
       pays_naissance: 'France',
       nationalite: 'Française',
       adresse: 'Bâtiment A, bureau 12',
+      totp_actif,
       derniere_connexion: '2026-11-27T08:30:00+01:00',
     };
   }
@@ -91,5 +100,6 @@ export async function getMonProfil(user) {
     pays_naissance: PROFIL.paysNaissance,
     annee_scolaire: PROFIL.anneeScolaire,
     numero_etudiant: 'IRIS-2026-0042',
+    totp_actif: false,
   };
 }
