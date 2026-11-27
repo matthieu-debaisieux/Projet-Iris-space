@@ -1,64 +1,195 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import '@tabler/icons-webfont/dist/tabler-icons.min.css';
-import DataState from '@/components/ui/DataState.jsx';
 import Modal from '@/components/ui/Modal.jsx';
 import { useAuth } from '@/context/AuthContext.jsx';
-import { useAsync } from '@/hooks/useAsync.js';
-import {
-  createActualite, deleteActualite, getActualites, getActualitesPubliees, STATUTS_ACTUALITE, updateActualite,
-} from '@/services/actualites.js';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Version SANS base de données : les actualités vivent en mémoire (elles
+// reviennent à l'état initial au rechargement). Quand la base sera prête :
+//   1. remplacer DONNEES_TEST par la liste venant de ton service
+//   2. dans creer / modifier / supprimer, appeler l'API avant de mettre à jour la liste
+// ─────────────────────────────────────────────────────────────────────────────
+const DONNEES_TEST = [
+  { id: 0, titre: 'Actualité #0', date: '24 juin 2026', statut: 'Publié',    image: '', contenu: "Contenu complet de l'actualité #0.", auteur: 'Admin' },
+  { id: 1, titre: 'Actualité #1', date: '20 juin 2026', statut: 'Brouillon', image: '', contenu: "Contenu complet de l'actualité #1.", auteur: 'Admin' },
+  { id: 2, titre: 'Actualité #2', date: '15 juin 2026', statut: 'Archivé',   image: '', contenu: "Contenu complet de l'actualité #2.", auteur: 'Admin' },
+  { id: 3, titre: 'Actualité #3', date: '10 juin 2026', statut: 'Publié',    image: '', contenu: "Contenu complet de l'actualité #3.", auteur: 'Admin' },
+];
+const STATUTS = ['Publié', 'Brouillon', 'Archivé'];
+const TAILLE_MAX_IMAGE = 2 * 1024 * 1024; // 2 Mo
 
 const STATUT_CLASSES = {
-  'Publié':    'text-teal-700 bg-teal-50 border border-teal-200',
-  'Brouillon': 'text-amber-700 bg-amber-50 border border-amber-200',
-  'Archivé':   'text-gray-500 bg-gray-100 border border-gray-300',
+  'Publié':    'bg-[#E3F5EC] text-[#1E7F55]',
+  'Brouillon': 'bg-[#FFF3D6] text-[#8A5A00]',
+  'Archivé':   'bg-[#EEF1F7] text-[#6B7185]',
 };
 
-const Icon = ({ name, size, className = '' }) => (
-  <i className={`ti ti-${name} ${className}`} style={size ? { fontSize: size } : undefined} aria-hidden="true" />
+const Icon = ({ name, size = 16, className = '' }) => (
+  <i className={`ti ti-${name} ${className}`} style={{ fontSize: size }} aria-hidden="true" />
 );
 
-// ── Helper : lire un fichier image en base64 ────────────────────────────────
-function lireImageBase64(file) {
-  return new Promise(resolve => {
-    if (!file) { resolve(null); return; }
-    const reader = new FileReader();
-    reader.onload = e => resolve(e.target.result);
-    reader.readAsDataURL(file);
-  });
+const lireImage = file => new Promise(resolve => {
+  if (!file) return resolve(null);
+  const reader = new FileReader();
+  reader.onload = e => resolve(e.target.result);
+  reader.readAsDataURL(file);
+});
+const dateLongue = iso => new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+const norm = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+// ── Page ────────────────────────────────────────────────────────────────────
+// Tout le monde voit les actualités publiées ; avec le droit `actualites_gerer`
+// on voit aussi les brouillons / archives et on peut créer, modifier, supprimer.
+export default function Actualites() {
+  const { can } = useAuth();
+  const gerer = can('actualites_gerer');
+
+  const [liste, setListe] = useState(DONNEES_TEST);
+  const [recherche, setRecherche] = useState('');
+  const [modal, setModal] = useState(null); // { type: 'detail' | 'modifier' | 'creer', id? }
+  const fermer = () => setModal(null);
+
+  const q = norm(recherche.trim());
+  const visibles = liste
+    .filter(a => gerer || a.statut === 'Publié')
+    .filter(a => !q || [a.titre, a.contenu, a.auteur].some(v => norm(v).includes(q)));
+  const courante = liste.find(a => a.id === modal?.id);
+
+  const creer = data => { setListe(l => [{ id: Date.now(), ...data }, ...l]); fermer(); };
+  const modifier = data => { setListe(l => l.map(a => (a.id === modal.id ? { ...a, ...data } : a))); fermer(); };
+  const supprimer = () => { setListe(l => l.filter(a => a.id !== modal.id)); fermer(); };
+
+  return (
+    <>
+      <div className="flex-1 overflow-y-auto bg-[var(--color-page)]">
+        <div className="mx-auto w-full max-w-[1200px] px-6 py-8 flex flex-col gap-6">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-[#001257]">Actualités</h1>
+              <p className="mt-1 text-sm text-[#6B7185]">Les dernières nouvelles de l'école IRIS Nice.</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative">
+                <label htmlFor="recherche-actus" className="sr-only">Rechercher une actualité</label>
+                <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B7185]" />
+                <input
+                  id="recherche-actus"
+                  type="search"
+                  value={recherche}
+                  onChange={e => setRecherche(e.target.value)}
+                  placeholder="Rechercher une actualité…"
+                  className="w-64 rounded-lg border border-[#E1E5EE] bg-white py-2.5 pl-9 pr-3 text-sm focus:outline-none focus:border-[#001257]"
+                />
+              </div>
+              {gerer && (
+                <button
+                  onClick={() => setModal({ type: 'creer' })}
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#EC6F6F] px-4 py-2.5 text-sm font-bold text-[#001257] hover:opacity-90 transition"
+                >
+                  <Icon name="plus" /> Créer un article
+                </button>
+              )}
+            </div>
+          </div>
+
+          {visibles.length ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {visibles.map(actu => (
+                <Carte key={actu.id} actu={actu} afficherStatut={gerer} onOuvrir={() => setModal({ type: 'detail', id: actu.id })} />
+              ))}
+            </div>
+          ) : (
+            <p className="py-12 text-center text-sm text-[#6B7185]">Aucune actualité à afficher.</p>
+          )}
+        </div>
+      </div>
+
+      {modal?.type === 'creer' && <Formulaire onSubmit={creer} onClose={fermer} />}
+      {modal?.type === 'modifier' && courante && <Formulaire actu={courante} onSubmit={modifier} onClose={fermer} />}
+      {modal?.type === 'detail' && courante && (
+        <Detail
+          actu={courante}
+          gerer={gerer}
+          onClose={fermer}
+          onDelete={supprimer}
+          onEdit={() => setModal({ type: 'modifier', id: courante.id })}
+        />
+      )}
+    </>
+  );
 }
 
-// ── Coque de modale (fond + boîte) ──────────────────────────────────────────
-function ModalShell({ onClose, maxWidth = 'max-w-lg', children }) {
+// ── Carte d'actualité ───────────────────────────────────────────────────────
+function Carte({ actu, afficherStatut, onOuvrir }) {
   return (
-    <Modal onClose={onClose} className={`${maxWidth} rounded-2xl overflow-hidden`}>
-      {children}
+    <article className="bg-white rounded-2xl border border-[#E1E5EE] overflow-hidden flex flex-col hover:-translate-y-0.5 transition-transform duration-200">
+      <div className="h-40 bg-[#EEF1F7]">
+        {actu.image && <img src={actu.image} alt="" className="h-full w-full object-cover" />}
+      </div>
+      <div className="p-5 flex flex-col gap-2 flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs font-bold uppercase tracking-wide text-[#07A6A6]">{actu.date}</p>
+          {afficherStatut && actu.statut !== 'Publié' && (
+            <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${STATUT_CLASSES[actu.statut]}`}>{actu.statut}</span>
+          )}
+        </div>
+        <h2 className="text-base font-bold text-[#001257] leading-snug">{actu.titre}</h2>
+        <p className="text-sm text-[#6B7185] line-clamp-2">{actu.contenu}</p>
+        <button
+          onClick={onOuvrir}
+          className="mt-auto pt-1 self-start text-xs font-bold text-[#001257] hover:underline"
+        >
+          Lire la suite
+        </button>
+      </div>
+    </article>
+  );
+}
+
+// ── Détail ──────────────────────────────────────────────────────────────────
+function Detail({ actu, gerer, onClose, onDelete, onEdit }) {
+  return (
+    <Modal onClose={onClose} className="max-w-lg rounded-2xl overflow-hidden" label={actu.titre}>
+      <div className="h-44 bg-[#EEF1F7]">
+        {actu.image && <img src={actu.image} alt="" className="h-full w-full object-cover" />}
+      </div>
+      <div className="p-6 flex flex-col gap-4">
+        <div className="flex items-center gap-3 flex-wrap text-xs text-[#6B7185]">
+          <span className="font-bold uppercase tracking-wide text-[#07A6A6]">{actu.date}</span>
+          <span>Par <span className="font-semibold text-[#1A1D2E]">{actu.auteur}</span></span>
+          {gerer && <span className={`rounded-full px-2.5 py-0.5 font-semibold ${STATUT_CLASSES[actu.statut]}`}>{actu.statut}</span>}
+        </div>
+        <h3 className="text-xl font-bold text-[#001257]">{actu.titre}</h3>
+        <p className="text-sm leading-relaxed text-[#1A1D2E]">{actu.contenu}</p>
+
+        <div className={`flex ${gerer ? 'justify-between' : 'justify-end'} gap-2 pt-4 border-t border-[#E1E5EE]`}>
+          {gerer && (
+            <button onClick={onDelete} className="inline-flex items-center gap-1.5 rounded-lg bg-[#FBE6E6] px-4 py-2 text-xs font-bold text-[#B23A3A] hover:opacity-80 transition">
+              <Icon name="trash" size={14} /> Supprimer
+            </button>
+          )}
+          <div className="flex gap-2">
+            <button onClick={onClose} className="rounded-lg border border-[#E1E5EE] px-4 py-2 text-xs font-semibold text-[#001257] hover:bg-[#EEF1F7] transition">
+              Fermer
+            </button>
+            {gerer && (
+              <button onClick={onEdit} className="inline-flex items-center gap-1.5 rounded-lg bg-[#001257] px-4 py-2 text-xs font-bold text-white hover:opacity-90 transition">
+                <Icon name="edit" size={14} /> Modifier
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
     </Modal>
   );
 }
 
-function ModalHeader({ icon, title, color = 'text-teal-700', onClose }) {
-  return (
-    <div className="flex items-center justify-between">
-      <h3 className={`text-xl font-semibold ${color} flex items-center gap-2`}>
-        <Icon name={icon} size={20} />
-        {title}
-      </h3>
-      <button onClick={onClose} className="inline-flex items-center justify-center text-gray-400 hover:text-gray-700 text-2xl font-bold leading-none">
-        <i className="ti ti-x" aria-label="Fermer" />
-      </button>
-    </div>
-  );
-}
-
-const inputBase = 'w-full border rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-teal-500 transition-colors';
-const fieldClass = invalide => `${inputBase} ${invalide ? 'border-red-400 bg-red-50' : 'border-gray-300'}`;
-const labelClass = 'text-xs font-medium text-gray-500 uppercase tracking-wider';
-const Requis = () => <span className="text-red-500">*</span>;
-
 // ── Formulaire article (création / modification) ────────────────────────────
-// `actu` absent → création (date + photo obligatoires)
-function ArticleForm({ actu, onSubmit, onClose }) {
+// `actu` absent → création (date et photo obligatoires)
+const champ = invalide => `w-full rounded-lg border px-3 py-2.5 text-sm focus:outline-none focus:border-[#001257] ${invalide ? 'border-[#B23A3A] bg-[#FBE6E6]' : 'border-[#E1E5EE] bg-white'}`;
+const etiquette = 'block mb-1.5 text-xs font-semibold text-[#1A1D2E]';
+
+function Formulaire({ actu, onSubmit, onClose }) {
   const creation = !actu;
   const [titre, setTitre] = useState(actu?.titre ?? '');
   const [date, setDate] = useState('');
@@ -66,330 +197,107 @@ function ArticleForm({ actu, onSubmit, onClose }) {
   const [contenu, setContenu] = useState(actu?.contenu ?? '');
   const [auteur, setAuteur] = useState(actu?.auteur ?? '');
   const [photo, setPhoto] = useState(null);
-  const [preview, setPreview] = useState(actu?.image || '');
+  const [apercu, setApercu] = useState(actu?.image || '');
   const [erreurs, setErreurs] = useState({});
 
   // Libère l'URL temporaire de l'aperçu
-  useEffect(() => () => { if (preview.startsWith('blob:')) URL.revokeObjectURL(preview); }, [preview]);
+  useEffect(() => () => { if (apercu.startsWith('blob:')) URL.revokeObjectURL(apercu); }, [apercu]);
 
-  function choisirPhoto(e) {
+  const choisirPhoto = e => {
     const file = e.target.files[0];
     if (!file) return;
+    if (file.size > TAILLE_MAX_IMAGE) return setErreurs(er => ({ ...er, photo: 'Image trop lourde (2 Mo max).' }));
     setPhoto(file);
-    setPreview(URL.createObjectURL(file));
-  }
+    setApercu(URL.createObjectURL(file));
+    setErreurs(er => ({ ...er, photo: false }));
+  };
 
-  async function valider() {
+  const valider = async () => {
     const errs = {
-      titre:   !titre.trim(),
+      titre: !titre.trim(),
       contenu: !contenu.trim(),
-      auteur:  !auteur.trim(),
+      auteur: !auteur.trim(),
       ...(creation && { date: !date, photo: !photo }),
     };
     setErreurs(errs);
     if (Object.values(errs).some(Boolean)) return;
 
-    const image = await lireImageBase64(photo);
+    const image = await lireImage(photo);
     onSubmit({
       titre: titre.trim(),
       statut,
       contenu: contenu.trim(),
       auteur: auteur.trim(),
       ...(image && { image }),
-      ...(creation && { date: new Date(date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) }),
+      ...(creation && { date: dateLongue(date) }),
     });
-  }
+  };
 
   return (
-    <ModalShell onClose={onClose}>
-      <div className="p-6 flex flex-col gap-5">
-        <ModalHeader icon={creation ? 'news' : 'edit'} title={creation ? 'Créer un article' : "Modifier l'article"} onClose={onClose} />
+    <Modal onClose={onClose} className="max-w-lg rounded-2xl overflow-hidden" label={creation ? 'Créer un article' : "Modifier l'article"}>
+      <div className="p-6 flex flex-col gap-4">
+        <h3 className="text-xl font-bold text-[#001257]">{creation ? 'Créer un article' : "Modifier l'article"}</h3>
 
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label className={labelClass}>Titre <Requis /></label>
-            <input type="text" placeholder={creation ? "Titre de l'actualité" : undefined} value={titre} onChange={e => setTitre(e.target.value)} className={fieldClass(erreurs.titre)} />
-          </div>
+        <div>
+          <label className={etiquette}>Titre *</label>
+          <input type="text" value={titre} onChange={e => setTitre(e.target.value)} placeholder="Titre de l'actualité" className={champ(erreurs.titre)} />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
           {creation && (
-            <div className="flex flex-col gap-1.5">
-              <label className={labelClass}>Date <Requis /></label>
-              <input type="date" value={date} onChange={e => setDate(e.target.value)} className={fieldClass(erreurs.date)} />
+            <div>
+              <label className={etiquette}>Date *</label>
+              <input type="date" value={date} onChange={e => setDate(e.target.value)} className={champ(erreurs.date)} />
             </div>
           )}
-          <div className="flex flex-col gap-1.5">
-            <label className={labelClass}>Statut</label>
-            <select value={statut} onChange={e => setStatut(e.target.value)} className={fieldClass(false)}>
-              {STATUTS_ACTUALITE.map(st => <option key={st} value={st}>{st}</option>)}
+          <div className={creation ? '' : 'col-span-2'}>
+            <label className={etiquette}>Statut</label>
+            <select value={statut} onChange={e => setStatut(e.target.value)} className={champ(false)}>
+              {STATUTS.map(s => <option key={s}>{s}</option>)}
             </select>
           </div>
-          <div className="flex flex-col gap-1.5">
-            <label className={labelClass}>Contenu <Requis /></label>
-            <textarea rows={4} placeholder={creation ? "Contenu de l'article..." : undefined} value={contenu} onChange={e => setContenu(e.target.value)} className={`${fieldClass(erreurs.contenu)} resize-none`} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label className={labelClass}>Auteur <Requis /></label>
-            <input type="text" placeholder={creation ? "Nom de l'auteur" : undefined} value={auteur} onChange={e => setAuteur(e.target.value)} className={fieldClass(erreurs.auteur)} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label className={labelClass}>Photo de l'article {creation && <Requis />}</label>
-            <label
-              className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-xl cursor-pointer hover:border-teal-400 hover:bg-teal-50 transition-colors group relative overflow-hidden ${erreurs.photo ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
-            >
-              {preview ? (
-                <img src={preview} alt="Aperçu" className="absolute inset-0 w-full h-full object-cover rounded-xl" />
-              ) : (
-                <div className="flex flex-col items-center gap-1 text-gray-400 group-hover:text-teal-500 transition-colors">
-                  <Icon name="photo-up" size={28} />
-                  <span className="text-xs font-medium">{creation ? 'Cliquer pour choisir une image' : 'Changer la photo'}</span>
-                  <span className="text-[11px] text-gray-300">JPG, PNG, WEBP — max 2 Mo</span>
-                </div>
-              )}
-              <input type="file" accept="image/*" className="hidden" onChange={choisirPhoto} />
-            </label>
-          </div>
+        </div>
+
+        <div>
+          <label className={etiquette}>Contenu *</label>
+          <textarea rows={4} value={contenu} onChange={e => setContenu(e.target.value)} placeholder="Contenu de l'article…" className={`${champ(erreurs.contenu)} resize-none`} />
+        </div>
+
+        <div>
+          <label className={etiquette}>Auteur *</label>
+          <input type="text" value={auteur} onChange={e => setAuteur(e.target.value)} placeholder="Nom de l'auteur" className={champ(erreurs.auteur)} />
+        </div>
+
+        <div>
+          <label className={etiquette}>Photo {creation && '*'}</label>
+          <label className={`relative flex h-28 w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-lg border-2 border-dashed transition hover:bg-[#EEF1F7] ${erreurs.photo ? 'border-[#B23A3A] bg-[#FBE6E6]' : 'border-[#E1E5EE]'}`}>
+            {apercu ? (
+              <img src={apercu} alt="Aperçu" className="absolute inset-0 h-full w-full object-cover" />
+            ) : (
+              <span className="flex flex-col items-center gap-1 text-[#6B7185]">
+                <Icon name="photo-up" size={26} />
+                <span className="text-xs font-medium">Cliquer pour choisir une image</span>
+                <span className="text-[11px]">JPG, PNG, WEBP — 2 Mo max</span>
+              </span>
+            )}
+            <input type="file" accept="image/*" className="hidden" onChange={choisirPhoto} />
+          </label>
+          {typeof erreurs.photo === 'string' && <p className="mt-1 text-xs text-[#B23A3A]">{erreurs.photo}</p>}
         </div>
 
         {Object.values(erreurs).some(Boolean) && (
-          <div className="text-xs text-red-500 font-medium flex items-center gap-1">
-            <Icon name="alert-circle" size={14} />
-            Veuillez remplir tous les champs.
-          </div>
+          <p role="alert" className="text-xs font-medium text-[#B23A3A]">Veuillez remplir tous les champs obligatoires.</p>
         )}
 
-        <div className="flex justify-end gap-2 pt-2 border-t border-black/10">
-          <button onClick={onClose} className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 border border-gray-300 rounded-full px-4 py-1.5 hover:bg-gray-100 transition-colors">
-            <Icon name="x" size={14} />
+        <div className="flex justify-end gap-2 pt-4 border-t border-[#E1E5EE]">
+          <button onClick={onClose} className="rounded-lg border border-[#E1E5EE] px-4 py-2 text-xs font-semibold text-[#001257] hover:bg-[#EEF1F7] transition">
             Annuler
           </button>
-          {creation ? (
-            <button onClick={valider} className="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-[#E8735A] rounded-full px-4 py-1.5 hover:brightness-90 transition-colors">
-              <Icon name="send" size={14} />
-              Publier l'article
-            </button>
-          ) : (
-            <button onClick={valider} className="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-teal-600 rounded-full px-4 py-1.5 hover:bg-teal-700 transition-colors">
-              <Icon name="check" size={14} />
-              Enregistrer
-            </button>
-          )}
-        </div>
-      </div>
-    </ModalShell>
-  );
-}
-
-// ── Modale détail ───────────────────────────────────────────────────────────
-function DetailModal({ actu, gerer, onClose, onDelete, onEdit }) {
-  return (
-    <ModalShell onClose={onClose}>
-      <div className="w-full h-48 bg-gray-300 overflow-hidden">
-        <img src={actu.image || undefined} alt="Image actualité" className="w-full h-full object-cover" />
-      </div>
-      <div className="p-6 flex flex-col gap-4">
-        <h3 className="text-xl font-semibold text-teal-700">{actu.titre}</h3>
-        <div className="flex items-center gap-3 flex-wrap">
-          <span className={`text-[11px] font-medium px-3 py-0.5 rounded-full ${STATUT_CLASSES[actu.statut] ?? ''}`}>{actu.statut}</span>
-          <span className="text-xs text-gray-400">•</span>
-          <span className="text-xs text-gray-500 flex items-center gap-1">
-            <Icon name="calendar" size={13} />
-            {actu.date}
-          </span>
-          <span className="text-xs text-gray-400">•</span>
-          <span className="text-xs text-gray-500 flex items-center gap-1">
-            <Icon name="user" size={13} />
-            Par <span className="font-medium ml-1">{actu.auteur}</span>
-          </span>
-        </div>
-        <p className="text-sm text-gray-600 leading-relaxed">{actu.contenu}</p>
-        <div className={`flex ${gerer ? 'justify-between' : 'justify-end'} gap-2 pt-2 border-t border-black/10`}>
-          {gerer && <button onClick={onDelete} className="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-red-500 rounded-full px-4 py-1.5 hover:bg-red-600 transition-colors">
-            <Icon name="trash" size={14} />
-            Supprimer
-          </button>}
-          <div className="flex gap-2">
-            <button onClick={onClose} className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 border border-gray-300 rounded-full px-4 py-1.5 hover:bg-gray-100 transition-colors">
-              <Icon name="x" size={14} />
-              Fermer
-            </button>
-            {gerer && (
-              <button onClick={onEdit} className="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-teal-600 rounded-full px-4 py-1.5 hover:bg-teal-700 transition-colors">
-                <Icon name="edit" size={14} />
-                Modifier
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    </ModalShell>
-  );
-}
-
-// ── Modale recherche ────────────────────────────────────────────────────────
-function SearchModal({ actualites, onClose, onSelect }) {
-  const [query, setQuery] = useState('');
-  const inputRef = useRef(null);
-  useEffect(() => { const t = setTimeout(() => inputRef.current?.focus(), 100); return () => clearTimeout(t); }, []);
-
-  const q = query.toLowerCase();
-  const found = actualites.filter(a =>
-    a.titre.toLowerCase().includes(q) || a.contenu.toLowerCase().includes(q) || a.auteur.toLowerCase().includes(q),
-  );
-
-  return (
-    <ModalShell onClose={onClose} maxWidth="max-w-md">
-      <div className="p-6 flex flex-col gap-5">
-        <ModalHeader icon="search" title="Rechercher" color="text-[#F0B429]" onClose={onClose} />
-        <div className="relative">
-          <Icon name="search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="Rechercher une actualité..."
-            className="w-full border border-gray-300 rounded-xl pl-9 pr-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-[#F0B429] transition-colors"
-          />
-        </div>
-        <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
-          {!query ? (
-            <p className="text-sm text-gray-400">Tapez pour rechercher...</p>
-          ) : found.length === 0 ? (
-            <p className="text-sm text-gray-400">Aucun résultat trouvé.</p>
-          ) : (
-            found.map(a => (
-              <div
-                key={a.id}
-                onClick={() => onSelect(a.id)}
-                className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3 border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors"
-              >
-                <div>
-                  <p className="text-sm font-medium text-teal-700">{a.titre}</p>
-                  <p className="text-xs text-gray-400">{a.date} · {a.auteur}</p>
-                </div>
-                <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${STATUT_CLASSES[a.statut] ?? ''}`}>{a.statut}</span>
-              </div>
-            ))
-          )}
-        </div>
-        <div className="flex justify-end pt-2 border-t border-black/10">
-          <button onClick={onClose} className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 border border-gray-300 rounded-full px-4 py-1.5 hover:bg-gray-100 transition-colors">
-            <Icon name="x" size={14} />
-            Fermer
+          <button onClick={valider} className="rounded-lg bg-[#EC6F6F] px-4 py-2 text-xs font-bold text-[#001257] hover:opacity-90 transition">
+            {creation ? "Publier l'article" : 'Enregistrer'}
           </button>
         </div>
       </div>
-    </ModalShell>
-  );
-}
-
-// ── Page ────────────────────────────────────────────────────────────────────
-// Tout le monde (même un visiteur non connecté) voit les actualités publiées ;
-// avec le droit `actualites_gerer` on voit aussi les brouillons et on peut éditer.
-export default function Actualites() {
-  const { can } = useAuth();
-  const gerer = can('actualites_gerer');
-  const actualites = useAsync(gerer ? getActualites : getActualitesPubliees, [gerer]);
-  const liste = actualites.data ?? [];
-  // modale courante : { type: 'detail' | 'modifier' | 'creer' | 'rechercher', id? }
-  const [modal, setModal] = useState(null);
-  const closeModal = () => setModal(null);
-
-  const courante = liste.find(a => a.id === modal?.id);
-
-  async function creer(data) {
-    const actu = await createActualite(data);
-    actualites.setData(prev => [...prev, actu]);
-    closeModal();
-  }
-
-  async function modifier(data) {
-    const actu = await updateActualite(modal.id, data);
-    actualites.setData(prev => prev.map(a => (a.id === actu.id ? actu : a)));
-    closeModal();
-  }
-
-  async function supprimer() {
-    await deleteActualite(modal.id);
-    actualites.setData(prev => prev.filter(a => a.id !== modal.id));
-    closeModal();
-  }
-
-  return (
-    <>
-      <div className="flex-1 overflow-y-auto p-6 bg-[var(--color-page)]">
-        {/* Barre d'actions */}
-        <div className={`flex items-center ${gerer ? 'justify-between' : 'justify-end'} mb-6`}>
-          {gerer && <button
-            onClick={() => setModal({ type: 'creer' })}
-            className="inline-flex items-center gap-2 bg-[#E8735A] text-white font-semibold text-base px-5 py-2.5 rounded-full hover:brightness-90 transition"
-          >
-            <Icon name="news" size={18} />
-            Créer un article
-            <Icon name="plus" size={18} />
-          </button>}
-          <button
-            onClick={() => setModal({ type: 'rechercher' })}
-            className="inline-flex items-center gap-2 bg-[#F0B429] text-white font-semibold text-base px-5 py-2.5 rounded-full hover:brightness-90 transition"
-          >
-            <Icon name="search" size={18} />
-            Rechercher
-          </button>
-        </div>
-
-        {/* Grille */}
-        <DataState state={actualites}>{() => (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            {liste.map(actu => (
-              <div
-                key={actu.id}
-                className="bg-gray-200 rounded-3xl p-5 border border-black/[0.08] flex flex-col gap-4 hover:-translate-y-1 transition-transform duration-200"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="inline-flex items-center gap-1.5 bg-teal-600 text-white text-[11px] font-medium px-3 py-1 rounded-full uppercase tracking-wide">
-                    <Icon name="news" size={12} />
-                    Actualité
-                  </span>
-                  <span className="text-xs text-gray-500">{actu.date}</span>
-                </div>
-                <h2 className="text-lg font-semibold text-teal-700 leading-snug">{actu.titre}</h2>
-                <div className="flex gap-3 items-start">
-                  <p className="flex-1 text-sm text-gray-600 leading-relaxed line-clamp-3">{actu.contenu}</p>
-                  <div className="w-[100px] h-[80px] rounded-xl overflow-hidden flex-shrink-0 bg-gray-400">
-                    <img src={actu.image || undefined} alt="Actualité" className="w-full h-full object-cover" />
-                  </div>
-                </div>
-                <div className="border-t border-black/10 pt-3 flex items-center justify-between">
-                  <div className="flex flex-col gap-0.5">
-                    <span className={`text-[11px] px-2 py-0.5 rounded-full ${STATUT_CLASSES[actu.statut] ?? ''}`}>{actu.statut}</span>
-                    <span className="text-[11px] text-gray-400">Par {actu.auteur}</span>
-                  </div>
-                  <button
-                    onClick={() => setModal({ type: 'detail', id: actu.id })}
-                    className="inline-flex items-center gap-1 text-xs font-medium text-teal-700 border border-teal-700 rounded-full px-3 py-1 hover:bg-teal-50 transition-colors"
-                  >
-                    + d'informations
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}</DataState>
-      </div>
-
-      {modal?.type === 'creer' && <ArticleForm onSubmit={creer} onClose={closeModal} />}
-      {modal?.type === 'modifier' && courante && <ArticleForm actu={courante} onSubmit={modifier} onClose={closeModal} />}
-      {modal?.type === 'detail' && courante && (
-        <DetailModal
-          actu={courante}
-          gerer={gerer}
-          onClose={closeModal}
-          onDelete={supprimer}
-          onEdit={() => setModal({ type: 'modifier', id: courante.id })}
-        />
-      )}
-      {modal?.type === 'rechercher' && (
-        <SearchModal actualites={liste} onClose={closeModal} onSelect={id => setModal({ type: 'detail', id })} />
-      )}
-    </>
+    </Modal>
   );
 }

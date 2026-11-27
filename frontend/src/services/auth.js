@@ -3,7 +3,7 @@ import { LS_UTILISATEURS, loadJSON } from './storage.js';
 import { DROITS_PAR_ROLE, USERS } from '@/mocks/users.js';
 import { UTILISATEURS_MOCK } from '@/mocks/utilisateurs.js';
 
-// Renvoie l'utilisateur connecté { id, identifiant, role, nom, prenom?, droits } ou lève une erreur
+// Renvoie l'utilisateur connecté { id, identifiant, email, role, nom, prenom, photo_url, droits } ou lève une erreur
 export async function login(identifiant, motDePasse) {
   if (!USE_MOCKS) {
     const data = await api.post(
@@ -32,11 +32,13 @@ export async function login(identifiant, motDePasse) {
       role: compteCree.role,
       nom: compteCree.nom,
       prenom: compteCree.prenom,
+      photo_url: compteCree.photo_url ?? null,
       droits: DROITS_PAR_ROLE[compteCree.role] ?? [],
     };
   }
 
-  const user = USERS.find(u => u.identifiant === identifiant && u.motDePasse === motDePasse);
+  // Comme le back : identifiant ou e-mail
+  const user = USERS.find(u => (u.identifiant === identifiant || u.email === identifiant) && u.motDePasse === motDePasse);
   if (!user) throw new Error('Identifiants incorrects');
   const { motDePasse: _, ...publicUser } = user;
   return publicUser;

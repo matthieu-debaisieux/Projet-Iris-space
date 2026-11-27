@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { DevTools } from '@/components/layout/DevPanel.jsx';
 import { useAuth } from '@/context/AuthContext.jsx';
 import { useAsync } from '@/hooks/useAsync.js';
+import { nomComplet } from '@/services/utilisateur.js';
 import { devAddConversation, devResetConversations, getConversations, sendMessage } from '@/services/conversations.js';
 
 const lastPreview = conv => conv.messages.length ? conv.messages[conv.messages.length - 1].text : 'Nouvelle conversation';
@@ -117,7 +118,7 @@ function Messagerie({ chat }) {
         {/* profil utilisateur courant */}
         <div className="flex flex-col items-center gap-2 px-6 pt-6">
           <div className="w-16 h-16 rounded-full bg-[var(--color-background)] shrink-0" />
-          <p className="text-white text-lg font-semibold tracking-wide">{user?.nom}</p>
+          <p className="text-white text-lg font-semibold tracking-wide">{nomComplet(user)}</p>
         </div>
 
         {/* barre de recherche */}

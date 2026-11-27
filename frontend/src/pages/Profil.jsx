@@ -1,13 +1,18 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DataState from '@/components/ui/DataState.jsx';
 import Modal from '@/components/ui/Modal.jsx';
 import { useAuth } from '@/context/AuthContext.jsx';
 import { useAsync } from '@/hooks/useAsync.js';
+import { useProfilPhoto } from '@/hooks/useProfilPhoto.js';
 import { getMonProfil } from '@/services/profil.js';
 
-const inputClass = 'rounded-md border border-gray-300 bg-white py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-principal)]';
-const labelClass = 'text-[var(--color-principal)] font-semibold text-sm';
+const card = 'bg-white rounded-2xl border border-[#E1E5EE] p-6';
+const btnPrincipal = 'inline-flex items-center justify-center gap-2 rounded-lg bg-[#EC6F6F] px-4 py-2.5 text-sm font-bold text-[#001257] hover:opacity-90 transition';
+const btnSecondaire = 'inline-flex items-center justify-center gap-2 rounded-lg border border-[#E1E5EE] bg-white px-4 py-2.5 text-sm font-semibold text-[#001257] hover:bg-[#EEF1F7] transition';
+
+// "John Doe" → "JD"
+const initiales = (...parties) => parties.join(' ').split(' ').filter(Boolean).slice(0, 2).map(m => m[0]).join('').toUpperCase();
 
 const ROLE_LABELS = {
   eleve: 'Élève',
@@ -50,29 +55,40 @@ function formaterDateHeure(valeur) {
 }
 
 // Champ en lecture seule
-function Champ({ id, label, value, type = 'text', width = 'w-full px-3', placeholder = 'Non renseigné' }) {
+function Champ({ id, label, value, type = 'text', placeholder = 'Non renseigné' }) {
   return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={id} className={labelClass}>{label}</label>
+    <div>
+      <label htmlFor={id} className="block mb-1.5 text-xs font-semibold text-[#6B7185]">{label}</label>
       <input
-        type={type}
         id={id}
         name={id}
-        className={`${width} ${inputClass}`}
+        type={type}
+        readOnly
         value={value ?? ''}
         placeholder={placeholder}
-        readOnly
+        className="w-full rounded-lg border border-[#E1E5EE] bg-[#F7F8FB] px-3 py-2.5 text-sm text-[#1A1D2E] focus:outline-none"
       />
     </div>
   );
 }
 
+const Icone = ({ d, size = 18 }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d={d} />
+  </svg>
+);
+const ICONES = {
+  camera: 'M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+  aide: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3 M12 17h.01',
+  sortie: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9',
+  corbeille: 'M3 6h18 M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2 M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6',
+};
+
 export default function Profil() {
-  const [contactOpen, setContactOpen] = useState(false);
-  const closeContact = () => setContactOpen(false);
   const { user, logout } = useAuth();
   const profil = useAsync(() => getMonProfil(user), [user?.id, user?.role]);
   const navigate = useNavigate();
+  const [contactOuvert, setContactOuvert] = useState(false);
 
   async function deconnexion() {
     await logout();
@@ -81,201 +97,220 @@ export default function Profil() {
 
   return (
     <>
-      {/* corps de page : sidebar + contenu */}
-      <div className="flex flex-1 overflow-hidden">
-        <aside className="hidden md:flex flex-col justify-between w-56 shrink-0 bg-white border-r border-gray-200 py-6 px-5">
-          <nav className="flex flex-col gap-5">
-            <button
-              type="button"
-              onClick={() => setContactOpen(true)}
-              className="flex items-center gap-3 text-[var(--color-principal)] font-medium hover:-translate-y-0.5 transition-transform duration-200 text-left"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-                <line x1="12" y1="17" x2="12.01" y2="17" />
-              </svg>
-              Nous contacter
-            </button>
-          </nav>
-
-          <nav className="flex flex-col gap-1">
-            <Link to="/profil" className="flex items-center gap-3 text-[var(--color-principal)] font-semibold border-l-4 border-[var(--color-principal)] bg-gray-100 -ml-5 pl-4 py-2 rounded-r-md">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="11" width="18" height="11" rx="2" />
-                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-              </svg>
-              Informations
-            </Link>
-            <button type="button" onClick={deconnexion} className="flex items-center gap-3 text-[var(--color-principal)] font-medium hover:-translate-y-0.5 transition-transform duration-200 pl-0 pt-3 text-left">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18.36 6.64a9 9 0 1 1-12.73 0" />
-                <line x1="12" y1="2" x2="12" y2="12" />
-              </svg>
-              Déconnexion
-            </button>
-          </nav>
-        </aside>
-
-        <main className="flex-1 overflow-auto p-6 md:p-10">
-          {/* Actions mobiles (sidebar masquée sous md) */}
-          <div className="flex md:hidden items-center justify-between gap-3 max-w-4xl mx-auto mb-4">
-            <button
-              type="button"
-              onClick={() => setContactOpen(true)}
-              className="btn btn-sm btn-outline text-[var(--color-principal)]"
-            >
-              Nous contacter
-            </button>
-            <button
-              type="button"
-              onClick={deconnexion}
-              className="btn btn-sm bg-[var(--color-button)] text-white border-0"
-            >
-              Déconnexion
-            </button>
+      <div className="flex-1 overflow-y-auto bg-[var(--color-page)]">
+        <div className="mx-auto w-full max-w-[1100px] px-4 sm:px-6 py-6 sm:py-8 flex flex-col gap-6">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#001257]">Mon profil</h1>
+            <p className="mt-1 text-sm text-[#6B7185]">Vos informations et votre photo.</p>
           </div>
 
           <DataState state={profil}>{p => {
             const role = p.role ?? user?.role ?? 'eleve';
             const dateBrute = p.date_naissance ?? p.dateNaissance;
             const [jour, mois, annee] = decomposerDate(dateBrute);
+            const dateFormatee = jour && mois && annee ? `${jour}/${mois}/${annee}` : '';
             const age = p.age != null ? String(p.age) : calculerAge(dateBrute);
+            const anneeScolaire = p.annee_scolaire ?? p.anneeScolaire;
             const estEleve = role === 'eleve';
             const estProf = role === 'professeur' || role === 'prof';
             const estAdmin = role === 'administrateur' || role === 'direction' || role === 'admin' || role === 'dev';
 
             return (
-              <form className="bg-gray-200/70 rounded-2xl p-6 md:p-8 max-w-4xl mx-auto">
-                <div className="flex flex-wrap items-center justify-between gap-3 pb-6 mb-6 border-b border-gray-300">
-                  <div>
-                    <h1 className="text-xl font-bold text-[var(--color-principal)]">
+              <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6 items-start">
+                {/* ── Colonne gauche : photo + identité + actions ── */}
+                <aside className={`${card} flex flex-col items-center gap-5 text-center`}>
+                  <PhotoProfil prenom={p.prenom} nom={p.nom} />
+                  <div className="flex flex-col items-center gap-1.5">
+                    <p className="text-lg font-bold text-[#001257]">
                       {[p.prenom, p.nom].filter(Boolean).join(' ') || p.identifiant}
-                    </h1>
-                    {p.identifiant && (
-                      <p className="text-xs text-gray-500 mt-0.5">Identifiant : {p.identifiant}</p>
+                    </p>
+                    <span className="rounded-full bg-[#001257] px-3 py-0.5 text-xs font-semibold text-white">
+                      {ROLE_LABELS[role] ?? 'Utilisateur'}
+                    </span>
+                    {estEleve && (p.classe || anneeScolaire) && (
+                      <p className="text-sm text-[#6B7185]">
+                        {[p.classe, anneeScolaire].filter(Boolean).join(' · ')}
+                      </p>
+                    )}
+                    {!estEleve && p.identifiant && (
+                      <p className="text-xs text-[#6B7185]">@{p.identifiant}</p>
                     )}
                   </div>
-                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--color-principal)] text-white">
-                    {ROLE_LABELS[role] ?? 'Utilisateur'}
-                  </span>
-                </div>
+                  <div className="flex w-full flex-col gap-2 border-t border-[#E1E5EE] pt-5">
+                    <button type="button" onClick={() => setContactOuvert(true)} className={btnSecondaire}>
+                      <Icone d={ICONES.aide} /> Nous contacter
+                    </button>
+                    <button type="button" onClick={deconnexion} className={btnSecondaire}>
+                      <Icone d={ICONES.sortie} /> Déconnexion
+                    </button>
+                  </div>
+                </aside>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-10 gap-y-6">
-                  <Champ id="nom" label="Nom" value={p.nom} />
-                  <Champ id="prenom" label="Prénom" value={p.prenom} />
-                  <Champ id="identifiant" label="Identifiant" value={p.identifiant} />
-
-                  <Champ id="email" label="Email" value={p.email} type="email" />
-                  <Champ id="telephone" label="Téléphone" value={p.telephone} />
-                  <Champ id="age" label="Âge" value={age} width="w-24 px-3" placeholder="—" />
-
-                  <div className="flex flex-col gap-1">
-                    <label className={labelClass}>Date de naissance</label>
-                    <div className="flex gap-2">
-                      <input type="text" name="jour" placeholder="JJ" maxLength={2} className={`w-14 px-2 text-center ${inputClass}`} value={jour} readOnly />
-                      <input type="text" name="mois" placeholder="MM" maxLength={2} className={`w-14 px-2 text-center ${inputClass}`} value={mois} readOnly />
-                      <input type="text" name="annee" placeholder="AAAA" maxLength={4} className={`w-16 px-2 text-center ${inputClass}`} value={annee} readOnly />
+                {/* ── Colonne droite : informations adaptées au rôle (lecture seule) ── */}
+                <form className={card} onSubmit={e => e.preventDefault()}>
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <h2 className="text-base font-bold text-[#001257]">Informations personnelles</h2>
+                      <p className="mt-1 mb-5 text-xs text-[#6B7185]">
+                        Ces informations ne sont pas modifiables ici. Pour une correction, contactez le service scolarité.
+                      </p>
                     </div>
                   </div>
-                  <Champ id="lieu-naissance" label="Lieu de naissance" value={p.lieu_naissance ?? p.lieuNaissance} />
-                  <Champ id="pays-naissance" label="Pays de naissance" value={p.pays_naissance ?? p.paysNaissance} />
 
-                  <Champ id="nationalite" label="Nationalité" value={p.nationalite} />
-                  {p.adresse && <Champ id="adresse" label="Adresse" value={p.adresse} />}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                    {p.civilite && <Champ id="civilite" label="Civilité" value={p.civilite} />}
+                    <Champ id="nom" label="Nom" value={p.nom} />
+                    <Champ id="prenom" label="Prénom" value={p.prenom} />
+                    <Champ id="identifiant" label="Identifiant" value={p.identifiant} />
+                    <Champ id="email" label="Email" value={p.email} type="email" />
+                    <Champ id="telephone" label="Téléphone" value={p.telephone} />
+                    <Champ id="age" label="Âge" value={age} placeholder="—" />
+                    <Champ id="naissance" label="Date de naissance" value={dateFormatee} />
+                    <Champ id="lieu-naissance" label="Lieu de naissance" value={p.lieu_naissance ?? p.lieuNaissance} />
+                    <Champ id="pays-naissance" label="Pays de naissance" value={p.pays_naissance ?? p.paysNaissance} />
+                    <Champ id="nationalite" label="Nationalité" value={p.nationalite} />
+                    {p.adresse && <Champ id="adresse" label="Adresse" value={p.adresse} />}
 
-                  {estEleve && (
-                    <>
-                      <Champ id="classe" label="Classe" value={p.classe} />
-                      <Champ id="annee-scolaire" label="Année scolaire" value={p.annee_scolaire ?? p.anneeScolaire} />
-                      {p.numero_etudiant && (
-                        <Champ id="numero-etudiant" label="Numéro étudiant" value={p.numero_etudiant} />
-                      )}
-                    </>
-                  )}
+                    {estEleve && (
+                      <>
+                        <Champ id="classe" label="Classe" value={p.classe} />
+                        <Champ id="annee-scolaire" label="Année scolaire" value={anneeScolaire} />
+                        {p.numero_etudiant && (
+                          <Champ id="numero-etudiant" label="Numéro étudiant" value={p.numero_etudiant} />
+                        )}
+                      </>
+                    )}
 
-                  {estAdmin && (
-                    <>
-                      <Champ id="role-label" label="Fonction" value={ROLE_LABELS[role] ?? role} />
-                      <Champ
-                        id="derniere-connexion"
-                        label="Dernière connexion"
-                        value={formaterDateHeure(p.derniere_connexion)}
-                        placeholder="Première connexion"
-                      />
-                    </>
-                  )}
-                </div>
-
-                {estProf && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-6 border-t border-gray-300">
-                    <div>
-                      <p className={`${labelClass} mb-2`}>Matières enseignées</p>
-                      {Array.isArray(p.matieres) && p.matieres.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {p.matieres.map(m => (
-                            <span key={m.id ?? m.nom} className="px-3 py-1 rounded-full text-xs font-medium bg-white border border-gray-300 text-gray-700">
-                              {m.nom}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-xs text-gray-500">Aucune matière rattachée.</p>
-                      )}
-                    </div>
-                    <div>
-                      <p className={`${labelClass} mb-2`}>Classes</p>
-                      {Array.isArray(p.classes) && p.classes.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {p.classes.map(c => (
-                            <span key={c.id ?? c.nom} className="px-3 py-1 rounded-full text-xs font-medium bg-white border border-gray-300 text-gray-700">
-                              {c.nom}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-xs text-gray-500">Aucun cours planifié pour le moment.</p>
-                      )}
-                    </div>
+                    {estAdmin && (
+                      <>
+                        <Champ id="role-label" label="Fonction" value={ROLE_LABELS[role] ?? role} />
+                        <Champ
+                          id="derniere-connexion"
+                          label="Dernière connexion"
+                          value={formaterDateHeure(p.derniere_connexion)}
+                          placeholder="Première connexion"
+                        />
+                      </>
+                    )}
                   </div>
-                )}
-              </form>
+
+                  {estProf && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-6 pt-6 border-t border-[#E1E5EE]">
+                      <div>
+                        <p className="mb-2 text-xs font-semibold text-[#6B7185]">Matières enseignées</p>
+                        {Array.isArray(p.matieres) && p.matieres.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {p.matieres.map(m => (
+                              <span key={m.id ?? m.nom} className="rounded-full bg-[#EEF1F7] px-3 py-1 text-xs font-medium text-[#001257]">
+                                {m.nom}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-[#6B7185]">Aucune matière rattachée.</p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="mb-2 text-xs font-semibold text-[#6B7185]">Classes</p>
+                        {Array.isArray(p.classes) && p.classes.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {p.classes.map(c => (
+                              <span key={c.id ?? c.nom} className="rounded-full bg-[#EEF1F7] px-3 py-1 text-xs font-medium text-[#001257]">
+                                {c.nom}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-[#6B7185]">Aucun cours planifié pour le moment.</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </form>
+              </div>
             );
           }}</DataState>
-        </main>
+        </div>
       </div>
 
-      {/* Modale "Nous contacter" */}
-      {contactOpen && (
-        <Modal onClose={closeContact} className="max-w-md rounded-2xl p-6 shadow-xl" label="Nous contacter">
-          <div className="flex items-start justify-between gap-4">
+      {contactOuvert && (
+        <Modal onClose={() => setContactOuvert(false)} className="max-w-md rounded-2xl p-6" label="Nous contacter">
+          <div className="flex flex-col gap-4">
             <div>
-              <h2 className="text-lg font-semibold text-[var(--color-principal)]">Nous contacter</h2>
-              <p className="mt-2 text-sm text-gray-600">Vous pouvez joindre l’équipe pédagogique ou le service scolarité pour toute modification.</p>
+              <h2 className="text-lg font-bold text-[#001257]">Nous contacter</h2>
+              <p className="mt-1 text-sm text-[#6B7185]">Vous pouvez joindre l'équipe pédagogique ou le service scolarité pour toute modification.</p>
             </div>
-            <button type="button" onClick={closeContact} className="text-2xl leading-none text-gray-400 hover:text-gray-600" aria-label="Fermer la fenêtre">×</button>
-          </div>
-
-          <div className="mt-5 space-y-3 text-sm text-gray-700">
-            <div className="rounded-lg bg-gray-50 p-3">
-              <p className="font-semibold text-[var(--color-principal)]">Email</p>
-              <p>contact@mediaschool.eu</p>
+            {[['Email', 'contact@mediaschool.eu'], ['Téléphone', '01 23 45 67 89'], ['Bureau', 'Service scolarité – Bâtiment A, salle 12']].map(([titre, valeur]) => (
+              <div key={titre} className="rounded-xl bg-[#EEF1F7] px-4 py-3">
+                <p className="text-xs font-semibold text-[#6B7185]">{titre}</p>
+                <p className="text-sm font-medium text-[#1A1D2E]">{valeur}</p>
+              </div>
+            ))}
+            <div className="flex justify-end pt-2">
+              <button type="button" onClick={() => setContactOuvert(false)} className={btnPrincipal}>Fermer</button>
             </div>
-            <div className="rounded-lg bg-gray-50 p-3">
-              <p className="font-semibold text-[var(--color-principal)]">Téléphone</p>
-              <p>01 23 45 67 89</p>
-            </div>
-            <div className="rounded-lg bg-gray-50 p-3">
-              <p className="font-semibold text-[var(--color-principal)]">Bureau</p>
-              <p>Service scolarité – Bâtiment A, salle 12</p>
-            </div>
-          </div>
-
-          <div className="mt-6 flex justify-end">
-            <button type="button" onClick={closeContact} className="rounded-full bg-[var(--color-principal)] px-4 py-2 text-sm font-medium text-white hover:opacity-90">Fermer</button>
           </div>
         </Modal>
       )}
     </>
+  );
+}
+
+// ── Photo de profil : aperçu + envoi d'une image depuis l'ordinateur ────────
+function PhotoProfil({ prenom, nom }) {
+  const { photo, enregistrer, supprimer } = useProfilPhoto();
+  const entree = useRef(null);
+  const [erreur, setErreur] = useState('');
+  const [enCours, setEnCours] = useState(false);
+
+  async function choisir(e) {
+    const fichier = e.target.files?.[0];
+    e.target.value = ''; // permet de rechoisir le même fichier
+    if (!fichier) return;
+    setErreur('');
+    setEnCours(true);
+    try {
+      await enregistrer(fichier);
+    } catch (err) {
+      setErreur(err.message);
+    } finally {
+      setEnCours(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-3">
+      <button
+        type="button"
+        onClick={() => entree.current?.click()}
+        aria-label="Changer la photo de profil"
+        className="group relative h-32 w-32 overflow-hidden rounded-full bg-[#F8B005] ring-4 ring-[#EEF1F7] focus:outline-none focus-visible:ring-[#001257]"
+      >
+        {photo
+          ? <img src={photo} alt="Ma photo de profil" className="h-full w-full object-cover" />
+          : <span className="flex h-full w-full items-center justify-center text-4xl font-bold text-[#001257]">{initiales(prenom, nom) || '?'}</span>}
+        <span className="absolute inset-0 flex items-center justify-center bg-[#001257]/55 text-white opacity-0 transition group-hover:opacity-100 group-focus-visible:opacity-100">
+          <Icone d={ICONES.camera} size={26} />
+        </span>
+      </button>
+
+      <input ref={entree} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={choisir} />
+
+      <div className="flex gap-2">
+        <button type="button" onClick={() => entree.current?.click()} disabled={enCours}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-[#EC6F6F] px-3 py-2 text-xs font-bold text-[#001257] hover:opacity-90 disabled:opacity-60 transition">
+          <Icone d={ICONES.camera} size={15} /> {enCours ? 'Envoi…' : photo ? 'Changer la photo' : 'Ajouter une photo'}
+        </button>
+        {photo && (
+          <button type="button" onClick={() => { supprimer(); setErreur(''); }}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[#E1E5EE] px-3 py-2 text-xs font-semibold text-[#B23A3A] hover:bg-[#FBE6E6] transition">
+            <Icone d={ICONES.corbeille} size={15} /> Retirer
+          </button>
+        )}
+      </div>
+
+      <p className="text-xs text-[#6B7185]">PNG, JPG ou WebP · 5 Mo maximum</p>
+      {erreur && <p role="alert" className="text-xs font-medium text-[#B23A3A]">{erreur}</p>}
+    </div>
   );
 }

@@ -6,10 +6,11 @@ export const USE_MOCKS = import.meta.env.VITE_USE_MOCKS !== 'false';
 export const BASE_URL = import.meta.env.VITE_API_URL ?? '/api';
 
 export class ApiError extends Error {
-  constructor(message, status) {
+  constructor(message, status, data = null) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    this.data = data;
   }
 }
 
@@ -21,6 +22,7 @@ export function setUnauthorizedHandler(handler) {
 
 export async function apiFetch(path, { method = 'GET', body, skipUnauthorized = false } = {}) {
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+
   const res = await fetch(BASE_URL + path, {
     method,
     headers: body !== undefined && !isFormData ? { 'Content-Type': 'application/json' } : undefined,
@@ -29,28 +31,33 @@ export async function apiFetch(path, { method = 'GET', body, skipUnauthorized = 
   });
 
   if (!res.ok) {
-    let message = `${method} ${path} → ${res.status}`;
+    let data = null;
     try {
-      const payload = await res.json();
-      if (payload && typeof payload.error === 'string' && payload.error.trim() !== '') {
-        message = payload.error;
-      }
+      data = await res.json();
     } catch {
       // Réponse non-JSON : on conserve le message par défaut
     }
+
+    const message =
+      data && typeof data.error === 'string' && data.error.trim() !== ''
+        ? data.error
+        : `${method} ${path} → ${res.status}`;
+
     if (res.status === 401 && !skipUnauthorized && onUnauthorized) {
       onUnauthorized();
     }
-    throw new ApiError(message, res.status);
+
+    throw new ApiError(message, res.status, data);
   }
 
   return res.status === 204 ? null : res.json();
 }
 
 export const api = {
-  get:    (path, opts)       => apiFetch(path, { ...opts, method: 'GET' }),
-  post:   (path, body, opts) => apiFetch(path, { ...opts, method: 'POST', body }),
-  put:    (path, body, opts) => apiFetch(path, { ...opts, method: 'PUT', body }),
-  patch:  (path, body, opts) => apiFetch(path, { ...opts, method: 'PATCH', body }),
-  delete: (path, opts)       => apiFetch(path, { ...opts, method: 'DELETE' }),
+  get:    (path, opts)                     => apiFetch(path, { ...opts, method: 'GET' }),
+  post:   (path, body, opts)               => apiFetch(path, { ...opts, method: 'POST', body }),
+  put:    (path, body, opts)               => apiFetch(path, { ...opts, method: 'PUT', body }),
+  patch:  (path, body, opts)               => apiFetch(path, { ...opts, method: 'PATCH', body }),
+  delete: (path, opts)                     => apiFetch(path, { ...opts, method: 'DELETE' }),
+  upload: (path, formData, method = 'POST', opts) => apiFetch(path, { ...opts, method, body: formData }),
 };

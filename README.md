@@ -52,7 +52,7 @@ npm run dev     # serveur de développement
 npm run build   # build de production dans dist/
 ```
 
-Comptes de test (mode mock) : `admin` / `admin`, `prof` / `prof`, `eleve` / `eleve`, `dev` / `dev`.
+Comptes de test (mode mock) : `admin` / `admin`, `direction` / `direction`, `prof` / `prof`, `eleve` / `eleve`, `dev` / `dev`.
 Les espaces `/visiteur` et `/mediaschool` sont publics.
 
 ## Lancer le back (API Slim) sans Docker
@@ -107,7 +107,8 @@ Règles :
 - Imports avec l'alias `@/` (= `src/`), par ex. `import Modal from '@/components/ui/Modal.jsx'`.
 - **Pas de page par type d'utilisateur** : une URL unique par fonctionnalité, et ce qui s'affiche
   dépend des droits de l'utilisateur (`user.droits`, renvoyés par le back depuis la base).
-  On ne teste jamais `user.role` : dans la page, `const { can } = useAuth();` puis
+  On ne teste jamais `user.role` dans une page (si le rôle compte vraiment : `estAdmin`, `estProf`, `estEleve`
+  de `services/utilisateur.js`) : dans la page, `const { can } = useAuth();` puis
   `{can('documents_gerer') && <button>…</button>}`. Liste des droits : `mocks/users.js`.
 - Une nouvelle page du menu = un fichier dans `pages/` + une ligne dans `routes/navigation.js`.
 - Le panel DEV est affiché si l'utilisateur a le droit `outils_dev` ; une page y ajoute ses boutons
@@ -132,6 +133,6 @@ Le contrat officiel entre le front-end et le back-end est décrit dans [`backend
 Toute nouvelle route ou modification de format doit d'abord y être documentée avant d'être implémentée.
 
 Points essentiels :
-- `POST /api/auth/login` attend `{ identifiant, mot_de_passe }` et renvoie `{ user }` contenant la liste `droits` déduite du rôle (voir [`frontend/src/mocks/users.js`](frontend/src/mocks/users.js)).
+- `POST /api/auth/login` attend `{ identifiant, mot_de_passe }` et renvoie `{ user }` (`{ id, identifiant, email, role, nom, prenom, photo_url, droits }`), où `role` vaut `administrateur`, `direction`, `professeur`, `eleve` ou `dev` et `droits` est déduit du rôle (voir [`frontend/src/mocks/users.js`](frontend/src/mocks/users.js)).
 - `GET /api/auth/me` restaure la session courante (ou répond `401`).
 - Les formulaires d'envoi de fichiers utilisent `FormData` (champ `fichier`).
