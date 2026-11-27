@@ -1,10 +1,8 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { envoyerContact } from '@/services/contact.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Page visiteur « Nous contacter » (maquette Figma).
-// Version SANS back : l'envoi du formulaire est simulé. Quand l'API sera prête,
-// appeler le service dans `envoyer` avant d'afficher le message de confirmation.
 // TODO : remplacer les coordonnées et les liens ci-dessous par les vrais.
 // ─────────────────────────────────────────────────────────────────────────────
 const COORDONNEES = [
@@ -29,27 +27,44 @@ export default function Contact() {
   const [form, setForm] = useState({ nom: '', prenom: '', email: '', message: '' });
   const [erreurs, setErreurs] = useState({});
   const [envoye, setEnvoye] = useState(false);
+  const [envoiEnCours, setEnvoiEnCours] = useState(false);
+  const [erreurMessage, setErreurMessage] = useState(null);
 
   const modifier = nom => e => {
     setForm(f => ({ ...f, [nom]: e.target.value }));
     setErreurs(er => ({ ...er, [nom]: false }));
     setEnvoye(false);
+    setErreurMessage(null);
   };
 
-  const envoyer = e => {
+  const envoyer = async e => {
     e.preventDefault();
+    setErreurMessage(null);
+    setEnvoye(false);
+
     const errs = {
       nom: !form.nom.trim(),
-      prenom: !form.prenom.trim(),
       email: !EMAIL_VALIDE.test(form.email.trim()),
       message: !form.message.trim(),
     };
     setErreurs(errs);
     if (Object.values(errs).some(Boolean)) return;
 
-    // TODO : appeler l'API ici
-    setForm({ nom: '', prenom: '', email: '', message: '' });
-    setEnvoye(true);
+    setEnvoiEnCours(true);
+    try {
+      await envoyerContact({
+        nom: form.nom.trim(),
+        prenom: form.prenom.trim(),
+        email: form.email.trim(),
+        message: form.message.trim(),
+      });
+      setForm({ nom: '', prenom: '', email: '', message: '' });
+      setEnvoye(true);
+    } catch (err) {
+      setErreurMessage(err?.message || "Une erreur est survenue lors de l'envoi.");
+    } finally {
+      setEnvoiEnCours(false);
+    }
   };
 
   return (
@@ -106,27 +121,67 @@ export default function Contact() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="contact-nom" className={etiquette}>Nom</label>
-                  <input id="contact-nom" type="text" autoComplete="family-name" value={form.nom} onChange={modifier('nom')} placeholder="Votre nom" className={champ(erreurs.nom)} />
+                  <input
+                    id="contact-nom"
+                    type="text"
+                    autoComplete="family-name"
+                    maxLength={100}
+                    value={form.nom}
+                    onChange={modifier('nom')}
+                    placeholder="Votre nom"
+                    className={champ(erreurs.nom)}
+                  />
                 </div>
                 <div>
                   <label htmlFor="contact-prenom" className={etiquette}>Prénom</label>
-                  <input id="contact-prenom" type="text" autoComplete="given-name" value={form.prenom} onChange={modifier('prenom')} placeholder="Votre prénom" className={champ(erreurs.prenom)} />
+                  <input
+                    id="contact-prenom"
+                    type="text"
+                    autoComplete="given-name"
+                    maxLength={100}
+                    value={form.prenom}
+                    onChange={modifier('prenom')}
+                    placeholder="Votre prénom"
+                    className={champ(erreurs.prenom)}
+                  />
                 </div>
               </div>
 
               <div>
                 <label htmlFor="contact-email" className={etiquette}>E-mail</label>
-                <input id="contact-email" type="email" autoComplete="email" value={form.email} onChange={modifier('email')} placeholder="vous@exemple.fr" className={champ(erreurs.email)} />
+                <input
+                  id="contact-email"
+                  type="email"
+                  autoComplete="email"
+                  maxLength={254}
+                  value={form.email}
+                  onChange={modifier('email')}
+                  placeholder="vous@exemple.fr"
+                  className={champ(erreurs.email)}
+                />
               </div>
 
               <div>
                 <label htmlFor="contact-message" className={etiquette}>Message</label>
-                <textarea id="contact-message" rows={4} value={form.message} onChange={modifier('message')} placeholder="Votre message…" className={`${champ(erreurs.message)} resize-none`} />
+                <textarea
+                  id="contact-message"
+                  rows={4}
+                  maxLength={5000}
+                  value={form.message}
+                  onChange={modifier('message')}
+                  placeholder="Votre message…"
+                  className={`${champ(erreurs.message)} resize-none`}
+                />
               </div>
 
               {Object.values(erreurs).some(Boolean) && (
                 <p role="alert" className="text-xs font-medium text-[#B23A3A]">
-                  Veuillez remplir tous les champs avec une adresse e-mail valide.
+                  Veuillez remplir tous les champs obligatoires avec une adresse e-mail valide.
+                </p>
+              )}
+              {erreurMessage && (
+                <p role="alert" className="rounded-lg bg-[#FBE6E6] px-4 py-3 text-sm font-semibold text-[#B23A3A]">
+                  {erreurMessage}
                 </p>
               )}
               {envoye && (
@@ -137,9 +192,10 @@ export default function Contact() {
 
               <button
                 type="submit"
-                className="w-full rounded-xl bg-[var(--color-button)] px-4 py-3 text-sm font-bold text-[#001257] hover:opacity-90 transition"
+                disabled={envoiEnCours}
+                className="w-full rounded-xl bg-[var(--color-button)] px-4 py-3 text-sm font-bold text-[#001257] hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Envoyer
+                {envoiEnCours ? 'Envoi en cours…' : 'Envoyer'}
               </button>
             </form>
           </section>
