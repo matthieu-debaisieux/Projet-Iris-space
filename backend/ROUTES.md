@@ -30,7 +30,7 @@ Les sections marquées **(fait)** plus bas sont aussi codées :
 - Les routes communes n'ont pas de préfixe : auth, actualités, messagerie.
 - Les routes propres à un espace vont sous `/api/admin`, `/api/prof` et `/api/eleve`. Chaque groupe est protégé par le middleware `requireRole()` de [helpers.php](routes/helpers.php) : 401 si personne n'est connecté, 403 si le rôle ne correspond pas.
 - Côté élève, l'id vient de la session et jamais de l'URL, pour qu'un élève ne puisse pas lire les notes d'un autre.
-- Un fichier de routes par espace : [admin/documents.php](routes/admin/documents.php), [admin/utilisateurs.php](routes/admin/utilisateurs.php), [eleve.php](routes/eleve.php), [prof.php](routes/prof.php), [visiteur.php](routes/visiteur.php), [rgpd.php](routes/rgpd.php) et [admin/rgpd.php](routes/admin/rgpd.php). Les actualités, partagées entre plusieurs rôles, ont leur propre fichier sans préfixe : [actualites.php](routes/actualites.php). Ils sont branchés dans [index.php](public/index.php).
+- Un fichier de routes par espace : [admin/documents.php](routes/admin/documents.php), [admin/utilisateurs.php](routes/admin/utilisateurs.php), [admin/programme.php](routes/admin/programme.php), [eleve.php](routes/eleve.php), [prof.php](routes/prof.php), [visiteur.php](routes/visiteur.php), [rgpd.php](routes/rgpd.php) et [admin/rgpd.php](routes/admin/rgpd.php). Les actualités, partagées entre plusieurs rôles, ont leur propre fichier sans préfixe : [actualites.php](routes/actualites.php). Ils sont branchés dans [index.php](public/index.php).
 
 ## Conventions de l'API (pour le front)
 
@@ -179,6 +179,8 @@ Comportement :
   - `{ "matieres": [{ "matiere_id": 1, "coefficient": 2 }] }` pour une classe.
 
   Retirer une matière encore utilisée par des cours, devoirs ou évaluations répond 409.
+- Page « Programme » (droit `programme_gerer`, accordé à `administrateur`, `direction` et `dev`) : elle lit les trois routes `GET /api/admin/programme/…` et écrit avec `POST /api/admin/matieres` et les deux `PUT …/matieres`. Les coefficients sont renvoyés en texte (`"4.00"`).
+- « Voir la classe » (droit `classe_voir`, accordé à l'élève, au prof, à l'administration, à la direction et au dev) : l'élève lit sa classe avec `GET /api/eleve/classe`, le prof ses classes avec `GET /api/prof/classes` puis `GET /api/prof/classes/{id}/eleves`, l'administration toutes les classes avec `GET /api/admin/classes` puis `GET /api/admin/classes/{id}/eleves`. Seuls les élèves actifs sont listés, avec nom, prénom et photo : jamais d'e-mail, de téléphone ni d'adresse. Le numéro d'étudiant n'est donné qu'au prof et à l'administration, pas à l'élève.
 
 | Méthode | Route | Sert à | P |
 |---|---|---|---|
@@ -187,6 +189,10 @@ Comportement :
 | PATCH | `/api/admin/utilisateurs/{id}/actif` | Désactiver / réactiver un compte | P2 |
 | DELETE | `/api/admin/utilisateurs/{id}` | Supprimer un compte (rôle `dev` uniquement ; répond 409 si des données y sont rattachées, voir plus haut) | P2 |
 | GET | `/api/admin/classes` | Lister les classes existantes (pour le menu « Classe » lors de la création/édition d'un élève) | P1 |
+| GET | `/api/admin/classes/{id}/eleves` | Élèves actifs d'une classe (`id`, `nom`, `prenom`, `photo_url`, `numero_etudiant` — sans coordonnées) | P2 |
+| GET | `/api/admin/programme/matieres` | Lister les matières avec `nb_professeurs` et `nb_classes` | P2 |
+| GET | `/api/admin/programme/professeurs` | Lister les professeurs (actifs et désactivés) avec leurs matières enseignées | P2 |
+| GET | `/api/admin/programme/classes` | Lister les classes avec leur programme (`matieres` et `coefficient`) | P2 |
 | POST | `/api/admin/matieres` | Créer une matière | P2 |
 | PUT | `/api/admin/professeurs/{id}/matieres` | Matières qu'un prof enseigne | P2 |
 | PUT | `/api/admin/classes/{id}/matieres` | Programme d'une classe et coefficients | P2 |
@@ -205,6 +211,7 @@ Comportement :
 |---|---|---|---|
 | GET | `/api/eleve/profil` | Page Profil (classe, année scolaire, naissance…) | P1 |
 | PATCH | `/api/eleve/profil` | Modifier ses coordonnées (`email`, `telephone`, `adresse`) | P2 |
+| GET | `/api/eleve/classe` | Classe de l'élève connecté et liste des camarades actifs (`id`, `nom`, `prenom`, `photo_url` — sans coordonnées) | P2 |
 | GET | `/api/eleve/emploi-du-temps?du=&au=` | Accueil (jour affiché, flèches ← →) et page Emploi du temps | P1 |
 | GET | `/api/eleve/notes?limit=` | Page Notes et bloc « Dernières notes » | P1 |
 | GET | `/api/eleve/devoirs?statut=` | Bloc « Travail à faire » et page Devoirs | P1 |
