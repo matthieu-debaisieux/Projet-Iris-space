@@ -21,6 +21,21 @@ docker compose up -d --build
 Le front Docker utilise l'API et la base, pas les mocks : on s'y connecte avec un compte de la base
 (les comptes de test du mode mock n'y marchent pas).
 
+À la création du volume, la base reçoit le schéma (`init_database.sql`) puis les **données de démo**
+(`backend/database/seed_demo.sql`, développement uniquement) : 2 classes, 5 matières, des cours sur deux
+semaines, des devoirs, des notes, des absences, des ressources et des actualités. Comptes :
+
+| Compte | Mot de passe | Rôle |
+|---|---|---|
+| `admin` | `admin1234` | administration |
+| `prof` | `prof1234` | professeur (Développement, Cybersécurité) |
+| `eleve` | `eleve1234` | élève (BTS SIO 1) |
+| `mmartin`, `jdupont` | `demo1234` | professeurs |
+| `lbernard`, `crobert`, `tpetit`, `emoreau` | `demo1234` | élèves |
+
+Repartir de zéro : `docker compose down -v` puis `docker compose up -d --build` (efface les données),
+ou `backend/database/reset_dev.sql` puis les deux scripts (voir l'en-tête de `reset_dev.sql`).
+
 `init_database.sql` n'est exécuté qu'à la création du volume de la base. Sur une base créée avant
 l'ajout du rôle `dev`, l'ajouter à la main (ou repartir de zéro avec `docker compose down -v`,
 ce qui efface les données) :

@@ -45,7 +45,8 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
       # Les scripts de ce dossier ne sont exécutés qu'à l'init du volume
-      - ./backend/database/init_database.sql:/docker-entrypoint-initdb.d/init_database.sql:ro
+      - ./backend/database/init_database.sql:/docker-entrypoint-initdb.d/01_init_database.sql:ro
+      - ./backend/database/seed_demo.sql:/docker-entrypoint-initdb.d/02_seed_demo.sql:ro   # données de démo (dev uniquement)
     ports:
       - "5432:5432"
     healthcheck:
