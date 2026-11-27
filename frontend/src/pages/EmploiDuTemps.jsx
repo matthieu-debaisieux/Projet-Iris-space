@@ -410,98 +410,10 @@ function PlanningClasses() {
   }
 
   return (
-    <>
-      <div className="flex-1 overflow-y-auto p-6 bg-[var(--color-page)]">
-        <div className="max-w-7xl mx-auto">
-          {/* Titre + sélecteur de classe */}
-          <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-            <h1 className="text-2xl font-bold text-[var(--color-titre)]">Emplois du temps</h1>
-            <div className="flex items-center gap-3">
-              <label htmlFor="classSelect" className="text-sm font-medium text-gray-600">Classe :</label>
-              <select
-                id="classSelect"
-                value={selectedClass}
-                onChange={e => setSelectedClass(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-              >
-                {Object.keys(schedule).map(name => <option key={name} value={name}>{name}</option>)}
-              </select>
-            </div>
-          </div>
-
-          {/* Boutons de gestion */}
-          {gerer && <div className="flex flex-wrap items-center gap-2 mb-6">
-            <button
-              onClick={() => setModal({ type: 'class' })}
-              className="flex items-center gap-1 px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white hover:bg-gray-50 shadow-sm transition"
-            >
-              <span className="text-base leading-none">+</span> Ajouter une classe
-            </button>
-            <button
-              onClick={() => setModal({ type: 'room' })}
-              className="flex items-center gap-1 px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white hover:bg-gray-50 shadow-sm transition"
-            >
-              <span className="text-base leading-none">+</span> Ajouter une salle
-            </button>
-            <button
-              onClick={() => openCourseModal()}
-              className="flex items-center gap-1 px-3 py-2 text-sm rounded-lg bg-amber-400 hover:bg-amber-500 text-white font-medium shadow-sm transition"
-            >
-              <span className="text-base leading-none">+</span> Ajouter un cours
-            </button>
-          </div>}
-
-          {/* Navigation semaine */}
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <button
-              onClick={() => setMonday(m => addDays(m, -7))}
-              className="w-9 h-9 flex items-center justify-center rounded-full bg-amber-400 hover:bg-amber-500 text-white shadow transition"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
-            </button>
-            <div className="px-6 py-2 rounded-full bg-amber-400 text-white font-semibold shadow text-sm">
-              {`Semaine du ${monday.getDate()} au ${friday.getDate()} ${MONTH_NAMES[friday.getMonth()]}`}
-            </div>
-            <button
-              onClick={() => setMonday(m => addDays(m, 7))}
-              className="w-9 h-9 flex items-center justify-center rounded-full bg-amber-400 hover:bg-amber-500 text-white shadow transition"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </button>
-          </div>
-
-          <DataState state={planning}>{() => (
-            <TimetableGrid
-              classData={schedule[selectedClass] || {}}
-              monday={monday}
-              onEditCourse={gerer ? (day, index) => openCourseModal({ day, index, course: schedule[selectedClass][day][index] }) : undefined}
-              onAddCourse={gerer ? (day, start) => openCourseModal({ day, start }) : undefined}
-            />
-          )}</DataState>
-        </div>
-      </div>
-
-      {modal?.type === 'class' && (
-        <NameModal title="Ajouter une classe" label="Nom de la classe" placeholder="ex : 4ème C" onConfirm={addClass} onClose={closeModal} />
-      )}
-      {modal?.type === 'room' && (
-        <NameModal title="Ajouter une salle" label="Nom de la salle" placeholder="ex : Labo 4" onConfirm={addRoom} onClose={closeModal} />
-      )}
-      {modal?.type === 'course' && (
-        <CourseModal
-          className={selectedClass}
-          editing={modal.editing}
-          rooms={rooms}
-          onSave={saveCourse}
-          onDelete={deleteCourse}
-          onClose={closeModal}
-        />
-      )}
-    </>
+    <SelonDroit
+      vues={[{ droit: 'emploi_du_temps_gerer', Vue: Gestion }]}
+      defaut={Consultation}
+    />
   );
 }
 

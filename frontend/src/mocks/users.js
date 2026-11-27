@@ -23,8 +23,8 @@ const DROITS_ELEVE = [
 // (connexion mock, retiré par services/auth.js avant de renvoyer l'utilisateur).
 // Le back donne à `direction` les mêmes accès qu'à `administrateur` (middleware requireRole).
 export const USERS = [
-  { id: '00000000-0000-4000-8000-000000000001', identifiant: 'admin',     motDePasse: 'admin',     email: 'admin@iris-space.fr',     role: 'administrateur', nom: 'Administration', prenom: '',       photo_url: null, droits: DROITS_ADMIN },
-  { id: '00000000-0000-4000-8000-000000000002', identifiant: 'direction', motDePasse: 'direction', email: 'direction@iris-space.fr', role: 'direction',      nom: 'Direction',      prenom: '',       photo_url: null, droits: DROITS_ADMIN },
-  { id: '00000000-0000-4000-8000-000000000003', identifiant: 'prof',      motDePasse: 'prof',      email: 'prof@iris-space.fr',      role: 'professeur',     nom: 'NOM',            prenom: 'PRENOM', photo_url: null, droits: DROITS_PROF },
-  { id: '00000000-0000-4000-8000-000000000004', identifiant: 'eleve',     motDePasse: 'eleve',     email: 'eleve@iris-space.fr',     role: 'eleve',          nom: 'Doe',            prenom: 'John',   photo_url: null, droits: DROITS_ELEVE },
+  { id: '1', identifiant: 'admin',     motDePasse: 'admin',     email: 'admin@iris-space.fr',     role: 'administrateur', nom: 'Administration', prenom: '',       photo_url: null, droits: DROITS_ADMIN },
+  { id: '2', identifiant: 'direction', motDePasse: 'direction', email: 'direction@iris-space.fr', role: 'direction',      nom: 'Direction',      prenom: '',       photo_url: null, droits: DROITS_ADMIN },
+  { id: '3', identifiant: 'prof',      motDePasse: 'prof',      email: 'prof@iris-space.fr',      role: 'professeur',     nom: 'NOM',            prenom: 'PRENOM', photo_url: null, droits: DROITS_PROF },
+  { id: '4', identifiant: 'eleve',     motDePasse: 'eleve',     email: 'eleve@iris-space.fr',     role: 'eleve',          nom: 'Doe',            prenom: 'John',   photo_url: null, droits: DROITS_ELEVE },
 ];
