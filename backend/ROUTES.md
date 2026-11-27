@@ -133,10 +133,14 @@ Comportement :
 - `emploi-du-temps` sans paramètre renvoie le jour même.
 - `absences` renvoie aussi un `resume` : nombre d'absences, d'absences non justifiées et de retards, heures d'absence, et `ponctualite`. La ponctualité est le pourcentage des cours passés de la classe sans absence ni retard.
 - Un devoir déjà rendu ne peut plus être marqué « à faire ». On peut déposer plusieurs fichiers tant qu'il n'est pas corrigé.
+- `PATCH profil` ne modifie que les coordonnées de l'élève : `email`, `telephone` et `adresse`. Seuls les champs envoyés changent. `telephone` et `adresse` se vident avec `null` ou `""`, alors que `email` est obligatoire s'il est envoyé. Les autres champs (nom, prénom, naissance, nationalité, classe, identifiant…) restent réservés à l'administration : ils sont ignorés, et la requête répond 400 s'il ne reste aucun des trois champs. La réponse est `{ "profil": … }`, au même format que `GET profil`.
+  - 400 : email invalide, téléphone invalide (chiffres, espaces, `+ . ( ) -`, 6 à 30 caractères), ou champ trop long (`email` 254, `telephone` 30, `adresse` 500).
+  - 409 : email déjà utilisé par un autre compte (comparé à son email et à son identifiant, puisqu'on peut se connecter avec les deux).
 
 | Méthode | Route | Sert à | P |
 |---|---|---|---|
 | GET | `/api/eleve/profil` | Page Profil (classe, année scolaire, naissance…) | P1 |
+| PATCH | `/api/eleve/profil` | Modifier ses coordonnées (`email`, `telephone`, `adresse`) | P2 |
 | GET | `/api/eleve/emploi-du-temps?du=&au=` | Accueil (jour affiché, flèches ← →) et page Emploi du temps | P1 |
 | GET | `/api/eleve/notes?limit=` | Page Notes et bloc « Dernières notes » | P1 |
 | GET | `/api/eleve/devoirs?statut=` | Bloc « Travail à faire » et page Devoirs | P1 |

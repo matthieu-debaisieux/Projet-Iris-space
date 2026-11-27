@@ -8,7 +8,9 @@ use Psr\Http\Message\ServerRequestInterface;
 // Espace élève : l'id vient TOUJOURS de la session (moi()), jamais de l'URL,
 // pour qu'un élève ne puisse lire que ses propres données.
 
-$group->get('/profil', function (ServerRequestInterface $request, ResponseInterface $response) {
+// Profil de l'élève connecté (partagé par GET et PATCH /profil)
+function lireProfilEleve(): array|false
+{
     $stmt = db()->prepare(
         'SELECT u.id, u.identifiant, u.email, u.nom, u.prenom, u.date_naissance, u.lieu_naissance,
                 u.pays_naissance, u.nationalite, u.telephone, u.adresse, u.photo_url,
@@ -21,7 +23,64 @@ $group->get('/profil', function (ServerRequestInterface $request, ResponseInterf
     );
     $stmt->execute(['id' => moi()]);
 
-    return json($response, ['profil' => $stmt->fetch()]);
+    return $stmt->fetch();
+}
+
+$group->get('/profil', function (ServerRequestInterface $request, ResponseInterface $response) {
+    return json($response, ['profil' => lireProfilEleve()]);
+});
+
+// L'élève ne modifie que ses coordonnées : email, telephone, adresse. Seuls les champs envoyés changent
+// (null ou "" pour telephone et adresse les vide). Nom, prénom, naissance, nationalité, classe, identifiant…
+// restent à l'administration : ces champs sont ignorés. Répond avec le profil à jour, comme GET /profil.
+$group->patch('/profil', function (ServerRequestInterface $request, ResponseInterface $response) {
+    $data = corps($request);
+    $champs = [];
+
+    if (array_key_exists('email', $data)) {
+        $email = texte($data, 'email', 254, true);
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new ApiException("L'email n'est pas valide", 400);
+        }
+        $champs['email'] = $email;
+    }
+    if (array_key_exists('telephone', $data)) {
+        $telephone = texte($data, 'telephone', 30);
+        if ($telephone !== null && !preg_match('/^\+?[\d\s.()-]{6,30}$/', $telephone)) {
+            throw new ApiException("Le numéro de téléphone n'est pas valide", 400);
+        }
+        $champs['telephone'] = $telephone;
+    }
+    if (array_key_exists('adresse', $data)) {
+        $champs['adresse'] = texte($data, 'adresse', 500);
+    }
+    if (!$champs) {
+        throw new ApiException('Aucun champ à modifier (email, telephone, adresse)', 400);
+    }
+
+    // L'email sert aussi à se connecter (comme l'identifiant) : il ne doit pas être celui d'un autre compte
+    if (isset($champs['email'])) {
+        $stmt = db()->prepare('SELECT 1 FROM utilisateur WHERE (email = :email OR identifiant = :email2) AND id <> :id');
+        $stmt->execute(['email' => $champs['email'], 'email2' => $champs['email'], 'id' => moi()]);
+        if ($stmt->fetch()) {
+            throw new ApiException('Cet email est déjà utilisé', 409);
+        }
+    }
+
+    // Les noms de colonnes viennent de la liste ci-dessus, jamais de la requête
+    $assignations = array_map(fn(string $colonne) => "$colonne = :$colonne", array_keys($champs));
+    try {
+        $stmt = db()->prepare('UPDATE utilisateur SET ' . implode(', ', $assignations) . ' WHERE id = :id');
+        $stmt->execute($champs + ['id' => moi()]);
+    } catch (PDOException $e) {
+        // Course entre deux comptes : la contrainte UNIQUE de l'email fait foi
+        if (codeSql($e) === '23505') {
+            throw new ApiException('Cet email est déjà utilisé', 409);
+        }
+        throw $e;
+    }
+
+    return json($response, ['profil' => lireProfilEleve() ?: throw new ApiException('Profil introuvable', 404)]);
 });
 
 // ?du=AAAA-MM-JJ&au=AAAA-MM-JJ (par défaut : aujourd'hui)
