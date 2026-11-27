@@ -191,13 +191,13 @@ function SuiviDuJour() {
       {/* Absences aujourd'hui */}
       <section className={`${card} min-w-0`}>
         <h2 className={cardTitle}>Absences aujourd&apos;hui</h2>
-        <DataState state={absences}>{rows => (
+        <DataState state={absences}>{rows => (rows.length ? (
           <table className="w-full border-separate border-spacing-0">
             <thead>
               <tr>
                 <th className={th}>Élève</th>
                 <th className={th}>Classe</th>
-                <th className={th}>Heure</th>
+                <th className={th}>Heure / Durée</th>
                 <th className={th}>Justifié ?</th>
                 <th className={th}><span className="sr-only">Contact</span></th>
               </tr>
@@ -207,7 +207,9 @@ function SuiviDuJour() {
                 <tr key={row.id} className="hover:bg-[#F7F8FB]">
                   <td className={`${td} font-medium`}>{row.eleve}</td>
                   <td className={td}>{row.classe}</td>
-                  <td className={td}>{row.heureDebut} – {row.heureFin}</td>
+                  <td className={td}>
+                    {row.heureDebut && row.heureFin ? `${row.heureDebut} – ${row.heureFin}` : (row.duree ?? '—')}
+                  </td>
                   <td className={td}>{STATUT_ABSENCE_LABEL[row.statut] ?? row.statut}</td>
                   <td className={`${td} text-right`}>
                     <button
@@ -221,7 +223,9 @@ function SuiviDuJour() {
               ))}
             </tbody>
           </table>
-        )}</DataState>
+        ) : (
+          <p className="py-6 text-center text-sm text-[#6B7185]">Aucune absence aujourd&apos;hui.</p>
+        ))}</DataState>
       </section>
 
       {/* Cours aujourd'hui */}
