@@ -1,10 +1,14 @@
 import { useMemo, useState } from 'react';
+import SelonDroit from '@/components/auth/SelonDroit.jsx';
 import DataState from '@/components/ui/DataState.jsx';
 import { useAsync } from '@/hooks/useAsync.js';
-import { getNotes } from '@/services/eleve.js';
+import { getNotes } from '@/services/notes.js';
+import NotesProf from '@/pages/notes/NotesProf.jsx';
 
 // Lignes renvoyées par getNotes() : { id, note, matiere, prof, date }
-// Champs optionnels, affichés seulement s'ils existent : moyenneClasse, appreciation, court
+// Champs optionnels, utilisés seulement s'ils existent :
+//   moyenneClasse, appreciation, titre (sous la matière) ;
+//   sur20 (note sur 20, null si absent), coef (de l'évaluation), coefMatiere (de la matière) pour la moyenne
 
 const card = 'bg-white rounded-2xl border border-[#E1E5EE] shadow-[0_1px_2px_rgba(0,18,87,0.04)]';
 const th = 'bg-[#EEF1F7] px-4 py-3 text-left text-xs font-medium text-[#6B7185] first:rounded-l-lg last:rounded-r-lg';
@@ -12,8 +16,33 @@ const td = 'px-4 py-3.5 border-b border-[#E1E5EE]';
 
 const valeur = n => parseFloat(String(n).replace(',', '.'));
 const fmt = n => n.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-const moyenne = (rows, key) => {
-  const v = rows.map(r => valeur(r[key])).filter(Number.isFinite);
+// Note sur 20 d'une ligne : `sur20` quand le service la donne (null = absent ou pas encore notée),
+// sinon lue dans le texte « 15,5/20 »
+const points = n => (n.sur20 !== undefined ? n.sur20 : valeur(n.note));
+const coefficient = c => (Number.isFinite(c) && c >= 0 ? c : 1);
+// Même calcul que le back (/eleve/moyennes) : moyenne de chaque matière pondérée par le coefficient des
+// évaluations, puis moyenne des matières pondérée par leur coefficient. Sans coefficients, moyenne simple.
+const moyenne = rows => {
+  const matieres = new Map();
+  for (const r of rows) {
+    const pts = points(r);
+    if (!Number.isFinite(pts)) continue; // absent, pas encore notée ou illisible : exclue
+    const coef = coefficient(r.coef);
+    const m = matieres.get(r.matiere) ?? { somme: 0, coefs: 0, coefMatiere: coefficient(r.coefMatiere) };
+    m.somme += pts * coef;
+    m.coefs += coef;
+    matieres.set(r.matiere, m);
+  }
+  let somme = 0, coefs = 0;
+  for (const m of matieres.values()) {
+    if (m.coefs <= 0) continue;
+    somme += (m.somme / m.coefs) * m.coefMatiere;
+    coefs += m.coefMatiere;
+  }
+  return coefs > 0 ? somme / coefs : null;
+};
+const moyenneClasse = rows => {
+  const v = rows.map(r => valeur(r.moyenneClasse)).filter(Number.isFinite);
   return v.length ? v.reduce((s, x) => s + x, 0) / v.length : null;
 };
 // Recherche insensible à la casse et aux accents
@@ -41,7 +70,14 @@ const Chip = ({ active, onClick, children }) => (
   </button>
 );
 
+// Page Notes, la même pour tous : la vue dépend des droits.
+//   - droit `notes_gerer` (professeur) : évaluations de ses classes et saisie des notes
+//   - sinon (élève) : ses propres notes
 export default function Notes() {
+  return <SelonDroit vues={[{ droit: 'notes_gerer', Vue: NotesProf }]} defaut={NotesEleve} />;
+}
+
+function NotesEleve() {
   const notes = useAsync(getNotes);
 
   return (
@@ -57,7 +93,7 @@ function Contenu({ liste }) {
   const [matiere, setMatiere] = useState('Toutes');
   const [recherche, setRecherche] = useState('');
 
-  const matieres = useMemo(() => [...new Set(liste.map(n => n.matiere))], [liste]);
+  const matieres = useMemo(() => [...new Set(liste.map(n => n.matiere).filter(Boolean))], [liste]);
   const avecMoyClasse = liste.some(n => n.moyenneClasse != null);
   const avecAppreciation = liste.some(n => n.appreciation);
 
@@ -65,13 +101,24 @@ function Contenu({ liste }) {
     const q = norm(recherche.trim());
     return liste.filter(n =>
       (matiere === 'Toutes' || n.matiere === matiere) &&
-      (!q || [n.matiere, n.prof, n.date].some(v => norm(v).includes(q))),
+      (!q || [n.matiere, n.titre, n.prof, n.date].some(v => norm(v).includes(q))),
     );
   }, [liste, matiere, recherche]);
 
   // Moyennes calculées sur les notes affichées (elles suivent donc le filtre)
-  const maMoy = moyenne(visibles, 'note');
-  const moyClasse = avecMoyClasse ? moyenne(visibles, 'moyenneClasse') : null;
+  const maMoy = moyenne(visibles);
+  const moyClasse = avecMoyClasse ? moyenneClasse(visibles) : null;
+
+  if (!liste.length) {
+    return (
+      <div className="flex flex-col gap-6">
+        <h1 className="text-3xl font-bold text-[#001257]">Mes notes</h1>
+        <div className={card}>
+          <p className="px-4 py-8 text-center text-sm text-[#6B7185]">Aucune note pour l'instant.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -123,8 +170,11 @@ function Contenu({ liste }) {
           <tbody>
             {visibles.map(n => (
               <tr key={n.id} className="hover:bg-[#F7F8FB]">
-                <td className={`${td} font-semibold text-[#001257]`}>{n.matiere}</td>
-                <td className={`${td} font-bold text-[#001257]`}>{n.note}</td>
+                <td className={`${td} font-semibold text-[#001257]`}>
+                  {n.matiere}
+                  {n.titre && <span className="block text-xs font-normal text-[#6B7185]">{n.titre}</span>}
+                </td>
+                <td className={`${td} font-bold ${n.absent ? 'text-[#6B7185]' : 'text-[#001257]'}`}>{n.note}</td>
                 {avecMoyClasse && <td className={`${td} text-[#6B7185]`}>{n.moyenneClasse}</td>}
                 <td className={`${td} text-[#1A1D2E]`}>{n.prof}</td>
                 <td className={`${td} text-[#6B7185]`}>{n.date}</td>

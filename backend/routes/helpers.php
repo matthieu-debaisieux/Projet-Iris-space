@@ -117,6 +117,7 @@ function droitsPourRole(string $role): array
             'devoirs',
             'devoirs_gerer',
             'notes',
+            'notes_gerer',
             'actualites',
             'actualites_gerer',
             'emploi_du_temps',

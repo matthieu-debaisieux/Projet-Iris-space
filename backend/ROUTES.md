@@ -357,7 +357,7 @@ Table issue de l'ancien README du front : les appels de gauche doivent tous êtr
 | `POST /api/conversations/:id/messages` | `sendMessage` | `POST /api/conversations/{id}/messages` | À faire (`MSG-01`, `MSG-03`) |
 | `GET /api/eleve/emploi-du-temps?date=` | `getEmploiDuJour` | `GET /api/eleve/emploi-du-temps?du=&au=` · `GET /api/prof/emploi-du-temps?du=&au=` | Back fait ; front à brancher (`EDT-03`) |
 | `GET /api/eleve/raccourcis` | `getRaccourcis` | Supprimée : remplacée par `/api/eleve/devoirs`, `/api/eleve/ressources`, `/api/eleve/notes` | À faire (`ACC-01`) |
-| `GET /api/eleve/notes` | `getNotes` | `GET /api/eleve/notes` et `GET /api/eleve/moyennes` | Back fait ; front à brancher (`NOT-01`) |
+| `GET /api/eleve/notes` | `getNotes` | `GET /api/eleve/notes` et `GET /api/eleve/moyennes` | Fait (`NOT-01`, `NOT-02` pour la saisie par le prof) |
 | `GET /api/eleve/profil` | `getProfil` | `GET /api/profil` (tous rôles) · `GET /api/eleve/profil` (élève) | Fait (`CPT-07`) |
 
 ## Hors routes, mais bloquant
