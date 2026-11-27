@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { setUnauthorizedHandler, USE_MOCKS } from '@/services/api.js';
 import * as authService from '@/services/auth.js';
 import { LS_SESSION, loadJSON, saveJSON } from '@/services/storage.js';
+import { clearOfflineApiCache } from '@/lib/pwa.js';
 
 // ── Utilisateur connecté (null si déconnecté) ───────────────────────────────
 const AuthContext = createContext(null);
@@ -63,6 +64,7 @@ export function AuthProvider({ children }) {
     } catch {
       // Déjà déconnecté ou hors ligne : on nettoie tout de même la session locale
     } finally {
+      clearOfflineApiCache();
       localStorage.removeItem(LS_SESSION);
       setUser(null);
     }
