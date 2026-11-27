@@ -6,7 +6,28 @@ services:
     ports:
       - "8080:80"   # http://localhost:8080
     depends_on:
-      - db
+      - api
+    restart: unless-stopped
+
+  # Back : API PHP Slim (Apache)
+  api:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: iris-api
+    volumes:
+      - ./backend:/var/www/html
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: iris_space
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "3000:80"   # http://localhost:3000/api/health
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
 
   # Back : base PostgreSQL
@@ -15,8 +36,8 @@ services:
     container_name: iris-db
     environment:
       POSTGRES_DB: iris_space
-      POSTGRES_USER: iris
-      POSTGRES_PASSWORD: iris   # à changer / mettre dans un .env en prod
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}   # défini dans .env (voir .env.example)
     volumes:
       - db_data:/var/lib/postgresql/data
       # Les scripts de ce dossier ne sont exécutés qu'à l'init du volume
@@ -28,6 +49,18 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    restart: unless-stopped
+
+  # Outil d'admin de la base : http://localhost:8081
+  adminer:
+    image: adminer:latest
+    container_name: iris-adminer
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+    ports:
+      - "8081:8080"
+    depends_on:
+      - db
     restart: unless-stopped
 
 volumes:

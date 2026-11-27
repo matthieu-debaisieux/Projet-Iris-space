@@ -4,10 +4,21 @@ Projet de classe sur la création/refonte du Site Iris
 ```
 Projet-Iris-space/
 ├── frontend/   application React (Vite + React Router + Tailwind/daisyUI)
-└── backend/    API (à venir)
+└── backend/    API PHP (Slim 4) + base PostgreSQL
 ```
 
-## Lancer le front
+## Lancer avec Docker (front + API + base)
+
+Copier `.env.example` en `.env`, puis :
+
+```bash
+docker compose up -d --build
+# front   : http://localhost:8080
+# API     : http://localhost:3000/api/health
+# Adminer : http://localhost:8081
+```
+
+## Lancer le front sans Docker
 
 ```bash
 cd frontend
@@ -18,6 +29,19 @@ npm run build   # build de production dans dist/
 
 Comptes de test (mode mock) : `admin` / `admin`, `prof` / `prof`, `eleve` / `eleve`.
 Les espaces `/visiteur` et `/mediaschool` sont publics.
+
+## Lancer le back (API Slim) sans Docker
+
+Avec PHP 8.2+ et Composer installés :
+
+```bash
+cd backend
+composer install
+php -S localhost:3000 -t public
+```
+
+Les routes sont déclarées dans `backend/public/index.php`, dans le groupe `/api`.
+Les classes PHP vont dans `backend/src/` (namespace `App\`).
 
 ## Architecture du front
 
@@ -38,18 +62,19 @@ frontend/src/
 └── assets/             fonts, images, style.css
 ```
 
-## Architecture du backend 
+## Architecture du backend
+
 ```
-backend 
-├── database /    Iris_space -- PostgresSQL   
-│   ├── init_database.sql           
-├── public /              
-├── routes /      toutes les routes (database, eleve, admin, prof, visiteur)         
-├── src /         connexion a la db + API health    
-├── vendor /      
-├── Dockerfile    configuration API PHP Slim servie par Apache     
-├── ...
+backend/
+├── database/    Iris_space -- PostgreSQL
+│   └── init_database.sql
+├── public/      point d'entrée Slim (`index.php`)
+├── routes/      toutes les routes (database, auth, eleve, admin, prof, visiteur)
+├── src/         classes PHP (namespace `App\`)
+├── vendor/      dépendances Composer
+└── Dockerfile   configuration API PHP Slim servie par Apache
 ```
+
 Règles :
 
 - **Une page n'accède jamais directement à `localStorage` ni à `fetch`** : elle appelle une
