@@ -1,0 +1,54 @@
+# Workflow d'Intégration Continue (CI) - Tâche QUA-02
+# Ce workflow valide le frontend et le backend à chaque modification :
+# - Déclenchement sur pull_request (toutes branches) et sur push vers main et develop.
+# - Job "front" : installe les dépendances avec cache npm et exécute le build Vite sous Node.js 22.
+# - Job "back" : configure PHP 8.5 avec pdo_pgsql et vérifie la syntaxe de tous les fichiers .php hors backend/vendor/.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  front:
+    name: Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+  back:
+    name: Backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'   # même version que backend/Dockerfile
+          extensions: pdo_pgsql
+
+      - name: Check PHP syntax
+        run: find backend -path backend/vendor -prune -o -name '*.php' -print0 | xargs -0 -n1 php -l
