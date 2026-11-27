@@ -3,10 +3,16 @@ import DataState from '@/components/ui/DataState.jsx';
 import Modal from '@/components/ui/Modal.jsx';
 import { useAuth } from '@/context/AuthContext.jsx';
 import { useAsync } from '@/hooks/useAsync.js';
-import { getEspaces } from '@/services/documents.js';
-
-let nextId = 1000;
-const newId = () => nextId++;
+import { USE_MOCKS } from '@/services/api.js';
+import {
+  createEspace,
+  deleteDocumentAdmin,
+  deleteEspace,
+  getDocumentDownloadUrl,
+  getEspaces,
+  renameEspace,
+  uploadDocumentAdmin,
+} from '@/services/documents.js';
 
 // ── Icônes ──────────────────────────────────────────────────────────────────
 const FolderIcon = () => (
@@ -21,6 +27,12 @@ const TrashIcon = () => (
   </svg>
 );
 
+const DownloadIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V3" />
+  </svg>
+);
+
 const ChevronIcon = ({ open }) => (
   <svg
     className="transition-transform duration-200"
@@ -31,15 +43,31 @@ const ChevronIcon = ({ open }) => (
   </svg>
 );
 
-// ── Modale de saisie / confirmation ────────────────────────────────────────────────
-// Si `inputLabel` est fourni, la modale contient un champ texte et `onConfirm`
-// reçoit sa valeur (validation aussi avec Entrée).
+// ── Modale de saisie / confirmation ─────────────────────────────────────────
 function DaisyModal({ title, children, inputLabel, initialValue = '', confirmLabel, danger = false, onConfirm, onClose }) {
   const [value, setValue] = useState(initialValue);
-  const confirm = () => onConfirm(value.trim());
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  async function confirm() {
+    const trimmed = value.trim();
+    if (inputLabel && !trimmed) {
+      setError('Ce champ est requis.');
+      return;
+    }
+    setError('');
+    setBusy(true);
+    try {
+      await onConfirm(trimmed);
+    } catch (err) {
+      setError(err?.message || "Une erreur s'est produite.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
-    <Modal onClose={onClose} className="max-w-sm rounded-2xl p-6">
+    <Modal onClose={() => { if (!busy) onClose(); }} className="max-w-sm rounded-2xl p-6">
       <h3 className={`font-semibold text-lg ${inputLabel ? 'mb-4' : 'mb-2'}`}>{title}</h3>
       {children}
       {inputLabel && (
@@ -49,19 +77,95 @@ function DaisyModal({ title, children, inputLabel, initialValue = '', confirmLab
           placeholder={inputLabel}
           value={value}
           onChange={e => setValue(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') confirm(); }}
-          className="input input-bordered w-full mb-4"
+          onKeyDown={e => { if (e.key === 'Enter' && !busy) confirm(); }}
+          className="input input-bordered w-full mb-3"
+          disabled={busy}
         />
       )}
+      {error && <p className="text-error text-xs mb-3">{error}</p>}
       <div className="modal-action">
-        <button onClick={onClose} className="btn btn-ghost">Annuler</button>
+        <button type="button" onClick={onClose} disabled={busy} className="btn btn-ghost">Annuler</button>
         <button
+          type="button"
           onClick={confirm}
+          disabled={busy}
           className={`btn text-white ${danger ? 'bg-[#EC6F6F] hover:bg-[#EC6F6F]/90' : 'bg-[#07A6A6] hover:bg-[#07A6A6]/90'}`}
         >
-          {confirmLabel}
+          {busy ? 'En cours…' : confirmLabel}
         </button>
       </div>
+    </Modal>
+  );
+}
+
+// ── Modale d'envoi de document (fichier + titre facultatif) ─────────────────
+function UploadDocumentModal({ title, spaceName, onUpload, onClose }) {
+  const [fichier, setFichier] = useState(null);
+  const [titre, setTitre] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  async function submit(e) {
+    e.preventDefault();
+    if (!fichier && (!USE_MOCKS || !titre.trim())) {
+      setError('Sélectionnez un fichier à envoyer.');
+      return;
+    }
+    setError('');
+    setBusy(true);
+    try {
+      await onUpload({ fichier, titre });
+    } catch (err) {
+      setError(err?.message || "Échec de l'envoi du document.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal onClose={() => { if (!busy) onClose(); }} className="max-w-md rounded-2xl p-6" label={title}>
+      <h3 className="font-semibold text-lg mb-1">{title}</h3>
+      {spaceName && <p className="text-xs text-gray-500 mb-4">Espace : {spaceName}</p>}
+      <form onSubmit={submit} className="flex flex-col gap-3">
+        <div>
+          <label className="block text-xs font-semibold text-gray-700 mb-1" htmlFor="doc-file-input">
+            Fichier (10 Mo max — PDF, bureautique, images, zip)
+          </label>
+          <input
+            id="doc-file-input"
+            type="file"
+            onChange={e => setFichier(e.target.files?.[0] ?? null)}
+            className="file-input file-input-bordered file-input-sm w-full"
+            disabled={busy}
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-gray-700 mb-1" htmlFor="doc-title-input">
+            Titre affiché (facultatif)
+          </label>
+          <input
+            id="doc-title-input"
+            type="text"
+            placeholder="Par défaut : le nom du fichier"
+            value={titre}
+            onChange={e => setTitre(e.target.value)}
+            maxLength={200}
+            className="input input-bordered input-sm w-full"
+            disabled={busy}
+          />
+        </div>
+        {error && <p className="text-error text-xs">{error}</p>}
+        <div className="modal-action mt-2">
+          <button type="button" onClick={onClose} disabled={busy} className="btn btn-ghost btn-sm">Annuler</button>
+          <button
+            type="submit"
+            disabled={busy}
+            className="btn btn-sm bg-[#07A6A6] hover:bg-[#07A6A6]/90 text-white"
+          >
+            {busy ? 'Envoi…' : 'Déposer'}
+          </button>
+        </div>
+      </form>
     </Modal>
   );
 }
@@ -97,87 +201,113 @@ export default function Documents() {
       <main className="flex-1 overflow-y-auto p-6 bg-[#F5F5F5]">
         <h1 className="text-3xl font-bold mb-6 text-[#07A6A6]">Page Documents</h1>
 
-        {gerer && <div className="flex gap-5 flex-wrap mb-4">
-          <button
-            onClick={() => setModal({ type: 'space' })}
-            className="inline-flex items-center gap-2 bg-[#E8735A] text-white font-semibold text-base px-5 py-2.5 rounded-full hover:brightness-90 transition"
-          >
-            Ajouter un espace
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-            </svg>
-          </button>
-        </div>}
+        {gerer && (
+          <div className="flex gap-5 flex-wrap mb-4">
+            <button
+              type="button"
+              onClick={() => setModal({ type: 'space' })}
+              className="inline-flex items-center gap-2 bg-[#E8735A] text-white font-semibold text-base px-5 py-2.5 rounded-full hover:brightness-90 transition"
+            >
+              Ajouter un espace
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
+          </div>
+        )}
 
         <section className="flex flex-col gap-4 bg-white p-6 rounded-lg shadow-md">
-          <DataState state={espaces}>{() => spaces.map(space => {
-            const isOpen = openIds.has(space.id);
-            return (
-              <div key={space.id} className="border border-base-300 rounded-lg overflow-hidden bg-base-100">
-                {/* en-tête cliquable */}
-                <div
-                  onClick={() => toggle(space.id)}
-                  className="flex items-center justify-between gap-2 px-4 py-3 cursor-pointer select-none hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <span className="shrink-0 text-gray-400"><ChevronIcon open={isOpen} /></span>
-                    <span className="font-semibold truncate">{space.name}</span>
-                  </div>
-                  {gerer && <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      type="button"
-                      onClick={e => { e.stopPropagation(); setModal({ type: 'rename', spaceId: space.id }); }}
-                      className="text-xs text-[#07A6A6] font-semibold hover:text-[#0b7d7d] transition px-2 py-1 rounded hover:bg-[#07A6A6]/10"
-                    >
-                      Renommer
-                    </button>
-                    <button
-                      type="button"
-                      title="Supprimer cet espace"
-                      onClick={e => { e.stopPropagation(); setModal({ type: 'delete-space', spaceId: space.id }); }}
-                      className="text-gray-400 hover:text-[#EC6F6F] transition-colors p-1 rounded"
-                    >
-                      <TrashIcon />
-                    </button>
-                  </div>}
-                </div>
-
-                {/* corps */}
-                {isOpen && (
-                  <div className="border-t border-base-300 px-4 pb-4 pt-3 flex flex-col gap-1">
-                    <div className="flex flex-col divide-y divide-gray-100">
-                      {space.docs.map(doc => (
-                        <div key={doc.id} className="flex items-center justify-between gap-2 py-1">
-                          <span className="flex items-center gap-2 text-sm text-gray-700">
-                            <FolderIcon />
-                            <span>{doc.name}</span>
-                          </span>
-                          {gerer && <button
-                            type="button"
-                            title="Supprimer ce document"
-                            onClick={() => setModal({ type: 'delete-doc', spaceId: space.id, doc })}
-                            className="text-gray-400 hover:text-[#EC6F6F] transition-colors"
-                          >
-                            <TrashIcon />
-                          </button>}
+          <DataState state={espaces}>{() => (
+            spaces.length === 0
+              ? <p className="text-sm text-gray-500 text-center py-4">Aucun espace documentaire pour le moment.</p>
+              : spaces.map(space => {
+                  const isOpen = openIds.has(space.id);
+                  return (
+                    <div key={space.id} className="border border-base-300 rounded-lg overflow-hidden bg-base-100">
+                      {/* en-tête cliquable */}
+                      <div
+                        onClick={() => toggle(space.id)}
+                        className="flex items-center justify-between gap-2 px-4 py-3 cursor-pointer select-none hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <span className="shrink-0 text-gray-400"><ChevronIcon open={isOpen} /></span>
+                          <span className="font-semibold truncate">{space.nom}</span>
                         </div>
-                      ))}
+                        {gerer && (
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={e => { e.stopPropagation(); setModal({ type: 'rename', spaceId: space.id }); }}
+                              className="text-xs text-[#07A6A6] font-semibold hover:text-[#0b7d7d] transition px-2 py-1 rounded hover:bg-[#07A6A6]/10"
+                            >
+                              Renommer
+                            </button>
+                            <button
+                              type="button"
+                              title="Supprimer cet espace"
+                              onClick={e => { e.stopPropagation(); setModal({ type: 'delete-space', spaceId: space.id }); }}
+                              className="text-gray-400 hover:text-[#EC6F6F] transition-colors p-1 rounded"
+                            >
+                              <TrashIcon />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* corps */}
+                      {isOpen && (
+                        <div className="border-t border-base-300 px-4 pb-4 pt-3 flex flex-col gap-1">
+                          <div className="flex flex-col divide-y divide-gray-100">
+                            {space.documents.map(doc => (
+                              <div key={doc.id} className="flex items-center justify-between gap-2 py-1.5">
+                                <span className="flex items-center gap-2 text-sm text-gray-700 min-w-0">
+                                  <FolderIcon />
+                                  <span className="truncate">{doc.titre}</span>
+                                </span>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  {!USE_MOCKS && (
+                                    <a
+                                      href={getDocumentDownloadUrl(doc.id)}
+                                      download
+                                      title="Télécharger ce document"
+                                      className="inline-flex items-center gap-1 text-xs font-medium text-[#07A6A6] hover:underline px-2 py-1 rounded hover:bg-[#07A6A6]/10"
+                                    >
+                                      <DownloadIcon />
+                                      Télécharger
+                                    </a>
+                                  )}
+                                  {gerer && (
+                                    <button
+                                      type="button"
+                                      title="Supprimer ce document"
+                                      onClick={() => setModal({ type: 'delete-doc', spaceId: space.id, doc })}
+                                      className="text-gray-400 hover:text-[#EC6F6F] transition-colors p-1"
+                                    >
+                                      <TrashIcon />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          {space.documents.length === 0 && (
+                            <p className="text-gray-400 italic text-xs py-1">Aucun document dans cet espace.</p>
+                          )}
+                          {gerer && (
+                            <button
+                              type="button"
+                              onClick={() => setModal({ type: 'doc', spaceId: space.id })}
+                              className="btn btn-xs bg-[#07A6A6] hover:bg-[#07A6A6]/90 text-white font-bold self-start mt-3"
+                            >
+                              + Ajouter un document
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    {space.docs.length === 0 && (
-                      <p className="text-gray-400 italic text-xs py-1">Aucun document dans cet espace.</p>
-                    )}
-                    {gerer && <button
-                      type="button"
-                      onClick={() => setModal({ type: 'doc', spaceId: space.id })}
-                      className="btn btn-xs bg-[#07A6A6] hover:bg-[#07A6A6]/90 text-white font-bold self-start mt-3"
-                    >
-                      + Ajouter un document
-                    </button>}
-                  </div>
-                )}
-              </div>
-            );
-          })}</DataState>
+                  );
+                })
+          )}</DataState>
         </section>
       </main>
 
@@ -188,23 +318,22 @@ export default function Documents() {
           inputLabel="Nom de l'espace"
           confirmLabel="Créer"
           onClose={closeModal}
-          onConfirm={name => {
-            if (!name) return;
-            setSpaces(prev => [...prev, { id: newId(), name, docs: [] }]);
+          onConfirm={async nom => {
+            const created = await createEspace(nom);
+            setSpaces(prev => [...prev, created].sort((a, b) => a.nom.localeCompare(b.nom, 'fr')));
             closeModal();
           }}
         />
       )}
 
-      {modal?.type === 'doc' && (
-        <DaisyModal
+      {modal?.type === 'doc' && modalSpace && (
+        <UploadDocumentModal
           title="Ajouter un document"
-          inputLabel="Nom du document"
-          confirmLabel="Ajouter"
+          spaceName={modalSpace.nom}
           onClose={closeModal}
-          onConfirm={name => {
-            if (!name) return;
-            updateSpace(modal.spaceId, s => ({ ...s, docs: [...s.docs, { id: newId(), name }] }));
+          onUpload={async ({ fichier, titre }) => {
+            const doc = await uploadDocumentAdmin(modal.spaceId, { fichier, titre });
+            updateSpace(modal.spaceId, s => ({ ...s, documents: [...s.documents, doc] }));
             closeModal();
           }}
         />
@@ -214,11 +343,12 @@ export default function Documents() {
         <DaisyModal
           title="Renommer l'espace"
           inputLabel="Nouveau nom"
-          initialValue={modalSpace.name}
+          initialValue={modalSpace.nom}
           confirmLabel="Renommer"
           onClose={closeModal}
-          onConfirm={name => {
-            if (name) updateSpace(modal.spaceId, s => ({ ...s, name }));
+          onConfirm={async nom => {
+            const updated = await renameEspace(modal.spaceId, nom);
+            updateSpace(modal.spaceId, s => ({ ...s, nom: updated.nom }));
             closeModal();
           }}
         />
@@ -230,13 +360,14 @@ export default function Documents() {
           confirmLabel="Supprimer"
           danger
           onClose={closeModal}
-          onConfirm={() => {
+          onConfirm={async () => {
+            await deleteEspace(modal.spaceId);
             setSpaces(prev => prev.filter(s => s.id !== modal.spaceId));
             closeModal();
           }}
         >
           <p className="text-sm text-gray-500 mb-4">
-            Supprimer <strong>{modalSpace.name}</strong> et tous ses documents ? Cette action est irréversible.
+            Supprimer <strong>{modalSpace.nom}</strong> et tous ses documents ? Cette action est irréversible.
           </p>
         </DaisyModal>
       )}
@@ -247,13 +378,17 @@ export default function Documents() {
           confirmLabel="Supprimer"
           danger
           onClose={closeModal}
-          onConfirm={() => {
-            updateSpace(modal.spaceId, s => ({ ...s, docs: s.docs.filter(d => d.id !== modal.doc.id) }));
+          onConfirm={async () => {
+            await deleteDocumentAdmin(modal.doc.id);
+            updateSpace(modal.spaceId, s => ({
+              ...s,
+              documents: s.documents.filter(d => d.id !== modal.doc.id),
+            }));
             closeModal();
           }}
         >
           <p className="text-sm text-gray-500 mb-4">
-            Supprimer <strong>{modal.doc.name}</strong> ?
+            Supprimer <strong>{modal.doc.titre}</strong> ?
           </p>
         </DaisyModal>
       )}
