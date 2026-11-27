@@ -1,11 +1,8 @@
 import { api, USE_MOCKS } from './api.js';
 import { EMPLOI_DU_JOUR } from '@/mocks/eleve.js';
+import { estProf } from './utilisateur.js';
 
 // Emploi du temps personnel de l'utilisateur connecté (élève ou professeur)
-
-// Les mocks disent « prof », le back « professeur » : on accepte les deux
-export const estProf = user => ['prof', 'professeur'].includes(user?.role);
-export const estEleve = user => user?.role === 'eleve';
 
 // Date locale → 'AAAA-MM-JJ' (toISOString() décalerait d'un jour autour de minuit)
 const jourISO = d => [
