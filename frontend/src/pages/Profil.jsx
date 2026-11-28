@@ -424,7 +424,7 @@ function PhotoProfil({ prenom, nom }) {
         </span>
       </button>
 
-      <input ref={entree} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={choisir} />
+      <input ref={entree} type="file" accept="image/png,image/jpeg,image/webp" aria-label="Choisir une photo de profil" className="hidden" onChange={choisir} />
 
       <div className="flex gap-2">
         <button type="button" onClick={() => entree.current?.click()} disabled={enCours}

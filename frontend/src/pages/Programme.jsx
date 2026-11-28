@@ -59,7 +59,7 @@ function MatiereFormModal({ onCreated, onClose }) {
           type="button"
           onClick={onClose}
           disabled={busy}
-          className="text-2xl leading-none text-gray-400 hover:text-gray-600"
+          className="text-2xl leading-none text-gray-500 hover:text-gray-600"
           aria-label="Fermer"
         >
           ×
@@ -69,7 +69,7 @@ function MatiereFormModal({ onCreated, onClose }) {
       <form onSubmit={submit} className="flex flex-col gap-4">
         <div>
           <label htmlFor="matiere-nom" className={labelClass}>
-            Nom <span className="text-[#EC6F6F]">*</span>
+            Nom <span aria-hidden="true" className="text-[#B23A3A]">*</span><span className="sr-only"> (obligatoire)</span>
           </label>
           <input
             id="matiere-nom"
@@ -177,7 +177,7 @@ function ProfesseurMatieresModal({ professeur, toutesMatieres, onSaved, onClose 
           type="button"
           onClick={onClose}
           disabled={busy}
-          className="text-2xl leading-none text-gray-400 hover:text-gray-600"
+          className="text-2xl leading-none text-gray-500 hover:text-gray-600"
           aria-label="Fermer"
         >
           ×
@@ -187,6 +187,7 @@ function ProfesseurMatieresModal({ professeur, toutesMatieres, onSaved, onClose 
       <form onSubmit={submit} className="flex flex-col gap-3 min-h-0 flex-1">
         <input
           type="search"
+          aria-label="Filtrer les matières"
           value={filtre}
           onChange={e => setFiltre(e.target.value)}
           placeholder="Filtrer les matières…"
@@ -331,7 +332,7 @@ function ClasseMatieresModal({ classe, toutesMatieres, onSaved, onClose }) {
           type="button"
           onClick={onClose}
           disabled={busy}
-          className="text-2xl leading-none text-gray-400 hover:text-gray-600"
+          className="text-2xl leading-none text-gray-500 hover:text-gray-600"
           aria-label="Fermer"
         >
           ×
@@ -341,6 +342,7 @@ function ClasseMatieresModal({ classe, toutesMatieres, onSaved, onClose }) {
       <form onSubmit={submit} className="flex flex-col gap-3 min-h-0 flex-1">
         <input
           type="search"
+          aria-label="Filtrer les matières"
           value={filtre}
           onChange={e => setFiltre(e.target.value)}
           placeholder="Filtrer les matières…"
@@ -519,7 +521,7 @@ export default function Programme() {
             className="inline-flex items-center gap-2 bg-[#E8735A] text-white font-semibold text-sm sm:text-base px-5 py-2.5 rounded-full hover:brightness-90 transition shadow-sm"
           >
             Nouvelle matière
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
             </svg>
           </button>
@@ -542,7 +544,7 @@ export default function Programme() {
         </div>
 
         {feedback && (
-          <div className="mb-4 flex items-center justify-between gap-3 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-800">
+          <div role="status" className="mb-4 flex items-center justify-between gap-3 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-800">
             <span>{feedback}</span>
             <button type="button" onClick={() => setFeedback('')} className="font-bold text-emerald-700 hover:underline text-xs">
               Fermer
@@ -578,6 +580,7 @@ export default function Programme() {
             <div className="flex items-center gap-2 flex-1 sm:flex-initial min-w-[220px]">
               <input
                 type="search"
+                aria-label="Rechercher"
                 value={recherche}
                 onChange={e => setRecherche(e.target.value)}
                 placeholder="Rechercher…"
@@ -639,7 +642,7 @@ export default function Programme() {
                           ))}
                         </div>
                       ) : (
-                        <p className="text-xs text-gray-400 italic">Aucune matière au programme pour cette classe.</p>
+                        <p className="text-xs text-gray-500 italic">Aucune matière au programme pour cette classe.</p>
                       )}
                     </article>
                   ))}
@@ -657,10 +660,10 @@ export default function Programme() {
                   <table className="table table-sm w-full">
                     <thead>
                       <tr className="text-xs uppercase text-gray-500 border-b border-gray-200">
-                        <th>Professeur</th>
-                        <th>Statut</th>
-                        <th>Matières enseignées</th>
-                        <th className="text-right">Action</th>
+                        <th scope="col">Professeur</th>
+                        <th scope="col">Statut</th>
+                        <th scope="col">Matières enseignées</th>
+                        <th scope="col" className="text-right">Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -697,7 +700,7 @@ export default function Programme() {
                                   ))}
                                 </div>
                               ) : (
-                                <span className="text-xs text-gray-400 italic">Aucune matière assignée</span>
+                                <span className="text-xs text-gray-500 italic">Aucune matière assignée</span>
                               )}
                             </td>
                             <td className="text-right whitespace-nowrap">
@@ -728,10 +731,10 @@ export default function Programme() {
                   <table className="table table-sm w-full">
                     <thead>
                       <tr className="text-xs uppercase text-gray-500 border-b border-gray-200">
-                        <th>Matière</th>
-                        <th>Code</th>
-                        <th className="text-center">Professeurs</th>
-                        <th className="text-center">Classes</th>
+                        <th scope="col">Matière</th>
+                        <th scope="col">Code</th>
+                        <th scope="col" className="text-center">Professeurs</th>
+                        <th scope="col" className="text-center">Classes</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -744,7 +747,7 @@ export default function Programme() {
                                 {m.code}
                               </span>
                             ) : (
-                              <span className="text-xs text-gray-400">—</span>
+                              <span className="text-xs text-gray-500">—</span>
                             )}
                           </td>
                           <td className="text-center text-sm text-gray-700">{Number(m.nb_professeurs ?? 0)}</td>

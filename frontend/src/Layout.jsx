@@ -42,7 +42,7 @@ export default function Layout({ mediaschool = false }) {
       <div className="flex flex-1 overflow-hidden">
         {lateral && (
           <div className="hidden md:flex flex-col w-64 bg-[var(--color-principal)] overflow-y-auto p-6 shrink-0">
-            <nav className="flex flex-col gap-5 flex-1">
+            <nav aria-label="Menu latéral" className="flex flex-col gap-5 flex-1">
               {menuLinks.map(link => (
                 <Link key={link.to} to={link.to} className={sideLinkClass}>{link.label}</Link>
               ))}

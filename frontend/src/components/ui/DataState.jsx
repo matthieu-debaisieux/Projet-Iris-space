@@ -10,7 +10,7 @@ export function MessageErreur({ error }) {
     return <p role="status" className="text-gray-500 text-sm text-center py-6">{message}</p>;
   }
   return (
-    <p role="alert" className="text-red-500 text-sm text-center py-6">
+    <p role="alert" className="text-red-600 text-sm text-center py-6">
       Impossible de charger les données.
       {message && <span className="block mt-1 text-xs">{message}</span>}
     </p>
@@ -22,7 +22,7 @@ export function MessageErreur({ error }) {
 export default function DataState({ state, children }) {
   if (state.error) return <MessageErreur error={state.error} />;
   if (state.data === undefined) {
-    return <p className="text-gray-400 text-sm text-center py-6">Chargement…</p>;
+    return <p className="text-gray-500 text-sm text-center py-6">Chargement…</p>;
   }
   return children(state.data);
 }

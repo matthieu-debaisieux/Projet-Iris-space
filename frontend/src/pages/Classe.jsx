@@ -61,6 +61,7 @@ function TrombinoscopeEleves({ eleves, monId = null, afficherNumero = false }) {
         {eleves.length > 0 && (
           <input
             type="search"
+            aria-label="Rechercher un élève"
             value={recherche}
             onChange={e => setRecherche(e.target.value)}
             placeholder="Rechercher un élève…"

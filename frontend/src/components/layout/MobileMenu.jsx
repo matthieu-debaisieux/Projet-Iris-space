@@ -1,14 +1,15 @@
 import { Link } from 'react-router-dom';
+import { useEscape } from '@/hooks/useEscape.js';
 
 // ── Bouton burger (icône qui pivote entre ☰ et ✕) ───────────────────────────
 export function BurgerButton({ open, onToggle, bg = 'bg-[var(--color-principal)]' }) {
   return (
-    <label className={`btn border-0 ${bg} swap swap-rotate active:scale-100 active:translate-y-0 shadow-none active:shadow-none`}>
-      <input type="checkbox" checked={open} onChange={onToggle} />
-      <svg className="swap-off fill-current filter invert" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 512 512">
+    <label className={`btn border-0 ${bg} swap swap-rotate active:scale-100 active:translate-y-0 shadow-none active:shadow-none has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-white`}>
+      <input type="checkbox" checked={open} onChange={onToggle} aria-label={open ? 'Fermer le menu' : 'Ouvrir le menu'} />
+      <svg aria-hidden="true" className="swap-off fill-current filter invert" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 512 512">
         <path d="M64,384H448V341.33H64Zm0-106.67H448V234.67H64ZM64,128v42.67H448V128Z" />
       </svg>
-      <svg className="swap-on fill-current filter invert" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 512 512">
+      <svg aria-hidden="true" className="swap-on fill-current filter invert" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 512 512">
         <polygon points="400 145.49 366.51 112 256 222.51 145.49 112 112 145.49 222.51 256 112 366.51 145.49 400 256 289.49 366.51 400 400 366.51 289.49 256 400 145.49" />
       </svg>
     </label>
@@ -25,9 +26,12 @@ export function MobileMenu({
   linkClassName = 'text-white text-xl font-medium hover:translate-x-2 transition-transform duration-200',
   navClassName = 'flex flex-col gap-5',
 }) {
+  useEscape(onClose, open);
+
   return (
     <div className={`fixed inset-0 z-50 transition-[visibility] duration-300 ${open ? 'visible' : 'invisible'}`}>
       <div
+        aria-hidden="true"
         className={`absolute inset-0 bg-black/40 transition-opacity duration-300 ${open ? 'opacity-100' : 'opacity-0'}`}
         onClick={onClose}
       />
@@ -36,6 +40,7 @@ export function MobileMenu({
       >
         <div className="flex justify-end mb-8">
           <button
+            type="button"
             onClick={onClose}
             className="text-white text-3xl font-bold leading-none hover:scale-125 transition-transform duration-200"
             aria-label="Fermer le menu"
@@ -43,7 +48,7 @@ export function MobileMenu({
             →
           </button>
         </div>
-        <nav className={navClassName}>
+        <nav aria-label="Menu principal" className={navClassName}>
           {links.map(link => (
             <Link key={link.label} to={link.to} className={linkClassName} onClick={onClose}>
               {link.label}

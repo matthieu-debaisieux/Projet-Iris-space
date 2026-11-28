@@ -549,7 +549,7 @@ function Saisie({ evaluation, notes, onModifiee, onEnregistre, onFermer }) {
           <thead>
             <tr>
               {['Élève', `Note (/${formatNombre(bareme)})`, 'Absent', 'Commentaire'].map(t => (
-                <th key={t} className="bg-[#EEF1F7] px-3 py-2.5 text-left text-xs font-medium text-[#6B7185] first:rounded-l-lg last:rounded-r-lg">{t}</th>
+                <th scope="col" key={t} className="bg-[#EEF1F7] px-3 py-2.5 text-left text-xs font-medium text-[#6B7185] first:rounded-l-lg last:rounded-r-lg">{t}</th>
               ))}
             </tr>
           </thead>

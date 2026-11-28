@@ -279,12 +279,12 @@ function VieScolaireEtablissement() {
                   <table className="w-full min-w-[740px] border-separate border-spacing-0 text-sm">
                     <thead>
                       <tr>
-                        <th className={th}>Élève</th>
-                        <th className={th}>Date</th>
-                        <th className={th}>Cours / Durée</th>
-                        <th className={th}>Motif</th>
-                        <th className={th}>Statut</th>
-                        <th className={th}><span className="sr-only">Actions</span></th>
+                        <th scope="col" className={th}>Élève</th>
+                        <th scope="col" className={th}>Date</th>
+                        <th scope="col" className={th}>Cours / Durée</th>
+                        <th scope="col" className={th}>Motif</th>
+                        <th scope="col" className={th}>Statut</th>
+                        <th scope="col" className={th}><span className="sr-only">Actions</span></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1071,7 +1071,7 @@ function AppelClasses({ elevesState, classesState, onEnregistre }) {
                 {busy ? 'Enregistrement…' : "Enregistrer l'appel"}
               </button>
               {message && (
-                <p role="status" className={`text-xs ${message.ok ? 'text-[#1E7F55]' : 'text-[#B23A3A]'}`}>
+                <p role={message.ok ? 'status' : 'alert'} className={`text-xs ${message.ok ? 'text-[#1E7F55]' : 'text-[#B23A3A]'}`}>
                   {message.texte}
                 </p>
               )}
@@ -1132,11 +1132,11 @@ function Contenu({ liste, onJustificatifEnvoye }) {
             <table className="w-full min-w-[560px] border-separate border-spacing-0 text-sm">
               <thead>
                 <tr>
-                  <th className={th}>Date</th>
-                  <th className={th}>Durée</th>
-                  <th className={th}>Type</th>
-                  <th className={th}>Motif</th>
-                  <th className={th}>Statut</th>
+                  <th scope="col" className={th}>Date</th>
+                  <th scope="col" className={th}>Durée</th>
+                  <th scope="col" className={th}>Type</th>
+                  <th scope="col" className={th}>Motif</th>
+                  <th scope="col" className={th}>Statut</th>
                 </tr>
               </thead>
               <tbody>
@@ -1293,7 +1293,7 @@ function Formulaire({ absences, onEnvoye }) {
         </button>
 
         {message && (
-          <p role="status" className={`text-xs ${message.ok ? 'text-[#1E7F55]' : 'text-[#B23A3A]'}`}>{message.texte}</p>
+          <p role={message.ok ? 'status' : 'alert'} className={`text-xs ${message.ok ? 'text-[#1E7F55]' : 'text-[#B23A3A]'}`}>{message.texte}</p>
         )}
       </form>
     </section>

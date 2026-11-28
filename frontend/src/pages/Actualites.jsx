@@ -268,13 +268,13 @@ function Formulaire({ actu, onSubmit, onClose }) {
         <h3 className="text-xl font-bold text-[#001257]">{creation ? 'Créer un article' : "Modifier l'article"}</h3>
 
         <div>
-          <label className={etiquette}>Titre *</label>
-          <input type="text" value={titre} onChange={e => setTitre(e.target.value)} placeholder="Titre de l'actualité" className={champ(erreurs.titre)} />
+          <label htmlFor="actu-titre" className={etiquette}>Titre *</label>
+          <input id="actu-titre" type="text" aria-required="true" aria-invalid={erreurs.titre ? 'true' : undefined} value={titre} onChange={e => setTitre(e.target.value)} placeholder="Titre de l'actualité" className={champ(erreurs.titre)} />
         </div>
 
         <div>
-          <label className={etiquette}>Statut</label>
-          <select value={statut} onChange={e => setStatut(e.target.value)} className={champ(false)}>
+          <label htmlFor="actu-statut" className={etiquette}>Statut</label>
+          <select id="actu-statut" value={statut} onChange={e => setStatut(e.target.value)} className={champ(false)}>
             {Object.entries(STATUTS_ACTUALITE).map(([valeur, libelle]) => <option key={valeur} value={valeur}>{libelle}</option>)}
           </select>
           <label className="mt-2 flex items-center gap-2 text-xs font-medium text-[#1A1D2E]">
@@ -284,13 +284,13 @@ function Formulaire({ actu, onSubmit, onClose }) {
         </div>
 
         <div>
-          <label className={etiquette}>Contenu *</label>
-          <textarea rows={4} value={contenu} onChange={e => setContenu(e.target.value)} placeholder="Contenu de l'article…" className={`${champ(erreurs.contenu)} resize-none`} />
+          <label htmlFor="actu-contenu" className={etiquette}>Contenu *</label>
+          <textarea id="actu-contenu" aria-required="true" aria-invalid={erreurs.contenu ? 'true' : undefined} rows={4} value={contenu} onChange={e => setContenu(e.target.value)} placeholder="Contenu de l'article…" className={`${champ(erreurs.contenu)} resize-none`} />
         </div>
 
         <div>
-          <label className={etiquette}>Photo</label>
-          <label className={`relative flex h-28 w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-lg border-2 border-dashed transition hover:bg-[#EEF1F7] ${erreurs.photo ? 'border-[#B23A3A] bg-[#FBE6E6]' : 'border-[#E1E5EE]'}`}>
+          <span className={etiquette}>Photo</span>
+          <label className={`relative flex h-28 w-full cursor-pointer flex-col focus-within:ring-2 focus-within:ring-[#001257] items-center justify-center overflow-hidden rounded-lg border-2 border-dashed transition hover:bg-[#EEF1F7] ${erreurs.photo ? 'border-[#B23A3A] bg-[#FBE6E6]' : 'border-[#E1E5EE]'}`}>
             {apercu ? (
               <img src={apercu} alt="Aperçu" className="absolute inset-0 h-full w-full object-cover" />
             ) : (
@@ -300,14 +300,14 @@ function Formulaire({ actu, onSubmit, onClose }) {
                 <span className="text-[11px]">JPG, PNG, WEBP — 2 Mo max</span>
               </span>
             )}
-            <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" className="hidden" onChange={choisirPhoto} />
+            <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" aria-label="Choisir une photo pour l'article" className="sr-only" onChange={choisirPhoto} />
           </label>
           {apercu && (
             <button type="button" onClick={retirerPhoto} className="mt-1.5 text-xs font-semibold text-[#B23A3A] hover:underline">
               Retirer l&apos;image
             </button>
           )}
-          {typeof erreurs.photo === 'string' && <p className="mt-1 text-xs text-[#B23A3A]">{erreurs.photo}</p>}
+          {typeof erreurs.photo === 'string' && <p role="alert" className="mt-1 text-xs text-[#B23A3A]">{erreurs.photo}</p>}
         </div>
 
         {(erreurs.titre || erreurs.contenu) && (

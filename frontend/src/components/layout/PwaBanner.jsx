@@ -114,7 +114,7 @@ export default function PwaBanner() {
         <div
           role="status"
           aria-live="polite"
-          className="bg-emerald-600 text-white text-xs sm:text-sm font-medium px-4 py-1.5 text-center"
+          className="bg-emerald-700 text-white text-xs sm:text-sm font-medium px-4 py-1.5 text-center"
         >
           Connexion rétablie.
         </div>

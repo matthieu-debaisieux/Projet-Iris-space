@@ -184,7 +184,7 @@ function NouvelleConversationModal({ onClose, onCreated }) {
           type="button"
           onClick={onClose}
           aria-label="Fermer"
-          className="text-gray-400 hover:text-gray-700 text-xl font-bold leading-none"
+          className="text-gray-500 hover:text-gray-700 text-xl font-bold leading-none"
         >
           ✕
         </button>
@@ -232,13 +232,13 @@ function NouvelleConversationModal({ onClose, onCreated }) {
         {/* Liste des destinataires trouvés */}
         <div className="border border-gray-200 rounded-xl max-h-48 overflow-y-auto divide-y divide-gray-100">
           {chargementDest ? (
-            <p className="text-sm text-gray-400 text-center py-4">Recherche en cours…</p>
+            <p className="text-sm text-gray-500 text-center py-4">Recherche en cours…</p>
           ) : erreurDest ? (
-            <p className="text-sm text-red-500 text-center py-4">
+            <p role="alert" className="text-sm text-red-600 text-center py-4">
               {messageLisible(erreurDest) || 'Impossible de charger les destinataires.'}
             </p>
           ) : destinataires.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-4">Aucun destinataire trouvé.</p>
+            <p className="text-sm text-gray-500 text-center py-4">Aucun destinataire trouvé.</p>
           ) : (
             destinataires.map(u => {
               const estSelectionne = selection.some(s => s.id === u.id);
@@ -261,7 +261,7 @@ function NouvelleConversationModal({ onClose, onCreated }) {
                       <p className="text-xs text-gray-500 truncate">{details}</p>
                     </div>
                   </div>
-                  <span className={`text-xs font-semibold shrink-0 ${estSelectionne ? 'text-[var(--color-principal)]' : 'text-gray-400'}`}>
+                  <span className={`text-xs font-semibold shrink-0 ${estSelectionne ? 'text-[var(--color-principal)]' : 'text-gray-500'}`}>
                     {estSelectionne ? 'Sélectionné' : 'Choisir'}
                   </span>
                 </button>
@@ -557,7 +557,7 @@ function MessagerieDevTools({ chat }) {
   const btn = 'text-white rounded-lg px-3 py-2 text-left transition font-medium text-xs';
   return (
     <DevTools>
-      <p className="text-gray-400 text-xs uppercase tracking-wider mt-3 mb-1">Messages (Lorem)</p>
+      <p className="text-gray-500 text-xs uppercase tracking-wider mt-3 mb-1">Messages (Lorem)</p>
       <button onClick={chat.devAddContact} className={`bg-blue-600 hover:bg-blue-700 ${btn}`}>+ Ajouter un contact</button>
       <button onClick={chat.devAddMessage} className={`bg-blue-600 hover:bg-blue-700 ${btn}`}>+ Ajouter un message</button>
       <button onClick={chat.devResetConv} className={`bg-gray-600 hover:bg-gray-700 ${btn}`}>Reset conversations</button>
@@ -680,7 +680,7 @@ function Messagerie({ chat }) {
         {/* barre de recherche */}
         <div className="px-6 pt-4 pb-5">
           <label className="flex items-center gap-2 bg-white rounded-full px-4 py-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z" />
             </svg>
             <input
@@ -688,7 +688,7 @@ function Messagerie({ chat }) {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Rechercher"
-              className="w-full bg-transparent outline-none text-sm text-gray-700 placeholder-gray-400"
+              className="w-full bg-transparent outline-none text-sm text-gray-700 placeholder-gray-500"
             />
           </label>
         </div>
@@ -793,7 +793,7 @@ function Messagerie({ chat }) {
               <div className="min-w-0">
                 <h1 className="text-2xl font-bold text-gray-900 leading-tight truncate">{nomConversation(active)}</h1>
                 {sousTitreActif && (
-                  <p className="text-gray-400 text-sm truncate">{sousTitreActif}</p>
+                  <p className="text-gray-500 text-sm truncate">{sousTitreActif}</p>
                 )}
               </div>
             </div>
@@ -814,11 +814,11 @@ function Messagerie({ chat }) {
               )}
 
               {loadingThread ? (
-                <p className="text-gray-400 text-sm text-center py-6">Chargement des messages…</p>
+                <p className="text-gray-500 text-sm text-center py-6">Chargement des messages…</p>
               ) : threadError ? (
                 <MessageErreur error={threadError} />
               ) : messages.length === 0 ? (
-                <p className="text-gray-400 text-sm text-center py-6">Aucun message pour le moment. Écrivez le premier !</p>
+                <p className="text-gray-500 text-sm text-center py-6">Aucun message pour le moment. Écrivez le premier !</p>
               ) : (
                 messages.map(msg => {
                   const estMoi = String(msg.expediteur_id) === String(user?.id);
@@ -833,7 +833,7 @@ function Messagerie({ chat }) {
                         </div>
                       )}
                       <PiecesJointes pieces={msg.pieces_jointes} moi />
-                      {heure && <span className="text-[11px] text-gray-400 pr-1">{heure}</span>}
+                      {heure && <span className="text-[11px] text-gray-600 pr-1">{heure}</span>}
                     </div>
                   ) : (
                     <div key={msg.id} className="flex items-end gap-3 max-w-2xl">
@@ -841,7 +841,7 @@ function Messagerie({ chat }) {
                         <div className="w-10 h-10 rounded-full bg-[var(--color-background)] text-[var(--color-principal)] text-xs font-bold flex items-center justify-center">
                           {initiales(expediteur)}
                         </div>
-                        <span className="text-[10px] text-gray-400 tracking-wide max-w-[80px] truncate">{expediteur}</span>
+                        <span className="text-[10px] text-gray-600 tracking-wide max-w-[80px] truncate">{expediteur}</span>
                       </div>
                       <div className="flex flex-col items-start gap-1">
                         {msg.contenu && (
@@ -850,7 +850,7 @@ function Messagerie({ chat }) {
                           </div>
                         )}
                         <PiecesJointes pieces={msg.pieces_jointes} />
-                        {heure && <span className="text-[11px] text-gray-400 pl-1">{heure}</span>}
+                        {heure && <span className="text-[11px] text-gray-600 pl-1">{heure}</span>}
                       </div>
                     </div>
                   );
@@ -873,7 +873,7 @@ function Messagerie({ chat }) {
                   >
                     <IconePieceJointe className="h-4 w-4 shrink-0 text-gray-500" />
                     <span className="truncate">{fichier.name}</span>
-                    <span className="text-xs text-gray-400 shrink-0">{tailleFichier(fichier.size)}</span>
+                    <span className="text-xs text-gray-500 shrink-0">{tailleFichier(fichier.size)}</span>
                     <button
                       type="button"
                       onClick={() => retirerFichier(i)}
@@ -895,6 +895,7 @@ function Messagerie({ chat }) {
                 type="file"
                 multiple
                 hidden
+                aria-label="Pièces jointes du message"
                 data-testid="fichiers-message"
                 onChange={choisirFichiers}
               />
@@ -911,6 +912,7 @@ function Messagerie({ chat }) {
               <input
                 ref={inputRef}
                 type="text"
+                aria-label="Votre message"
                 maxLength={5000}
                 value={draft}
                 onChange={e => setDraft(e.target.value)}
@@ -924,7 +926,7 @@ function Messagerie({ chat }) {
                 disabled={sending || (!draft.trim() && fichiers.length === 0)}
                 className="w-14 h-14 shrink-0 rounded-full bg-[var(--color-button)] text-white flex items-center justify-center hover:opacity-90 disabled:opacity-50 transition"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
               </button>

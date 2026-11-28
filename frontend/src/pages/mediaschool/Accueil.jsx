@@ -29,7 +29,7 @@ export default function Accueil() {
         {CATEGORIES.map(cat => (
           <Link key={cat.label} to={cat.to} className="flex flex-col items-center gap-2 group cursor-pointer">
             <div className="w-full aspect-square bg-gray-200 rounded-lg overflow-hidden flex items-center justify-center group-hover:shadow-md transition-shadow">
-              <span className="text-gray-400 text-xs">{cat.placeholder}</span>
+              <span className="text-gray-500 text-xs">{cat.placeholder}</span>
             </div>
             <span className={`text-sm text-gray-700 font-medium ${cat.uppercase ? 'uppercase tracking-wide' : ''}`}>{cat.label}</span>
           </Link>

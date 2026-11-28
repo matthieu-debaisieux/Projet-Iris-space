@@ -40,7 +40,7 @@ export default function Navbar({ links, menuLinks, mediaschool = false }) {
             <img src={mediaschool ? msLogo : logo} alt="Iris Space" className="h-auto w-32 p-0 m-0" />
           </Link>
 
-          <span className="text-white/30 text-xl font-light hidden md:inline">|</span>
+          <span aria-hidden="true" className="text-white/30 text-xl font-light hidden md:inline">|</span>
           <div className="title text-lg text-white tracking-wide font-medium hidden md:block">{nomComplet(user) || 'VISITEUR'}</div>
 
           {user && (
@@ -59,7 +59,7 @@ export default function Navbar({ links, menuLinks, mediaschool = false }) {
         </div>
 
         {/* navigation desktop */}
-        <nav className="hidden md:flex items-center gap-8">
+        <nav aria-label="Navigation principale" className="hidden md:flex items-center gap-8">
           {links.map(link => (
             <NavLink key={link.label} to={link.to} end className={navLinkClass}>{link.label}</NavLink>
           ))}
@@ -78,7 +78,7 @@ export default function Navbar({ links, menuLinks, mediaschool = false }) {
                 `relative w-10 h-10 rounded-full flex items-center justify-center hover:-translate-y-0.5 transition-transform duration-200 ${isActive ? 'text-[#F8B005]' : 'text-white'}`
               }
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
               <MessageBadge />
