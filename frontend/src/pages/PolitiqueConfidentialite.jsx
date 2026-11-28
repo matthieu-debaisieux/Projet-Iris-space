@@ -75,7 +75,7 @@ export default function PolitiqueConfidentialite() {
         <div className="overflow-x-auto">
           <table className="w-full min-w-[520px] border-separate border-spacing-0 text-sm">
             <thead>
-              <tr><th className={th}>Pourquoi</th><th className={th}>Base légale</th></tr>
+              <tr><th scope="col" className={th}>Pourquoi</th><th scope="col" className={th}>Base légale</th></tr>
             </thead>
             <tbody>
               {FINALITES.map(([but, base]) => (

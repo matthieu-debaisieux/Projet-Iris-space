@@ -73,7 +73,7 @@ function ChampFormulaire({ id, label, required = false, children }) {
   return (
     <div>
       <label htmlFor={id} className={labelClass}>
-        {label} {required && <span className="text-[#EC6F6F]">*</span>}
+        {label} {required && <><span aria-hidden="true" className="text-[#B23A3A]">*</span><span className="sr-only">(obligatoire)</span></>}
       </label>
       {children}
     </div>
@@ -176,7 +176,7 @@ function CompteFormModal({ initialUser, classes, onSaved, onClose }) {
           type="button"
           onClick={onClose}
           disabled={busy}
-          className="text-2xl leading-none text-gray-400 hover:text-gray-600"
+          className="text-2xl leading-none text-gray-500 hover:text-gray-600"
           aria-label="Fermer"
         >
           ×
@@ -568,7 +568,7 @@ export default function Comptes() {
             className="inline-flex items-center gap-2 bg-[#E8735A] text-white font-semibold text-sm sm:text-base px-5 py-2.5 rounded-full hover:brightness-90 transition shadow-sm"
           >
             Créer un compte
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
             </svg>
           </button>
@@ -585,7 +585,7 @@ export default function Comptes() {
         </div>
 
         {feedback && (
-          <div className="mb-4 flex items-center justify-between gap-3 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-800">
+          <div role="status" className="mb-4 flex items-center justify-between gap-3 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-800">
             <span>{feedback}</span>
             <button type="button" onClick={() => setFeedback('')} className="font-bold text-emerald-700 hover:underline text-xs">
               Fermer
@@ -607,6 +607,7 @@ export default function Comptes() {
           <div className="flex flex-wrap items-center gap-3 mb-4">
             <input
               type="search"
+              aria-label="Rechercher un compte"
               value={recherche}
               onChange={e => setRecherche(e.target.value)}
               placeholder="Rechercher par nom, identifiant, email, classe…"
@@ -653,13 +654,13 @@ export default function Comptes() {
                 <table className="table table-sm w-full">
                   <thead>
                     <tr className="text-xs uppercase text-gray-500 border-b border-gray-200">
-                      <th>Utilisateur</th>
-                      <th>Contact</th>
-                      <th>Rôle</th>
-                      <th>Détails</th>
-                      <th>Statut</th>
-                      <th>Dernière connexion</th>
-                      <th className="text-right">Actions</th>
+                      <th scope="col">Utilisateur</th>
+                      <th scope="col">Contact</th>
+                      <th scope="col">Rôle</th>
+                      <th scope="col">Détails</th>
+                      <th scope="col">Statut</th>
+                      <th scope="col">Dernière connexion</th>
+                      <th scope="col" className="text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -681,17 +682,17 @@ export default function Comptes() {
                           </td>
                           <td>
                             <div className="text-xs text-gray-700">{u.email}</div>
-                            {u.telephone && <div className="text-xs text-gray-400">{u.telephone}</div>}
+                            {u.telephone && <div className="text-xs text-gray-500">{u.telephone}</div>}
                           </td>
                           <td><RoleBadge role={u.role} /></td>
                           <td className="text-xs text-gray-600">
                             {u.role === 'eleve' ? (
                               <div>
-                                <div>{u.classe || <span className="italic text-gray-400">Sans classe</span>}</div>
-                                {u.numero_etudiant && <div className="text-gray-400">N° {u.numero_etudiant}</div>}
+                                <div>{u.classe || <span className="italic text-gray-500">Sans classe</span>}</div>
+                                {u.numero_etudiant && <div className="text-gray-500">N° {u.numero_etudiant}</div>}
                               </div>
                             ) : (
-                              <span className="text-gray-400">—</span>
+                              <span className="text-gray-500">—</span>
                             )}
                           </td>
                           <td>
@@ -729,7 +730,7 @@ export default function Comptes() {
                                 disabled={estMoi}
                                 onClick={() => setModal({ type: 'delete', user: u })}
                                 title={estMoi ? 'Impossible de supprimer votre propre compte' : undefined}
-                                className="btn btn-xs btn-ghost text-[#EC6F6F] disabled:opacity-40"
+                                className="btn btn-xs btn-ghost text-[#B23A3A] disabled:opacity-40"
                               >
                                 Supprimer
                               </button>

@@ -37,7 +37,7 @@ const ChevronButton = ({ direction, label, onClick }) => (
     aria-label={label}
     className="w-8 h-8 rounded-full border border-[#E1E5EE] bg-white text-[#001257] flex items-center justify-center hover:bg-[#EEF1F7] transition"
   >
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
       <path d={direction === 'prev' ? 'M15 18l-6-6 6-6' : 'M9 18l6-6-6-6'} strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   </button>
@@ -195,11 +195,11 @@ function SuiviDuJour() {
           <table className="w-full border-separate border-spacing-0">
             <thead>
               <tr>
-                <th className={th}>Élève</th>
-                <th className={th}>Classe</th>
-                <th className={th}>Heure / Durée</th>
-                <th className={th}>Justifié ?</th>
-                <th className={th}><span className="sr-only">Contact</span></th>
+                <th scope="col" className={th}>Élève</th>
+                <th scope="col" className={th}>Classe</th>
+                <th scope="col" className={th}>Heure / Durée</th>
+                <th scope="col" className={th}>Justifié ?</th>
+                <th scope="col" className={th}><span className="sr-only">Contact</span></th>
               </tr>
             </thead>
             <tbody>
@@ -236,11 +236,11 @@ function SuiviDuJour() {
             <table className="w-full border-separate border-spacing-0">
               <thead>
                 <tr>
-                  <th className={`${th} whitespace-nowrap`}>Heure</th>
-                  <th className={th}>Classe</th>
-                  <th className={th}>Matière</th>
-                  <th className={th}>Salle</th>
-                  <th className={th}>Professeur</th>
+                  <th scope="col" className={`${th} whitespace-nowrap`}>Heure</th>
+                  <th scope="col" className={th}>Classe</th>
+                  <th scope="col" className={th}>Matière</th>
+                  <th scope="col" className={th}>Salle</th>
+                  <th scope="col" className={th}>Professeur</th>
                 </tr>
               </thead>
               <tbody>

@@ -159,12 +159,12 @@ function Contenu({ liste }) {
         <table className="w-full min-w-[560px] border-separate border-spacing-0 text-sm">
           <thead>
             <tr>
-              <th className={th}>Matière</th>
-              <th className={th}>Note</th>
-              {avecMoyClasse && <th className={th}>Moyenne classe</th>}
-              <th className={th}>Professeur</th>
-              <th className={th}>Date</th>
-              {avecAppreciation && <th className={th}>Appréciation</th>}
+              <th scope="col" className={th}>Matière</th>
+              <th scope="col" className={th}>Note</th>
+              {avecMoyClasse && <th scope="col" className={th}>Moyenne classe</th>}
+              <th scope="col" className={th}>Professeur</th>
+              <th scope="col" className={th}>Date</th>
+              {avecAppreciation && <th scope="col" className={th}>Appréciation</th>}
             </tr>
           </thead>
           <tbody>

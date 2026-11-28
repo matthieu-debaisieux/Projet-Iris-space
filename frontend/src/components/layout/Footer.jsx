@@ -16,7 +16,7 @@ export default function Footer({ withMediaschoolLink = false }) {
         <Link to="/cgu" className={btn}>CGU</Link>
         <span className="self-stretch w-px bg-white mx-3" />
         <a href="https://mediaschool.eu/" target="_blank" rel="noreferrer">
-          <img src={msLogo} alt="Logo MediaSchool" className="h-12" />
+          <img src={msLogo} alt="MediaSchool (s'ouvre dans un nouvel onglet)" className="h-12" />
         </a>
       </div>
       {withMediaschoolLink && (
