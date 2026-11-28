@@ -200,6 +200,24 @@ function messagerieInsererMessage(string $conversationId, string $contenu): stri
     return (string) $stmt->fetchColumn();
 }
 
+// Notifie les autres participants d'un nouveau message (NTF-01). Appelée après l'écriture ;
+// une erreur de notification n'empêche jamais l'envoi du message.
+function messagerieNotifierNouveauMessage(string $conversationId): void
+{
+    notifierSansEchec(function () use ($conversationId) {
+        $stmt = db()->prepare('SELECT prenom, nom FROM utilisateur WHERE id = :moi');
+        $stmt->execute(['moi' => moi()]);
+        $expediteur = $stmt->fetch() ?: ['prenom' => '', 'nom' => ''];
+        notifierConversation(
+            $conversationId,
+            'message',
+            'Nouveau message de ' . trim($expediteur['prenom'] . ' ' . $expediteur['nom']),
+            '/messages',
+            moi()
+        );
+    });
+}
+
 // Texte sans accent ni majuscule, pour la recherche
 function messagerieNormaliser(string $texte): string
 {
@@ -388,6 +406,10 @@ $group->post('/conversations', function (ServerRequestInterface $request, Respon
         return [$conversationId, true];
     });
 
+    if ($message !== null) {
+        messagerieNotifierNouveauMessage($conversationId);
+    }
+
     return json($response, ['conversation' => messagerieConversations($conversationId)[0]], $creee ? 201 : 200);
 })->add(requireConnecte());
 
@@ -493,6 +515,8 @@ $group->post('/conversations/{id:' . UUID . '}/messages', function (ServerReques
         }
         throw $e;
     }
+
+    messagerieNotifierNouveauMessage($args['id']);
 
     return json($response, ['message' => messagerieLireMessage($messageId)], 201);
 })->add(requireConnecte());

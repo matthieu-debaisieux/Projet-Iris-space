@@ -8,6 +8,10 @@ RUN apt-get update \
  && a2enmod rewrite \
  && rm -rf /var/lib/apt/lists/*
 
+# Taille des envois : l'appli accepte 10 Mo par fichier et jusqu'à 5 pièces jointes par message
+# (les valeurs par défaut de PHP, 2 Mo et 8 Mo, coupaient les envois avant les contrôles de l'appli)
+RUN printf 'upload_max_filesize=12M\npost_max_size=64M\nmax_file_uploads=10\n' > /usr/local/etc/php/conf.d/uploads.ini
+
 # Apache sert le dossier public/
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 RUN sed -ri 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \

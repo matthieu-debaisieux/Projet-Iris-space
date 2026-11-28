@@ -222,7 +222,7 @@ Erreurs : 404 si la conversation n'est pas la vôtre ou si `avant` n'est pas un 
 **`POST …/messages`**, corps `{ "contenu": "texte" }` : 201 `{ "message": {...} }`. 400 si `contenu` est vide ou dépasse 5000 caractères.
 
 **`POST …/messages` avec pièces jointes** : formulaire multipart (pas de JSON), avec `contenu` (facultatif s'il y a un fichier) et un ou plusieurs fichiers dans `fichiers[]` (un seul fichier peut aussi venir du champ `fichier`). Mêmes règles de fichiers que tous les envois ([helpers.php](routes/helpers.php), `enregistrerFichier`) : 10 Mo maximum chacun, extensions pdf, txt, csv, zip, doc/docx/odt, xls/xlsx/ods, ppt/pptx/odp, jpg/jpeg/png/gif/webp, contenu HTML/PHP/SVG refusé. Les fichiers sont rangés dans `uploads/messages/` sous un nom aléatoire ; le nom d'origine est gardé dans `message_piece_jointe.nom`. Le message renvoyé (201) contient `pieces_jointes: [{ id, nom }]` ; le chemin sur le disque reste interne.
-- Erreurs : 400 (aucun texte ni fichier, plus de 5 fichiers, type refusé), 413 (fichier de plus de 10 Mo), 404 (conversation inconnue ou qui n'est pas la vôtre). Si un fichier est refusé, rien n'est enregistré : le message n'est pas créé et les fichiers déjà posés sont effacés. Attention : la taille totale de la requête est aussi bornée par `post_max_size` et `upload_max_filesize` de PHP (8 Mo et 2 Mo par défaut) ; à relever dans la configuration PHP du serveur pour que les 10 Mo par fichier soient atteignables.
+- Erreurs : 400 (aucun texte ni fichier, plus de 5 fichiers, type refusé), 413 (fichier de plus de 10 Mo), 404 (conversation inconnue ou qui n'est pas la vôtre). Si un fichier est refusé, rien n'est enregistré : le message n'est pas créé et les fichiers déjà posés sont effacés. La configuration PHP de l'image Docker (backend/Dockerfile) autorise 12 Mo par fichier et 64 Mo par requête, pour que la limite de 10 Mo de l'appli soit atteignable ; sans Docker, régler `upload_max_filesize` et `post_max_size` de la même façon.
 
 **`GET /api/messages/pieces-jointes/{id}/telecharger`** : renvoie le fichier (PDF et images s'affichent dans le navigateur, les autres types se téléchargent), sous son nom d'origine. Réservé aux participants de la conversation du message : pour tout autre compte (administration comprise), pour un id inconnu ou un message supprimé, la réponse est 404 « Pièce jointe introuvable » ; 401 sans connexion.
 
@@ -491,49 +491,9 @@ Toujours après l'écriture principale, dans `notifierSansEchec(fn () => …)` (
 
 Règles propres aux cours : seuls les cours **à venir** notifient (un cours déjà commencé ou passé, modifié ou supprimé, ne prévient personne), un cours déjà annulé ne notifie plus (ni déplacement, ni suppression), et un changement de salle, de commentaire ou de matière seul ne notifie pas. Rétablir un cours annulé (`annule` repasse à `false`) ne notifie pas non plus. Pour `DELETE`, les destinataires sont lus avant la suppression avec `destinatairesCours($coursId)`, car la classe du cours n'existe plus après.
 
-### Reste à brancher
+### Nouveau message (branché)
 
-**Nouveau message** : `POST /api/conversations/{id}/messages` dans [messagerie.php](routes/messagerie.php) (en cours sur une autre branche, non branché ici). Après l'insertion du message :
-
-```php
-notifierSansEchec(fn () => notifierConversation(
-    $conversationId,
-    'message',
-    'Nouveau message de ' . trim($expediteur['prenom'] . ' ' . $expediteur['nom']),
-    '/messages',
-    moi()
-));
-```
-
-## RGPD (fait)
-
-### Durées de conservation
-
-| Donnée | Durée |
-|---|---|
-| Journal des connexions (table `journal_connexion`) | **12 mois**, puis purgé |
-| Compte et données scolaires | Tant que le compte existe ; supprimées sur demande de la personne (voir plus bas) |
-
-### Journal des connexions
-
-- Chaque `POST /api/auth/login` ajoute une ligne, réussie ou non : date, utilisateur (vide si l'identifiant n'existe pas), identifiant ou e-mail saisi, adresse IP, User-Agent tronqué à 200 caractères, et pour un échec le motif (`identifiant_inconnu`, `mot_de_passe_incorrect`, `compte_desactive`, `code_2fa_incorrect`). Le motif n'est jamais renvoyé au client : la réponse reste « Identifiant ou mot de passe incorrect ».
-- L'écriture ne bloque jamais la connexion : si elle échoue (par exemple base pas encore migrée), l'erreur va dans le journal PHP et le login continue.
-- L'adresse IP est `REMOTE_ADDR`. Derrière le nginx du front (`X-Real-IP`), c'est l'en-tête `X-Real-IP` qui est lu, mais seulement si la requête arrive d'une adresse privée ou locale.
-- **Base existante :** jouer une fois [database/migrations/2026-11-27_sec04_journal_connexion.sql](database/migrations/2026-11-27_sec04_journal_connexion.sql). Une base neuve créée avec `init_database.sql` a déjà la table.
-
-### Limite de tentatives (SEC-02) et double authentification (SEC-03)
-
-- **Limite :** 5 échecs pour un même identifiant (ou compte) en 15 minutes, ou 20 pour une même adresse IP, refusent la connexion avec 429 `{ "error": "Trop de tentatives. Réessayez dans N minutes." }` et l'en-tête `Retry-After`. Le calcul se fait sur `journal_connexion` (pas de table en plus) et repart à zéro après une connexion réussie du compte. Les tentatives refusées ne sont pas journalisées.
-- **Double authentification :** TOTP (RFC 6238, SHA-1, 6 chiffres, pas de 30 s, ±1 pas) pour `administrateur`, `direction`, `professeur`, `dev` (droit `double_authentification`). Colonnes `utilisateur.totp_actif`, `totp_secret`, `totp_dernier_pas` (un code déjà utilisé est refusé). Après le mot de passe, `/auth/login` répond `double_authentification_requise` sans ouvrir la session ; `/auth/2fa/verifier` l'ouvre (5 codes faux : 429 et retour à l'étape 1).
-- **Base existante :** jouer une fois [database/migrations/2026-11-27_sec03_totp_2fa.sql](database/migrations/2026-11-27_sec03_totp_2fa.sql) (idempotente : colonnes TOTP et motif `code_2fa_incorrect`).
-
-### Purge à planifier (équipe SISR)
-
-Le script [scripts/purger_journal_connexions.php](scripts/purger_journal_connexions.php) supprime les lignes de plus de 12 mois (constante `JOURNAL_CONNEXIONS_MOIS` dans [helpers.php](routes/helpers.php)). Il ne se lance qu'en ligne de commande, affiche le nombre de lignes supprimées et sort avec le code 1 en cas d'erreur. L'option `--simulation` compte sans rien supprimer.
-
-À lancer **une fois par jour** par une tâche planifiée sur le serveur, par exemple (cron, tous les jours à 3 h 15) :
-
-```
+`POST /api/conversations` (premier message) et `POST /api/conversations/{id}/messages` notifient les autres participants (« Nouveau message de Prénom Nom », type `message`, lien `/messages`), via `messagerieNotifierNouveauMessage()` dans [messagerie.php](routes/messagerie.php). Toutes les notifications prévues sont maintenant branchées.
 15 3 * * * docker exec iris-api php /var/www/html/scripts/purger_journal_connexions.php >> /var/log/iris-purge-journal.log 2>&1
 ```
 
