@@ -28,6 +28,7 @@ semaines, des devoirs, des notes, des absences, des ressources et des actualité
 | Compte | Mot de passe | Rôle |
 |---|---|---|
 | `admin` | `admin1234` | administration |
+| `dev` | `dev12345` | développeur (seul rôle qui gère les comptes, page `/comptes`) |
 | `prof` | `prof1234` | professeur (Développement, Cybersécurité) |
 | `eleve` | `eleve1234` | élève (BTS SIO 1) |
 | `mmartin`, `jdupont` | `demo1234` | professeurs |
@@ -44,7 +45,8 @@ ce qui efface les données) :
 docker compose exec db psql -U iris -d iris_space -c "ALTER TYPE role_utilisateur ADD VALUE IF NOT EXISTS 'dev';"
 ```
 
-Seul un compte `dev` peut créer un compte `dev` : le premier se crée en SQL. Générer le hash du
+Seul un compte `dev` peut créer un compte `dev` : le premier se crée en SQL (les données de démo en contiennent
+déjà un : `dev` / `dev12345`, à ne pas garder en production). Générer le hash du
 mot de passe, puis lancer la requête dans Adminer (onglet « Requête SQL ») :
 
 ```bash
@@ -88,13 +90,37 @@ Les espaces `/visiteur` et `/mediaschool` sont publics.
 
 ## Lancer le back (API Slim) sans Docker
 
-Avec PHP 8.2+ et Composer installés :
+Avec PHP 8.2+ et Composer installés, et une base PostgreSQL (`docker compose up -d db` suffit, port 5432) :
 
 ```bash
 cd backend
 composer install
-php -S localhost:3000 -t public
 ```
+
+Extensions PHP nécessaires : `pdo_pgsql` et `pgsql` (base de données) et `fileinfo` (type réel des fichiers envoyés,
+par exemple pour refuser un faux `.png`). Sous Windows elles sont fournies mais commentées dans `php.ini`
+(`;extension=pdo_pgsql`) : les décommenter, ou les passer avec `-d` comme ci-dessous (sans répéter celles que
+`php.ini` active déjà : PHP afficherait « Module … is already loaded »).
+
+Lancer l'API (Git Bash ; mot de passe = `DB_PASSWORD` du fichier `.env`) :
+
+```bash
+cd backend
+export DB_HOST=localhost DB_PORT=5432 DB_NAME=iris_space DB_USER=iris DB_PASSWORD=<mot de passe> APP_ENV=dev
+php -d opcache.enable=0 -d extension=pdo_pgsql -d extension=pgsql -d extension=fileinfo -S localhost:3001 -t public
+```
+
+PowerShell : `$env:DB_HOST='localhost'; $env:DB_PORT='5432'; …` pour les mêmes variables, puis la même ligne `php`.
+Le port 3000 est pris par l'API Docker si elle tourne : prendre 3001 et mettre `VITE_BACKEND_URL=http://localhost:3001`
+dans `frontend/.env.local`. Vérification : `curl http://localhost:3001/api/health`.
+
+**Ne pas retirer `-d opcache.enable=0`.** Avec PHP 8.5.11 ZTS pour Windows, `php -S` plante dès que OPcache
+(intégré à PHP 8.5, JIT en `disable` par défaut) est actif : selon les extensions chargées (`pgsql`, `pdo_pgsql`,
+`fileinfo`, `gd`, `intl`… ; parfois même sans aucune, avec `-n`), `getallheaders()` (appelée par Slim à chaque
+requête) exécute une autre fonction (`finfo_buffer()`,
+`pg_host()`…) ou le processus s'arrête sans message. Ce n'est pas un rechargement d'extension ni un défaut de
+`php.ini` : le même lancement fonctionne avec `-d opcache.enable=0` (ou `-d opcache.jit=off`). OPcache ne sert à
+rien sur un serveur de développement ; l'image Docker (Linux) n'est pas concernée.
 
 Les routes sont déclarées dans `backend/public/index.php`, dans le groupe `/api`.
 Les classes PHP vont dans `backend/src/` (namespace `App\`).
