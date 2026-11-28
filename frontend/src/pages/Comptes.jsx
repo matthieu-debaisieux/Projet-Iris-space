@@ -3,6 +3,7 @@ import DataState from '@/components/ui/DataState.jsx';
 import Modal from '@/components/ui/Modal.jsx';
 import { useAuth } from '@/context/AuthContext.jsx';
 import { useAsync } from '@/hooks/useAsync.js';
+import { USE_MOCKS, messageLisible } from '@/services/api.js';
 import {
   ROLES_COMPTE,
   ROLE_COMPTE_BY_VALUE,
@@ -17,6 +18,10 @@ import {
 const inputClass =
   'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#07A6A6]';
 const labelClass = 'block text-xs font-semibold text-[var(--color-principal)] mb-1';
+
+// Message du back s'il est lisible ; en mode mocks, le texte de l'erreur ; sinon un message générique
+// (jamais « PATCH /admin/… → 500 » ni « Failed to fetch »).
+const texteErreur = (err, defaut) => messageLisible(err) || (USE_MOCKS ? err?.message : '') || defaut;
 
 function genererMotDePasse(longueur = 12) {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
@@ -144,7 +149,7 @@ function CompteFormModal({ initialUser, classes, onSaved, onClose }) {
         : await createUtilisateur(payload);
       onSaved(saved, edition);
     } catch (err) {
-      setError(err?.message || "Impossible d'enregistrer le compte.");
+      setError(texteErreur(err, "Impossible d'enregistrer le compte."));
     } finally {
       setBusy(false);
     }
@@ -430,7 +435,7 @@ function ConfirmDeleteModal({ target, onDeleted, onClose }) {
       await deleteUtilisateur(target.id);
       onDeleted(target);
     } catch (err) {
-      setError(err?.message || 'Impossible de supprimer ce compte.');
+      setError(texteErreur(err, 'Impossible de supprimer ce compte.'));
     } finally {
       setBusy(false);
     }
@@ -517,7 +522,7 @@ export default function Comptes() {
         `Le compte ${updated.identifiant} a été ${updated.actif !== false ? 'réactivé' : 'désactivé'}.`,
       );
     } catch (err) {
-      setActionError(err?.message || 'Impossible de modifier le statut du compte.');
+      setActionError(texteErreur(err, 'Impossible de modifier le statut du compte.'));
     } finally {
       setTogglingId(null);
     }

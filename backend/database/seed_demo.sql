@@ -2,7 +2,7 @@
 -- Données de démo (SOC-01) — DÉVELOPPEMENT ET DÉMONSTRATION UNIQUEMENT.
 -- Chargé automatiquement par docker compose à la création du volume de la base,
 -- après init_database.sql. Ne JAMAIS charger en production : mots de passe connus.
---   admin / admin1234 · prof / prof1234 · eleve / eleve1234
+--   admin / admin1234 · prof / prof1234 · eleve / eleve1234 · dev / dev12345
 --   mmartin, jdupont (profs) · lbernard, crobert, tpetit, emoreau (élèves) : demo1234
 -- Pour repartir de zéro : docker compose down -v puis docker compose up -d --build
 -- (ou, sur une base existante : backend/database/reset_dev.sql, puis init + seed).
@@ -20,6 +20,7 @@ INSERT INTO matiere (code, nom) VALUES
 -- Comptes
 INSERT INTO utilisateur (identifiant, email, mot_de_passe_hash, role, nom, prenom) VALUES
   ('admin',    'admin@iris-space.local',     '$2y$12$/8ueikZVgVmMGQzomRMGK.ATYyvMAh/7GnQgEHCneMnD6AyR9hQaq', 'administrateur', 'Admin', 'Iris'),
+  ('dev',      'dev@iris-space.local',       '$2y$12$cnwg41/1ItT7QhCcb1LWoesY.t2i.KwwVyFtAe.D.eRwimmURXHlO', 'dev', 'Développeur', 'Équipe'),
   ('prof',     'prof@iris-space.local',      '$2y$12$DgL29ygTCp2mI7BojiNQNeY0wZKm9Eirvcpp/RRY08LvNxsvxgaFm', 'professeur', 'Leroy', 'Paul'),
   ('eleve',    'eleve@iris-space.local',     '$2y$12$MI.PzC5DfFgrzhTBeBeKQu9MnPduTexl5NCwge8j35LdifWMdrQdW', 'eleve', 'Durand', 'Lucas'),
   ('mmartin',  'm.martin@iris-space.local',  '$2y$12$IWqZFVxHZ3uT90Qiullkm.USM3CTn4HYSYgQItUKRZfkgUrIOQIMm', 'professeur', 'Martin',  'Marie'),
