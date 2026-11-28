@@ -26,7 +26,7 @@ Projet de classe : création et refonte du site Iris, un espace numérique pour 
 | Git | récent | récupérer le dépôt |
 | Docker Desktop (avec `docker compose`) | récent | lancer front, API, base et Adminer en une commande (méthode conseillée) |
 | Node.js et npm | 22 (version du `frontend/Dockerfile` et de la CI) | lancer le front sans Docker, Newman |
-| PHP | 8.2 minimum (`backend/composer.json`) ; 8.5 dans Docker et la CI | lancer l'API sans Docker, avec l'extension `pdo_pgsql` |
+| PHP | 8.2 minimum (`backend/composer.json`) ; 8.5 dans Docker et la CI | lancer l'API sans Docker, avec les extensions `pdo_pgsql`, `pgsql` et `fileinfo` |
 | Composer | 2 | installer les dépendances PHP sans Docker |
 | PostgreSQL | 17 (image `postgres:17-alpine`) | seulement si la base ne tourne pas dans Docker |
 
@@ -64,7 +64,7 @@ et des actualités.
 | `mmartin`, `jdupont` | `demo1234` | professeurs |
 | `lbernard`, `crobert`, `tpetit`, `emoreau` | `demo1234` | élèves |
 
-Il n'y a pas de compte `dev` dans les données de démo : voir [Créer le premier compte `dev`](#créer-le-premier-compte-dev).
+Le compte `dev` de démo ne doit jamais rester en production. Sur une base créée avant son ajout, ou en production, voir [Créer le premier compte `dev`](#créer-le-premier-compte-dev).
 
 ### Repartir de zéro
 
@@ -143,7 +143,7 @@ Les espaces `/visiteur` et `/mediaschool` sont publics.
    et n'a **pas de valeur par défaut** pour `DB_*` (voir [Variables d'environnement](#variables-denvironnement)) :
    `DB_HOST=localhost`, `DB_PORT=5432`, `DB_NAME=iris_space`, `DB_USER`, `DB_PASSWORD`, et `APP_ENV=dev`.
    Bash : `export DB_HOST=localhost` ; PowerShell : `$env:DB_HOST = 'localhost'`.
-3. Installer les dépendances et lancer le serveur (PHP 8.2 minimum, extension `pdo_pgsql` activée) :
+3. Installer les dépendances (PHP 8.2 minimum), puis lancer le serveur comme indiqué ci-dessous :
 
 ```bash
 cd backend
@@ -245,6 +245,9 @@ et les données de démo chargées. Depuis la racine du dépôt :
 npx newman run backend/tests/postman/iris-space.postman_collection.json \
   -e backend/tests/postman/iris-space.local.postman_environment.json
 ```
+
+L'environnement Postman vise `http://localhost:3000` (l'API Docker). Pour une API lancée sans Docker sur 3001,
+ajouter `--env-var baseUrl=http://localhost:3001` à la commande. Les comptes attendus sont ceux des données de démo.
 
 Utilisation dans Postman, ajustement des comptes de test et ajout d'un lot de tests :
 [`backend/tests/postman/README.md`](backend/tests/postman/README.md). Il n'y a pas encore de tests
