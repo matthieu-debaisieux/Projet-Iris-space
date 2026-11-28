@@ -80,7 +80,7 @@ $group->get('/documents/{id:' . UUID . '}/telecharger', function (ServerRequestI
     };
 
     if (!$autorise) {
-        throw new ApiException('Accès refusé', 403);
+        throw new ApiException('Document introuvable', 404); // SEC-05 : le document d'un autre n'existe pas pour lui
     }
 
     return envoyerFichier($response, $doc['url'], $doc['titre'], false);

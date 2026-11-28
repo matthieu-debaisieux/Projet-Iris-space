@@ -75,6 +75,23 @@ function requireConnecte(): callable
     return requireRole('eleve', 'professeur', 'administrateur', 'direction', 'dev');
 }
 
+// SEC-05 : protection CSRF en plus du cookie SameSite=Lax, posée sur tout le groupe /api (index.php).
+// Le front appelle toujours l'API depuis la même origine (nginx ou proxy Vite sur /api) : une requête qui modifie
+// des données (POST, PUT, PATCH, DELETE) et que le navigateur dit venir d'un autre site (Sec-Fetch-Site
+// « cross-site », ou « same-site » pour un sous-domaine voisin, que SameSite=Lax ne bloque pas) est refusée en 403.
+// Sans cet en-tête (curl, Postman, vieux navigateurs), rien ne change.
+function refuserRequeteInterSite(): callable
+{
+    return function (ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface {
+        $site = strtolower($request->getHeaderLine('Sec-Fetch-Site'));
+        if (!in_array($request->getMethod(), ['GET', 'HEAD', 'OPTIONS'], true)
+            && in_array($site, ['cross-site', 'same-site'], true)) {
+            throw new ApiException('Requête refusée : elle ne vient pas du site Iris Space', 403);
+        }
+        return $handler->handle($request);
+    };
+}
+
 // Id de l'utilisateur connecté (le middleware requireRole a déjà vérifié qu'il existe)
 function moi(): string
 {
