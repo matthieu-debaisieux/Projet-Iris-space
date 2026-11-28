@@ -53,7 +53,8 @@ Les sections marquées **(fait)** plus bas sont aussi codées :
   - 409 : doublon, ou élément encore utilisé ;
   - 429 : trop de tentatives (limitation sur la connexion).
 
-  Le message peut s'afficher tel quel.
+  Le message peut s'afficher tel quel. Les erreurs hors routes suivent le même format : route inconnue (404 « Route introuvable »), méthode refusée (405), erreur interne (500 « Erreur interne du serveur ») ; le détail technique (`details`) n'est ajouté qu'en dev.
+- **Requêtes inter-sites (CSRF) :** un `POST`, `PUT`, `PATCH` ou `DELETE` que le navigateur marque `Sec-Fetch-Site: cross-site` ou `same-site` est refusé en 403. Le front appelle toujours l'API depuis sa propre origine (`/api`), il n'est pas concerné ; curl et Postman n'envoient pas cet en-tête. Revue de sécurité : [docs/securite.md](../docs/securite.md).
 - **Dates :** `AAAA-MM-JJ` pour un jour, ISO `AAAA-MM-JJTHH:MM` pour une date et heure. Une heure sans fuseau compte en heure de Paris. Les dates renvoyées incluent le décalage (`2026-10-30 18:00:00+01`) et se lisent avec `new Date()`.
 - **Nombres décimaux** (notes, coefficients, barèmes) : renvoyés en texte (`"16.00"`), il faut les convertir avec `Number()`.
 - **`PUT` remplace tout :** un champ facultatif absent est remis à vide. Il faut renvoyer l'objet complet, pas seulement le champ modifié. Pour un changement partiel, utiliser les routes `PATCH`.
@@ -127,9 +128,9 @@ Réponse : `{ "actualite": {...} }` pour `POST` et `PUT`, `{ "actualites": [...]
 |---|---|---|---|
 | POST | `/api/uploads` | Envoyer un fichier (`fichier`, `categorie` facultative : `general`, `actualites`, `avatars`, `messages`) et récupérer `{ url, fichier }` (`actualites` réservé à admin, direction, dev, prof ; `actualites` et `avatars` limités aux images) | P1 |
 | GET | `/api/uploads/{categorie}/{nom}` | Servir un fichier déposé via `/api/uploads` (public sans connexion pour `actualites`, tout utilisateur connecté pour `general`, `avatars`, `messages`) | P1 |
-| GET | `/api/documents/{id}/telecharger` | Télécharger un document après vérification des droits (admin/direction : tout ; élève : généraux et les siens ; prof : généraux, les siens ou déposés par lui) | P2 |
-| GET | `/api/devoirs/fichiers/{id}/telecharger` | Télécharger une pièce jointe d'un devoir (prof auteur, élèves du devoir, administration) | P2 |
-| GET | `/api/devoirs/rendus/{id}/telecharger` | Télécharger un fichier rendu par un élève (élève auteur ou prof du devoir) | P2 |
+| GET | `/api/documents/{id}/telecharger` | Télécharger un document après vérification des droits (admin/direction : tout ; élève : généraux et les siens ; prof : généraux, les siens ou déposés par lui ; 404 pour les autres) | P2 |
+| GET | `/api/devoirs/fichiers/{id}/telecharger` | Télécharger une pièce jointe d'un devoir (prof auteur, élèves du devoir, administration ; 404 pour les autres) | P2 |
+| GET | `/api/devoirs/rendus/{id}/telecharger` | Télécharger un fichier rendu par un élève (élève auteur ou prof du devoir ; 404 pour les autres) | P2 |
 
 ## Messagerie (fait)
 
@@ -349,7 +350,7 @@ Un « espace » de la page correspond à une ligne de la table `type_document`. 
 ## Admin : comptes et programme (fait)
 
 Le rôle `dev` dispose du droit `comptes_gerer` (accès à la page `/comptes` de gestion et création des comptes) ainsi que de tous les droits d'administration (et des outils de développement quand `APP_ENV` vaut `dev`, comme les autres rôles).
-Seul un compte `dev` peut créer, modifier, désactiver ou supprimer un compte `dev`, et supprimer un utilisateur.
+Seul un compte `dev` peut créer, modifier, désactiver, effacer (RGPD, `DELETE /api/admin/utilisateurs/{id}/donnees` : 403 sinon) ou supprimer un compte `dev`, et supprimer un utilisateur.
 La suppression est refusée (409) dès qu'une donnée est rattachée au compte : notes, absences, devoirs rendus ou corrigés, documents personnels, messages, actualités, cours ou évaluations d'un prof… Dans ce cas, désactiver le compte.
 Tant que `professeur_matiere` et `classe_matiere` sont vides, les clés étrangères font refuser à la base tout cours, devoir, évaluation ou ressource.
 
@@ -407,7 +408,7 @@ Comportement :
 | POST | `/api/eleve/devoirs/{id}/rendu` | Rendre un devoir en ligne | P2 |
 | GET | `/api/eleve/documents` | Page Documents (renvoie `personnel` et `depose_par_moi`) | P2 |
 | POST | `/api/eleve/documents` | Déposer un document dans l'espace « Mes documents » (`fichier`, `titre` facultatif) | P2 |
-| DELETE | `/api/eleve/documents/{id}` | Supprimer un de ses propres documents de « Mes documents » | P2 |
+| DELETE | `/api/eleve/documents/{id}` | Supprimer un de ses propres documents de « Mes documents » (404 pour le document personnel d'un autre, 403 pour un document général ou déposé par l'administration) | P2 |
 
 ## Professeur (fait)
 
@@ -513,7 +514,7 @@ Filet de sécurité : environ une connexion réussie sur cent déclenche aussi c
 |---|---|---|---|---|
 | GET | `/api/auth/me/export` | Tout utilisateur connecté | Télécharger ses propres données | P2 |
 | GET | `/api/admin/utilisateurs/{id}/export` | Administrateur, direction | Télécharger les données d'un compte (demande d'accès d'une personne) | P2 |
-| DELETE | `/api/admin/utilisateurs/{id}/donnees` | Administrateur, direction | Supprimer ou anonymiser un compte et ses données (demande d'effacement) | P2 |
+| DELETE | `/api/admin/utilisateurs/{id}/donnees` | Administrateur, direction | Supprimer ou anonymiser un compte et ses données (demande d'effacement ; compte `dev` : réservé à un dev, 403 sinon) | P2 |
 
 **Export :** réponse 200 en JSON lisible, avec `Content-Disposition: attachment` (le front peut aussi le lire avec `fetch`). Les dates et les nombres suivent les conventions de l'API (texte pour les décimaux). Il ne contient **jamais** le hash du mot de passe ni les jetons de réinitialisation. Clés :
 

@@ -5,6 +5,10 @@ declare(strict_types=1);
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
+// Hash bcrypt (coût 12, comme password_hash par défaut) d'un mot de passe que personne n'utilise :
+// sert seulement à faire durer la vérification autant qu'avec un vrai compte
+const HASH_FACTICE = '$2y$12$TZrBK0ooc4hePYWP.lIKVO9xJi6YeXZjlPd1jJfpkG6XfcE4dazx2';
+
 $group->post('/auth/login', function (ServerRequestInterface $request, ResponseInterface $response) {
     // 1. Lire le JSON envoyé
     $data = corps($request);
@@ -35,8 +39,11 @@ $group->post('/auth/login', function (ServerRequestInterface $request, ResponseI
         return reponseTropDeTentatives($response, $blocage);
     }
 
-    // 5. Si pas trouvé OU mauvais mot de passe → 401 (même message : on ne révèle pas si le compte existe)
-    if (!$user || !password_verify($motDePasse, $user['mot_de_passe_hash'])) {
+    // 5. Si pas trouvé OU mauvais mot de passe → 401 (même message : on ne révèle pas si le compte existe).
+    // SEC-05 : le hash est vérifié même pour un identifiant inconnu (HASH_FACTICE), sinon la réponse,
+    // nettement plus rapide, trahirait que le compte n'existe pas.
+    $motDePasseValide = password_verify($motDePasse, $user['mot_de_passe_hash'] ?? HASH_FACTICE);
+    if (!$user || !$motDePasseValide) {
         // Journal des connexions (RGPD) : le motif précis n'est pas renvoyé au client, seulement noté
         journaliserConnexion($request, $identifiant, $user['id'] ?? null, $user ? 'mot_de_passe_incorrect' : 'identifiant_inconnu');
         throw new ApiException('Identifiant ou mot de passe incorrect', 401);

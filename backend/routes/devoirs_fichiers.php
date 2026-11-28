@@ -36,7 +36,7 @@ $group->get('/devoirs/fichiers/{id:' . UUID . '}/telecharger', function (ServerR
         default      => false,
     };
     if (!$autorise) {
-        throw new ApiException('Accès refusé', 403);
+        throw new ApiException('Fichier introuvable', 404); // SEC-05 : pas de fuite d'existence (404 comme un id inconnu)
     }
 
     return envoyerFichier($response, $fichier['url'], $fichier['nom'], false);
@@ -65,7 +65,7 @@ $group->get('/devoirs/rendus/{id:' . UUID . '}/telecharger', function (ServerReq
         default      => false,
     };
     if (!$autorise) {
-        throw new ApiException('Accès refusé', 403);
+        throw new ApiException('Fichier introuvable', 404); // SEC-05 : pas de fuite d'existence (404 comme un id inconnu)
     }
 
     return envoyerFichier($response, $rendu['url'], $rendu['nom'], false);

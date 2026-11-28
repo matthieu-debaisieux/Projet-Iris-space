@@ -425,6 +425,11 @@ $group->delete('/documents/{id:' . UUID . '}', function (ServerRequestInterface 
     if (!$doc) {
         throw new ApiException('Document introuvable', 404);
     }
+    // SEC-05 : le document personnel d'un autre élève n'existe pas pour lui (404, pas de fuite d'existence) ;
+    // un document qu'il voit (général, ou déposé pour lui par l'administration) sans l'avoir déposé : 403
+    if ($doc['utilisateur_id'] !== null && $doc['utilisateur_id'] !== moi()) {
+        throw new ApiException('Document introuvable', 404);
+    }
     if ($doc['utilisateur_id'] !== moi() || $doc['depose_par'] !== moi()) {
         throw new ApiException('Vous ne pouvez supprimer que vos propres documents', 403);
     }

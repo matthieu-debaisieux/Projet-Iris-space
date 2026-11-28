@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Slim\Exception\HttpException;
+use Slim\Exception\HttpMethodNotAllowedException;
+use Slim\Exception\HttpNotFoundException;
 use Slim\Factory\AppFactory;
 
 require __DIR__ . '/../vendor/autoload.php';
@@ -41,6 +44,28 @@ $app->addRoutingMiddleware();
 $errorMiddleware = $app->addErrorMiddleware($enDev, true, true);
 // Les autres erreurs (route inconnue, 500…) en JSON plutôt qu'en page HTML
 $errorMiddleware->getDefaultErrorHandler()->forceContentType('application/json');
+// SEC-05 : même format { "error": message } que les ApiException (route inconnue, méthode refusée, erreur PHP).
+// Le détail (classe, fichier, ligne) n'est ajouté qu'en dev ; en production, un message générique.
+$errorMiddleware->getDefaultErrorHandler()->registerErrorRenderer(
+    'application/json',
+    function (Throwable $exception, bool $afficherDetails): string {
+        $erreur = ['error' => match (true) {
+            $exception instanceof HttpNotFoundException         => 'Route introuvable',
+            $exception instanceof HttpMethodNotAllowedException => 'Méthode non autorisée',
+            $exception instanceof HttpException                 => $exception->getTitle(),
+            default                                             => 'Erreur interne du serveur',
+        }];
+        if ($afficherDetails) {
+            $erreur['details'] = [
+                'type'    => get_class($exception),
+                'message' => $exception->getMessage(),
+                'fichier' => $exception->getFile(),
+                'ligne'   => $exception->getLine(),
+            ];
+        }
+        return json_encode($erreur);
+    }
+);
 
 // throw new ApiException('message', 404) dans une route → réponse JSON { "error": "message" } en 404
 $errorMiddleware->setErrorHandler(ApiException::class, function (Request $request, Throwable $exception) use ($app): Response {
@@ -90,7 +115,7 @@ $app->group('/api', function ($group) {
     $group->group('/prof', function ($group) {
         require __DIR__ . '/../routes/prof.php';
     })->add(requireRole('professeur'));
-});
+})->add(refuserRequeteInterSite()); // SEC-05 : protection CSRF, voir helpers.php
 
 
 $app->run();

@@ -23,6 +23,9 @@ $group->delete('/utilisateurs/{id:' . UUID . '}/donnees', function (ServerReques
     if ($id === strtolower(moi())) {
         throw new ApiException('Vous ne pouvez pas supprimer votre propre compte', 400);
     }
+    // SEC-05 : l'effacement anonymise le compte, le désactive et remplace son mot de passe : comme pour le modifier
+    // ou le désactiver (admin/utilisateurs.php), seul un compte dev peut le faire sur un compte dev (403 sinon)
+    verifierDroitSurCompte($id);
 
     $bilan = effacerDonnees($id);
 
